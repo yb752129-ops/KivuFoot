@@ -1,0 +1,48 @@
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, sans-serif;
+  background: #f4f6f5;
+  color: #1a1a1a;
+}
+.page { padding: 1rem; max-width: 480px; margin: 0 auto; }
+header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+h1 { font-size: 1.25rem; color: #0b6e4f; }
+form { display: flex; flex-direction: column; gap: 0.75rem; }
+label { display: flex; flex-direction: column; font-size: 0.9rem; gap: 0.25rem; }
+input, select, button {
+  padding: 0.6rem;
+  font-size: 1rem;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+}
+button {
+  background: #0b6e4f;
+  color: white;
+  border: none;
+  font-weight: 600;
+  cursor: pointer;
+}
+button:disabled { opacity: 0.6; }
+.erreur { color: #c0392b; }
+.confirmation { color: #0b6e4f; }
+.note { font-size: 0.8rem; color: #666; margin-top: 1rem; }
+.banniere-offline { background: #fff3cd; padding: 0.5rem; border-radius: 6px; font-size: 0.85rem; }
+.liste-matchs { list-style: none; padding: 0; }
+.liste-matchs li { padding: 0.75rem; background: white; border-radius: 8px; margin-bottom: 0.5rem; }
+.liste-matchs a { text-decoration: none; color: #1a1a1a; }
+.indicateur-sync { display: flex; align-items: center; gap: 0.4rem; }
+.pastille { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.pastille.en-ligne { background: #2ecc71; }
+.pastille.hors-ligne { background: #e74c3c; }
+.badge { font-size: 0.7rem; padding: 0.2rem 0.5rem; border-radius: 999px; }
+.badge-attente { background: #fff3cd; }
+.badge-rejete { background: #f8d7da; }
+.badge-conflit { background: #ffe0b2; }
+.liste-evenements-locaux ul { list-style: none; padding: 0; }
+.liste-evenements-locaux li { padding: 0.5rem; border-bottom: 1px solid #eee; font-size: 0.9rem; }
+.statut-local { color: #b8860b; }
+.statut-confirme { color: #0b6e4f; }
+.statut-rejete { color: #c0392b; }
+.statut-conflit { color: #e67e22; }
+.message-serveur { font-style: italic; font-size: 0.8rem; }
