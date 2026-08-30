@@ -9,28 +9,31 @@ export default function Layout() {
         <div className="topbar-inner">
           <NavLink to="/" className="brand">
             <span className="brand-mark">KF</span>
-            KivuFoot
+            <span>
+              KivuFoot
+              <small>SUD-KIVU</small>
+            </span>
           </NavLink>
-          <nav className="nav">
-            <NavLink to="/" end>Accueil</NavLink>
-            <NavLink to="/classement">Classement</NavLink>
-            <NavLink to="/matchs">Matchs</NavLink>
-            <NavLink to="/clubs">Clubs</NavLink>
-            <NavLink to="/buteurs">Buteurs</NavLink>
-            <NavLink to="/login" className="cta">Organisateur</NavLink>
-          </nav>
+          <NavLink to="/login" className="btn-orga">Organisateur</NavLink>
         </div>
       </header>
       <div className="shell">
         {competition?.est_demo && (
           <div className="banner-demo">
-            Prototype — données de démonstration (pas le championnat officiel). Rien n’est publié tant que l’organisateur n’a pas validé.
+            Prototype — clubs et scores de démonstration. Rien n’est officiel tant que l’organisateur n’a pas validé.
           </div>
         )}
         {error && <p className="erreur">{error}</p>}
         <Outlet />
-        <footer className="site">KivuFoot · football local · Bukavu / Uvira · Sud-Kivu</footer>
+        <footer className="site">Infrastructure du football local · Bukavu / Uvira</footer>
       </div>
+      <nav className="bottom-nav">
+        <NavLink to="/" end>Accueil</NavLink>
+        <NavLink to="/classement">Classement</NavLink>
+        <NavLink to="/matchs">Matchs</NavLink>
+        <NavLink to="/clubs">Clubs</NavLink>
+        <NavLink to="/buteurs">Buteurs</NavLink>
+      </nav>
     </>
   );
 }

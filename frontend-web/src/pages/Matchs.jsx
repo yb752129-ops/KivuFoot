@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
 import { api } from "../api.js";
-import { clubName, useKivu } from "../context.jsx";
+import { useKivu } from "../context.jsx";
+import Scoreboard from "../components/Scoreboard.jsx";
 
 export default function Matchs() {
   const { saison, clubsById } = useKivu();
@@ -19,14 +19,7 @@ export default function Matchs() {
       <div className="card">
         {matchs.length === 0 && <p className="empty">Aucun résultat public.</p>}
         {matchs.map((m) => (
-          <Link key={m.id} to={`/matchs/${m.id}`} className="match">
-            <div className="team">
-              {clubName(clubsById, m.equipe_domicile_id)}
-              <div className="meta">{m.journee} · {m.stade} · {new Date(m.date_heure).toLocaleString("fr-FR")}</div>
-            </div>
-            <div className="score">{m.score_domicile} – {m.score_exterieur}</div>
-            <div className="team right">{clubName(clubsById, m.equipe_exterieur_id)}</div>
-          </Link>
+          <Scoreboard key={m.id} match={m} clubsById={clubsById} to={`/matchs/${m.id}`} />
         ))}
       </div>
     </section>
