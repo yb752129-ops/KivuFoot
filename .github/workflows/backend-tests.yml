@@ -1,0 +1,54 @@
+name: Backend tests
+
+on:
+  push:
+    branches: [develop, main]
+  pull_request:
+    branches: [develop, main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: kivufoot
+          POSTGRES_PASSWORD: kivufoot
+          POSTGRES_DB: kivufoot_test
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U kivufoot"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Installer les dépendances
+        working-directory: backend
+        run: pip install -r requirements-dev.txt
+
+      - name: Lancer les tests
+        working-directory: backend
+        env:
+          SECRET_KEY: ci-test-secret-key
+          DATABASE_URL: postgresql+asyncpg://kivufoot:kivufoot@localhost:5433/kivufoot_test
+        run: pytest --cov=app --cov-report=term-missing
+
+  # Déploiement automatique sur staging lors d'un push sur `develop`
+  # (§14.2 de la spécification originale) - à adapter à votre
+  # infrastructure réelle (serveur cible, secrets, etc.) avant activation.
+  # deploy-staging:
+  #   needs: test
+  #   if: github.ref == 'refs/heads/develop'
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - run: echo "À configurer selon votre hébergeur (VPS, Scaleway, etc.)"

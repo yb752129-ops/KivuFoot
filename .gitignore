@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.pyc
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Environnement
+.env
+*.env.local
+
+# Node / frontend
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# Éditeurs / OS
+.vscode/
+.idea/
+.DS_Store
+
+# Base de données locale (dev)
+*.sqlite3
+
+# Alembic (rien à ignorer ici, les migrations sont versionnées)
