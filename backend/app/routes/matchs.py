@@ -34,6 +34,32 @@ async def lister_matchs(
     return result.scalars().all()
 
 
+@router.get("/gestion", response_model=list[MatchOut])
+async def lister_matchs_gestion(
+    db: AsyncSession = Depends(get_db),
+    saison_id: int | None = None,
+    current_user: User = Depends(require_roles(RoleUtilisateur.ADMIN, RoleUtilisateur.ORGANISATEUR)),
+    limit: int = 50,
+    offset: int = 0,
+):
+    """Tous les statuts — réservé organisateur / admin (Phase 5)."""
+    query = select(Match)
+    if saison_id:
+        query = query.where(Match.saison_id == saison_id)
+    result = await db.execute(query.order_by(Match.date_heure.desc()).limit(min(limit, 100)).offset(offset))
+    return result.scalars().all()
+
+
+@router.get("/gestion/{match_id}", response_model=MatchOut)
+async def detail_match_gestion(
+    match_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles(RoleUtilisateur.ADMIN, RoleUtilisateur.ORGANISATEUR)),
+):
+    match_ = await verifier_organisateur_du_match(match_id, current_user, db)
+    return match_
+
+
 @router.get("/{match_id}", response_model=MatchOut)
 async def detail_match(match_id: int, db: AsyncSession = Depends(get_db)):
     match_ = await db.get(Match, match_id)

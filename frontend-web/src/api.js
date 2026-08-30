@@ -1,0 +1,82 @@
+const API = (import.meta.env.VITE_API_BASE_URL || "https://kivufoot.onrender.com/api/v1").replace(/\/$/, "");
+
+const TOKEN_KEY = "kivufoot_access";
+const REFRESH_KEY = "kivufoot_refresh";
+
+export function getToken() {
+  return localStorage.getItem(TOKEN_KEY);
+}
+
+export function setTokens(access, refresh) {
+  if (access) localStorage.setItem(TOKEN_KEY, access);
+  if (refresh) localStorage.setItem(REFRESH_KEY, refresh);
+}
+
+export function clearTokens() {
+  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(REFRESH_KEY);
+}
+
+export function isAuthenticated() {
+  return Boolean(getToken());
+}
+
+async function request(path, { method = "GET", body, auth = false } = {}) {
+  const headers = { Accept: "application/json" };
+  if (body !== undefined) headers["Content-Type"] = "application/json";
+  if (auth) {
+    const t = getToken();
+    if (t) headers.Authorization = `Bearer ${t}`;
+  }
+  const res = await fetch(`${API}${path}`, {
+    method,
+    headers,
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+  });
+  if (res.status === 204) return null;
+  const text = await res.text();
+  let data = null;
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch {
+    data = { detail: text };
+  }
+  if (!res.ok) {
+    const detail = data?.detail;
+    const msg = Array.isArray(detail)
+      ? detail.map((d) => d.msg || JSON.stringify(d)).join(" ")
+      : typeof detail === "string"
+        ? detail
+        : `Erreur ${res.status}`;
+    const err = new Error(msg);
+    err.status = res.status;
+    throw err;
+  }
+  return data;
+}
+
+export const api = {
+  competitions: () => request("/competitions?inclure_demo=true"),
+  saisons: (competitionId) => request(`/saisons?competition_id=${competitionId}`),
+  clubs: () => request("/clubs?limit=100"),
+  club: (id) => request(`/clubs/${id}`),
+  joueurs: (clubId) => request(`/joueurs?limit=100${clubId ? `&club_id=${clubId}` : ""}`),
+  joueur: (id) => request(`/joueurs/${id}`),
+  matchs: (saisonId) => request(`/matchs?limit=50${saisonId ? `&saison_id=${saisonId}` : ""}`),
+  match: (id) => request(`/matchs/${id}`),
+  evenementsPublics: (id) => request(`/matchs/${id}/evenements-publics`),
+  classement: (saisonId) => request(`/classement?saison_id=${saisonId}`),
+  buteurs: (saisonId) => request(`/stats/meilleurs-buteurs?saison_id=${saisonId}&limit=10`),
+  passeurs: (saisonId) => request(`/stats/meilleurs-passeurs?saison_id=${saisonId}&limit=10`),
+  login: (email, mot_de_passe) => request("/auth/login", { method: "POST", body: { email, mot_de_passe } }),
+  me: () => request("/auth/me", { auth: true }),
+  matchsGestion: (saisonId) =>
+    request(`/matchs/gestion?limit=50${saisonId ? `&saison_id=${saisonId}` : ""}`, { auth: true }),
+  matchGestion: (id) => request(`/matchs/gestion/${id}`, { auth: true }),
+  evenementsStaff: (matchId) => request(`/matchs/${matchId}/evenements`, { auth: true }),
+  fileValidation: () => request("/validation/evenements", { auth: true }),
+  validerEvenement: (id) => request(`/validation/evenements/${id}`, { method: "PUT", auth: true }),
+  rejeterEvenement: (id, commentaire) =>
+    request(`/validation/evenements/${id}/rejeter`, { method: "PUT", auth: true, body: { commentaire } }),
+  validerMatch: (id) => request(`/matchs/${id}/valider`, { method: "POST", auth: true }),
+};

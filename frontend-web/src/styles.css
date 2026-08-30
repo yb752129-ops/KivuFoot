@@ -1,0 +1,174 @@
+:root {
+  --bg: #07090d;
+  --bg-elev: rgba(16, 20, 28, 0.72);
+  --line: rgba(255, 255, 255, 0.09);
+  --text: #f3f6f4;
+  --muted: #9aa3ab;
+  --green: #12d67c;
+  --green-2: #0b6e4f;
+  --gold: #d4b056;
+  --danger: #ff6b6b;
+  --warn: #f5c542;
+  --radius: 18px;
+  --shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+}
+
+* { box-sizing: border-box; }
+html, body, #root { min-height: 100%; }
+body {
+  margin: 0;
+  color: var(--text);
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  background:
+    radial-gradient(1200px 600px at 10% -10%, rgba(18, 214, 124, 0.16), transparent 55%),
+    radial-gradient(900px 500px at 110% 0%, rgba(212, 176, 86, 0.08), transparent 50%),
+    linear-gradient(180deg, #0a0d12 0%, #07090d 40%, #050608 100%);
+  background-attachment: fixed;
+}
+
+a { color: inherit; text-decoration: none; }
+button, input, select, textarea { font: inherit; }
+
+.shell { max-width: 1080px; margin: 0 auto; padding: 0 1rem 4rem; }
+
+.topbar {
+  position: sticky; top: 0; z-index: 20;
+  backdrop-filter: blur(16px);
+  background: rgba(7, 9, 13, 0.75);
+  border-bottom: 1px solid var(--line);
+}
+.topbar-inner {
+  max-width: 1080px; margin: 0 auto;
+  display: flex; align-items: center; gap: 1rem;
+  padding: 0.75rem 1rem;
+}
+.brand { display: flex; align-items: center; gap: 0.65rem; font-weight: 800; letter-spacing: 0.04em; }
+.brand-mark {
+  width: 36px; height: 36px; border-radius: 10px;
+  background: linear-gradient(145deg, var(--green), var(--green-2));
+  display: grid; place-items: center; color: #04140c; font-weight: 900;
+  box-shadow: 0 0 24px rgba(18, 214, 124, 0.35);
+}
+.nav { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-left: auto; }
+.nav a, .nav button.linkish {
+  background: none; border: 0; color: var(--muted);
+  padding: 0.4rem 0.7rem; border-radius: 999px; cursor: pointer;
+}
+.nav a.active, .nav a:hover, .nav button.linkish:hover { color: var(--text); background: rgba(255,255,255,0.06); }
+.nav .cta {
+  background: linear-gradient(90deg, var(--green), #7af0b3);
+  color: #062415 !important; font-weight: 700;
+}
+
+.banner-demo {
+  margin: 1rem 0 0;
+  padding: 0.7rem 1rem;
+  border: 1px solid rgba(212, 176, 86, 0.35);
+  background: rgba(212, 176, 86, 0.08);
+  color: #f0e1b0;
+  border-radius: 12px;
+  font-size: 0.88rem;
+}
+
+.hero { padding: 2.2rem 0 1.2rem; }
+.kicker { color: var(--green); font-size: 0.78rem; letter-spacing: 0.18em; text-transform: uppercase; font-weight: 700; }
+h1 { font-size: clamp(1.8rem, 5vw, 3rem); line-height: 1.1; margin: 0.35rem 0; }
+.lead { color: var(--muted); max-width: 40rem; }
+
+.grid { display: grid; gap: 1rem; }
+.grid-2 { grid-template-columns: 1fr; }
+@media (min-width: 800px) {
+  .grid-2 { grid-template-columns: 1.4fr 1fr; }
+  .grid-3 { grid-template-columns: repeat(3, 1fr); }
+}
+
+.card {
+  background: var(--bg-elev);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(18px);
+  padding: 1rem;
+}
+.card h2 { margin: 0 0 0.8rem; font-size: 1.05rem; }
+
+.table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+.table th { text-align: left; color: var(--muted); font-weight: 600; padding: 0.45rem 0.3rem; border-bottom: 1px solid var(--line); }
+.table td { padding: 0.55rem 0.3rem; border-bottom: 1px solid rgba(255,255,255,0.04); }
+.table tr:hover td { background: rgba(18, 214, 124, 0.04); }
+.pos { width: 2rem; color: var(--gold); font-weight: 800; }
+
+.match {
+  display: flex; align-items: center; justify-content: space-between; gap: 0.6rem;
+  padding: 0.85rem 0; border-bottom: 1px solid var(--line);
+}
+.match:last-child { border-bottom: 0; }
+.team { flex: 1; font-weight: 650; }
+.team.right { text-align: right; }
+.score {
+  min-width: 4.4rem; text-align: center; font-weight: 800; font-size: 1.15rem;
+  color: var(--green);
+}
+.meta { color: var(--muted); font-size: 0.78rem; margin-top: 0.15rem; }
+.badge {
+  display: inline-block; font-size: 0.7rem; padding: 0.15rem 0.5rem;
+  border-radius: 999px; border: 1px solid var(--line); color: var(--muted);
+}
+.badge.ok { color: var(--green); border-color: rgba(18,214,124,0.35); }
+.badge.wait { color: var(--warn); border-color: rgba(245,197,66,0.35); }
+.badge.bad { color: var(--danger); border-color: rgba(255,107,107,0.35); }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem;
+  border: 0; cursor: pointer; border-radius: 12px; padding: 0.75rem 1rem; font-weight: 700;
+}
+.btn-primary {
+  width: 100%;
+  background: linear-gradient(90deg, #e8c36a, #12d67c);
+  color: #07110c;
+}
+.btn-ghost {
+  background: rgba(255,255,255,0.06); color: var(--text); border: 1px solid var(--line);
+}
+.btn-danger { background: rgba(255,107,107,0.15); color: #ffb4b4; }
+.btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.field { display: flex; flex-direction: column; gap: 0.35rem; margin-bottom: 0.85rem; font-size: 0.9rem; color: var(--muted); }
+.field input, .field textarea {
+  background: rgba(0,0,0,0.35);
+  border: 1px solid var(--line);
+  color: var(--text);
+  border-radius: 12px;
+  padding: 0.85rem 0.9rem;
+  outline: none;
+}
+.field input:focus { border-color: rgba(18,214,124,0.55); box-shadow: 0 0 0 3px rgba(18,214,124,0.12); }
+
+.login-wrap {
+  min-height: 100dvh;
+  display: grid; place-items: center;
+  padding: 1.2rem;
+}
+.login-card {
+  width: min(420px, 100%);
+  padding: 1.6rem 1.3rem 1.4rem;
+}
+.login-card h1 { font-size: 1.7rem; }
+.sub { color: var(--muted); margin: 0 0 1.3rem; }
+
+.erreur { color: var(--danger); font-size: 0.88rem; margin: 0.4rem 0 0.8rem; }
+.empty { color: var(--muted); padding: 1rem 0; }
+.timeline { list-style: none; padding: 0; margin: 0; }
+.timeline li { padding: 0.7rem 0; border-bottom: 1px solid var(--line); font-size: 0.92rem; }
+
+.club-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; }
+@media (min-width: 800px) { .club-grid { grid-template-columns: repeat(4, 1fr); } }
+.club-tile {
+  padding: 1rem; border-radius: 16px; border: 1px solid var(--line);
+  background: rgba(255,255,255,0.03); min-height: 7rem;
+}
+.club-tile strong { display: block; margin-bottom: 0.35rem; }
+
+footer.site {
+  margin-top: 2.5rem; color: var(--muted); font-size: 0.8rem; text-align: center;
+}
