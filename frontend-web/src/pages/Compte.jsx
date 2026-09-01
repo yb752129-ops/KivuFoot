@@ -72,12 +72,24 @@ export default function Compte() {
   }
 
   if (user) {
+    const initiales = (user.nom_complet || user.email || "?")
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((w) => w[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase();
     return (
       <section className="hero">
         <p className="kicker"><Link to="/">← Accueil</Link></p>
         <p className="stamp">Compte KivuFoot</p>
-        <h1>{user.nom_complet || "Compte"}</h1>
-        <p className="journee-date">Lecture publique — Sud-Kivu</p>
+        <div className="id-head">
+          <span className="id-mark" aria-hidden="true">{initiales}</span>
+          <div>
+            <h1>{user.nom_complet || "Compte"}</h1>
+            <p className="journee-date">Lecture publique — Sud-Kivu</p>
+          </div>
+        </div>
         <div className="sheet id-sheet">
           <div className="id-row">
             <span>Nom</span>

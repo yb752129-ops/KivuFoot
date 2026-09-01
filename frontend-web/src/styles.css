@@ -394,7 +394,28 @@ h1 {
   gap: 0.75rem;
 }
 
-.id-sheet { margin-top: 0.35rem; }
+.id-head {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  margin: 0.35rem 0 0.2rem;
+}
+.id-head h1 { margin: 0 0 0.2rem; }
+.id-head .journee-date { margin: 0; }
+.id-mark {
+  flex: 0 0 auto;
+  width: 3.4rem;
+  height: 3.4rem;
+  display: grid;
+  place-items: center;
+  border: 1.4px solid var(--rule-strong);
+  background: transparent;
+  font-family: var(--serif);
+  font-weight: 650;
+  font-size: 1.15rem;
+  letter-spacing: 0.04em;
+  color: var(--ink);
+}
 .id-row {
   display: flex;
   justify-content: space-between;
