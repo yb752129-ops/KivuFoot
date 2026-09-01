@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { api } from "../api.js";
-import { clubName, useKivu } from "../context.jsx";
+import { useKivu } from "../context.jsx";
+import Scoreboard from "../components/Scoreboard.jsx";
+import { formatJour, journeeTitre } from "../display.js";
 
 const LABELS = {
   but: "But",
@@ -43,25 +45,33 @@ export default function MatchDetail() {
 
   return (
     <section className="hero">
-      <div className="kicker">{match.journee} · {match.stade}</div>
-      <h1>
-        {clubName(clubsById, match.equipe_domicile_id)} {match.score_domicile}–{match.score_exterieur}{" "}
-        {clubName(clubsById, match.equipe_exterieur_id)}
-      </h1>
-      <p className="lead">{new Date(match.date_heure).toLocaleString("fr-FR")} {match.forfait ? "· Forfait" : ""}</p>
-      <div className="card">
-        <h2>Événements validés</h2>
-        {evts.length === 0 && <p className="empty">Pas d’événements publics sur cette feuille.</p>}
-        <ul className="timeline">
-          {evts.map((e) => (
-            <li key={e.id}>
-              <strong>{e.minute}′</strong> · {LABELS[e.type] || e.type} · {joueurs[e.joueur_id] || "Joueur"}
-              {e.equipe_concernee === "domicile" ? " (dom.)" : " (ext.)"}
-            </li>
-          ))}
-        </ul>
+      <p className="kicker">
+        {journeeTitre(match.journee)}
+        {match.date_heure ? ` · ${formatJour(match.date_heure, true)}` : ""}
+      </p>
+      <div className="sheet" style={{ marginTop: "0.85rem" }}>
+        <Scoreboard match={match} clubsById={clubsById} />
       </div>
-      <p style={{ marginTop: "1rem" }}>
+      <p className="stamp" style={{ margin: "0.7rem 0 0" }}>Validé</p>
+      {match.forfait && <p className="lead">Forfait</p>}
+
+      <div className="section-head">
+        <h2>Feuille</h2>
+      </div>
+      {evts.length === 0 && <p className="empty">Pas d’événements publics sur cette feuille.</p>}
+      <ul className="timeline">
+        {evts.map((e) => (
+          <li key={e.id}>
+            <strong>{e.minute}′</strong>
+            {" · "}
+            {LABELS[e.type] || e.type}
+            {" · "}
+            {joueurs[e.joueur_id] || "Joueur"}
+            {e.equipe_concernee === "domicile" ? " · domicile" : " · extérieur"}
+          </li>
+        ))}
+      </ul>
+      <p className="meta" style={{ marginTop: "1.1rem" }}>
         <Link to={`/clubs/${match.equipe_domicile_id}`}>Club domicile</Link>
         {" · "}
         <Link to={`/clubs/${match.equipe_exterieur_id}`}>Club extérieur</Link>

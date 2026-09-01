@@ -16,32 +16,33 @@ export default function Buteurs() {
 
   return (
     <section className="hero">
-      <div className="kicker">Stats publiques</div>
-      <h1>Buteurs &amp; passeurs</h1>
-      <div className="grid grid-2">
-        <article className="card">
-          <h2>Meilleurs buteurs</h2>
-          {buteurs.length === 0 && <p className="empty">Pas encore de stats (elles se remplissent à la validation des événements).</p>}
-          <ol className="timeline">
-            {buteurs.map((b) => (
-              <li key={b.joueur_id}>
-                <Link to={`/joueurs/${b.joueur_id}`}><strong>{b.joueur_nom}</strong></Link> · {b.valeur}
-              </li>
-            ))}
-          </ol>
-        </article>
-        <article className="card">
-          <h2>Meilleurs passeurs</h2>
-          {passeurs.length === 0 && <p className="empty">Pas encore de passes décisives validées.</p>}
-          <ol className="timeline">
-            {passeurs.map((b) => (
-              <li key={b.joueur_id}>
-                <Link to={`/joueurs/${b.joueur_id}`}><strong>{b.joueur_nom}</strong></Link> · {b.valeur}
-              </li>
-            ))}
-          </ol>
-        </article>
+      <h1>Buteurs</h1>
+      <div className="section-head">
+        <h2>Buts</h2>
       </div>
+      {buteurs.length === 0 && <p className="empty">Pas encore de buts validés.</p>}
+      <ol className="timeline">
+        {buteurs.map((b) => (
+          <li key={b.joueur_id}>
+            <Link to={`/joueurs/${b.joueur_id}`}><strong>{b.joueur_nom}</strong></Link>
+            {" · "}
+            {b.valeur}
+          </li>
+        ))}
+      </ol>
+      <div className="section-head">
+        <h2>Passes</h2>
+      </div>
+      {passeurs.length === 0 && <p className="empty">Pas encore de passes validées.</p>}
+      <ol className="timeline">
+        {passeurs.map((b) => (
+          <li key={b.joueur_id}>
+            <Link to={`/joueurs/${b.joueur_id}`}><strong>{b.joueur_nom}</strong></Link>
+            {" · "}
+            {b.valeur}
+          </li>
+        ))}
+      </ol>
     </section>
   );
 }

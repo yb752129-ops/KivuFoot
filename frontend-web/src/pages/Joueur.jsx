@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { api } from "../api.js";
 import { clubName, useKivu } from "../context.jsx";
+import { stripDemo } from "../display.js";
 
 export default function Joueur() {
   const { id } = useParams();
@@ -18,22 +19,18 @@ export default function Joueur() {
 
   return (
     <section className="hero">
-      <div className="kicker">Fiche publique</div>
       <h1>{j.nom_complet}</h1>
       <p className="lead">
         {j.poste || "Poste non renseigné"}
         {j.club_actuel_id ? (
           <>
             {" · "}
-            <Link to={`/clubs/${j.club_actuel_id}`}>{clubName(clubsById, j.club_actuel_id)}</Link>
+            <Link to={`/clubs/${j.club_actuel_id}`}>
+              {stripDemo(clubName(clubsById, j.club_actuel_id))}
+            </Link>
           </>
         ) : null}
       </p>
-      <div className="card">
-        <p className="meta">
-          Téléphone et e-mail ne sont jamais affichés ici. Les statistiques détaillées des mineurs restent protégées.
-        </p>
-      </div>
     </section>
   );
 }

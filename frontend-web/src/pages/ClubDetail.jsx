@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { api } from "../api.js";
+import { stripDemo } from "../display.js";
 
 export default function ClubDetail() {
   const { id } = useParams();
@@ -16,21 +17,21 @@ export default function ClubDetail() {
 
   return (
     <section className="hero">
-      <div className="kicker">{club.ville}</div>
-      <h1>{club.nom}</h1>
+      <p className="kicker">{club.ville}</p>
+      <h1>{stripDemo(club.nom)}</h1>
       <p className="lead">{club.stade}</p>
-      <div className="card">
-        <h2>Effectif public</h2>
-        {joueurs.length === 0 && <p className="empty">Aucun joueur listé.</p>}
-        <ul className="timeline">
-          {joueurs.map((j) => (
-            <li key={j.id}>
-              <Link to={`/joueurs/${j.id}`}><strong>{j.nom_complet}</strong></Link>
-              {j.poste ? ` · ${j.poste}` : ""}
-            </li>
-          ))}
-        </ul>
+      <div className="section-head">
+        <h2>Effectif</h2>
       </div>
+      {joueurs.length === 0 && <p className="empty">Aucun joueur listé.</p>}
+      <ul className="timeline">
+        {joueurs.map((j) => (
+          <li key={j.id}>
+            <Link to={`/joueurs/${j.id}`}><strong>{j.nom_complet}</strong></Link>
+            {j.poste ? ` · ${j.poste}` : ""}
+          </li>
+        ))}
+      </ul>
     </section>
   );
 }

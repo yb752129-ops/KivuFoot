@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api.js";
 import { useKivu } from "../context.jsx";
+import { stripDemo } from "../display.js";
 
 export default function Classement() {
   const { saison } = useKivu();
@@ -15,11 +16,12 @@ export default function Classement() {
 
   return (
     <section className="hero">
-      <div className="kicker">Officiel</div>
-      <h1>Classement</h1>
-      <p className="lead">Uniquement les matchs validés. Victoire 3 pts · nul 1 · défaite 0.</p>
+      <div className="section-head" style={{ marginTop: 0 }}>
+        <h1 style={{ margin: 0 }}>Classement</h1>
+        <Link to="/buteurs">Buteurs</Link>
+      </div>
       {err && <p className="erreur">{err}</p>}
-      <div className="card" style={{ overflowX: "auto" }}>
+      <div className="table-wrap">
         {lignes.length === 0 && <p className="empty">Pas encore de match publié.</p>}
         {lignes.length > 0 && (
           <table className="table">
@@ -32,7 +34,7 @@ export default function Classement() {
               {lignes.map((l, i) => (
                 <tr key={l.club_id}>
                   <td className="pos">{i + 1}</td>
-                  <td><Link to={`/clubs/${l.club_id}`}>{l.club_nom.replace(/^DEMO\s+/i, "")}</Link></td>
+                  <td><Link to={`/clubs/${l.club_id}`}>{stripDemo(l.club_nom)}</Link></td>
                   <td><strong>{l.points}</strong></td>
                   <td>{l.matchs_joues}</td>
                   <td>{l.victoires}</td>
