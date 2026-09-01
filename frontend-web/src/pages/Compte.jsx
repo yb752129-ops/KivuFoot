@@ -3,6 +3,28 @@ import { Link, useNavigate } from "react-router-dom";
 import { api } from "../api.js";
 import { useAuth } from "../auth.jsx";
 
+function MotDePasse({ value, onChange, autoComplete, error }) {
+  const [voir, setVoir] = useState(false);
+  return (
+    <label className="field">
+      <span className="field-top">
+        Mot de passe
+        <button type="button" className="linkish" onClick={() => setVoir((v) => !v)}>
+          {voir ? "Masquer" : "Afficher"}
+        </button>
+      </span>
+      <input
+        type={voir ? "text" : "password"}
+        value={value}
+        onChange={onChange}
+        autoComplete={autoComplete}
+        required
+      />
+      {error && <span className="erreur">{error}</span>}
+    </label>
+  );
+}
+
 export default function Compte() {
   const nav = useNavigate();
   const { user, applySession, logout } = useAuth();
@@ -53,12 +75,28 @@ export default function Compte() {
     return (
       <section className="hero">
         <p className="kicker"><Link to="/">← Accueil</Link></p>
-        <h1>Compte</h1>
-        <p className="lead">{user.nom_complet || user.email}</p>
-        <p className="journee-date">{user.email}</p>
-        <button className="linkish" type="button" onClick={onLogout}>
-          Se déconnecter
-        </button>
+        <p className="stamp">Compte KivuFoot</p>
+        <h1>{user.nom_complet || "Compte"}</h1>
+        <p className="journee-date">Lecture publique — Sud-Kivu</p>
+        <div className="sheet id-sheet">
+          <div className="id-row">
+            <span>Nom</span>
+            <strong>{user.nom_complet || "—"}</strong>
+          </div>
+          <div className="id-row">
+            <span>E-mail</span>
+            <strong>{user.email}</strong>
+          </div>
+          <div className="id-row">
+            <span>Statut</span>
+            <strong>Lecteur</strong>
+          </div>
+        </div>
+        <p className="id-out">
+          <button className="linkish" type="button" onClick={onLogout}>
+            Se déconnecter
+          </button>
+        </p>
       </section>
     );
   }
@@ -94,7 +132,6 @@ export default function Compte() {
               value={nom}
               onChange={(e) => setNom(e.target.value)}
               autoComplete="name"
-              placeholder="Ex. Yves Bukasa"
             />
             {fieldErr.nom && <span className="erreur">{fieldErr.nom}</span>}
           </label>
@@ -106,22 +143,16 @@ export default function Compte() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             autoComplete="username"
-            placeholder="vous@exemple.com"
             required
           />
           {fieldErr.email && <span className="erreur">{fieldErr.email}</span>}
         </label>
-        <label className="field">
-          Mot de passe
-          <input
-            type="password"
-            value={mdp}
-            onChange={(e) => setMdp(e.target.value)}
-            autoComplete={mode === "creer" ? "new-password" : "current-password"}
-            required
-          />
-          {fieldErr.mdp && <span className="erreur">{fieldErr.mdp}</span>}
-        </label>
+        <MotDePasse
+          value={mdp}
+          onChange={(e) => setMdp(e.target.value)}
+          autoComplete={mode === "creer" ? "new-password" : "current-password"}
+          error={fieldErr.mdp}
+        />
         {mode === "creer" && (
           <label className="field">
             Confirmer le mot de passe
@@ -144,7 +175,7 @@ export default function Compte() {
         </button>
       </form>
       {mode === "connexion" && (
-        <p className="meta" style={{ marginTop: "1rem" }}>
+        <p className="meta" style={{ marginTop: "1.1rem" }}>
           <button className="linkish" type="button" onClick={() => setMode("creer")}>
             Pas encore de compte ? Créer un compte
           </button>
