@@ -383,14 +383,21 @@ h1 {
 }
 
 footer.site {
-  margin-top: 2.2rem;
-  padding-top: 0.8rem;
-  border-top: 1px solid var(--rule);
-  color: var(--ink-soft);
-  font-size: 0.72rem;
+  margin-top: 2.4rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--rule-strong);
   text-align: center;
 }
-footer.site a { text-decoration: underline; text-underline-offset: 3px; }
+footer.site a.orga-entry {
+  display: inline-block;
+  font-family: var(--sans);
+  font-weight: 600;
+  font-size: 12px;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  color: var(--stamp);
+  text-decoration: none;
+}
 
 .linkish {
   background: none;
