@@ -15,15 +15,18 @@ export default function ClubDetail() {
 
   if (!club) return <p className="empty">Chargement…</p>;
 
+  const lieu = [club.ville, club.stade].filter(Boolean).join(" — ");
+
   return (
     <section className="hero">
-      <p className="kicker">{club.ville}</p>
       <h1>{stripDemo(club.nom)}</h1>
-      <p className="lead">{club.stade}</p>
+      {lieu && <p className="journee-date">{lieu}</p>}
       <div className="section-head">
         <h2>Effectif</h2>
       </div>
-      {joueurs.length === 0 && <p className="empty">Aucun joueur listé.</p>}
+      {joueurs.length === 0 && (
+        <p className="empty">Aucun joueur rendu public pour ce club.</p>
+      )}
       <ul className="timeline">
         {joueurs.map((j) => (
           <li key={j.id}>

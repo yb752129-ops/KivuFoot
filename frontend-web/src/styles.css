@@ -362,16 +362,30 @@ h1 {
 
 .club-grid { display: flex; flex-direction: column; }
 .club-tile {
-  display: block;
-  padding: 0.85rem 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.75rem;
+  padding: 0.9rem 0.05rem;
   border-bottom: 1px solid var(--rule);
   background: transparent;
   min-height: 0;
   border-radius: 0;
 }
+.club-tile:last-child { border-bottom: 0; }
 .club-tile .crest { display: none; }
-.club-tile strong { display: block; margin: 0 0 0.15rem; font-size: 1.02rem; }
-.club-tile .meta { font-size: 0.78rem; }
+.club-tile strong {
+  display: block;
+  margin: 0;
+  font-size: 1.02rem;
+  font-weight: 700;
+}
+.club-tile .meta {
+  font-size: 11px;
+  letter-spacing: 0.6px;
+  color: var(--ink-soft);
+  text-align: right;
+}
 
 .crest {
   display: none;
