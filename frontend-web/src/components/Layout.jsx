@@ -19,11 +19,6 @@ export default function Layout() {
       <div className="shell">
         {error && <p className="erreur">{error}</p>}
         <Outlet />
-        <footer className="site">
-          <NavLink to="/login" className="orga-entry">
-            Espace organisateur →
-          </NavLink>
-        </footer>
       </div>
       <nav className="bottom-nav">
         <NavLink to="/" end>Accueil</NavLink>
