@@ -1,36 +1,51 @@
 import { Link } from "react-router-dom";
 import { clubName } from "../context.jsx";
 
-function initials(name) {
-  return (name || "?")
-    .replace(/^DEMO\s+/i, "")
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(-2)
-    .map((w) => w[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
+function displayName(name) {
+  return (name || "").replace(/^DEMO\s*[-–]?\s*/i, "").trim() || name;
 }
 
 export default function Scoreboard({ match, clubsById, to }) {
-  const home = clubName(clubsById, match.equipe_domicile_id);
-  const away = clubName(clubsById, match.equipe_exterieur_id);
+  const home = displayName(clubName(clubsById, match.equipe_domicile_id));
+  const away = displayName(clubName(clubsById, match.equipe_exterieur_id));
+  const sd = match.score_domicile;
+  const se = match.score_exterieur;
+  const played = sd != null && se != null;
+  const homeWin = played && sd > se;
+  const awayWin = played && se > sd;
+  const date = match.date_heure
+    ? new Date(match.date_heure).toLocaleDateString("fr-FR", {
+        day: "numeric",
+        month: "short",
+      })
+    : "";
+  const meta = [match.stade, match.journee, date].filter(Boolean).join(" · ");
+
   const inner = (
     <>
-      <div className="sb-team">
-        <span className="crest">{initials(home)}</span>
-        <span className="sb-name">{home.replace(/^DEMO\s+/i, "")}</span>
-        <span className="meta">{match.journee} · {new Date(match.date_heure).toLocaleDateString("fr-FR")}</span>
+      <div className="sb-line">
+        <span className={`sb-name${homeWin ? " is-winner" : ""}${awayWin ? " is-loser" : ""}`}>
+          {home}
+        </span>
+        <span className="sb-score">
+          {played ? (
+            <>
+              {sd}
+              <span className="sb-dash">–</span>
+              {se}
+            </>
+          ) : (
+            <span className="sb-dash">–</span>
+          )}
+        </span>
+        <span className={`sb-name away${awayWin ? " is-winner" : ""}${homeWin ? " is-loser" : ""}`}>
+          {away}
+        </span>
       </div>
-      <div className="sb-score">{match.score_domicile}–{match.score_exterieur}</div>
-      <div className="sb-team right">
-        <span className="crest">{initials(away)}</span>
-        <span className="sb-name">{away.replace(/^DEMO\s+/i, "")}</span>
-        <span className="meta">{match.stade || " "}</span>
-      </div>
+      {meta && <div className="sb-meta">{meta}</div>}
     </>
   );
+
   if (to) return <Link to={to} className="scoreboard">{inner}</Link>;
   return <div className="scoreboard">{inner}</div>;
 }

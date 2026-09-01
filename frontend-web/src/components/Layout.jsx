@@ -5,34 +5,29 @@ export default function Layout() {
   const { competition, error } = useKivu();
   return (
     <>
-      <header className="topbar">
-        <div className="topbar-inner">
-          <NavLink to="/" className="brand">
-            <span className="brand-mark">KF</span>
-            <span>
-              KivuFoot
-              <small>SUD-KIVU</small>
-            </span>
+      <header className="masthead">
+        <div className="masthead-inner">
+          <NavLink to="/" className="wordmark">
+            <span className="wordmark-name">KivuFoot</span>
+            <span className="wordmark-place">Sud-Kivu</span>
           </NavLink>
-          <NavLink to="/login" className="btn-orga">Organisateur</NavLink>
         </div>
       </header>
       <div className="shell">
         {competition?.est_demo && (
-          <div className="banner-demo">
-            Prototype — clubs et scores de démonstration. Rien n’est officiel tant que l’organisateur n’a pas validé.
-          </div>
+          <p className="demo-line">Données de démonstration</p>
         )}
         {error && <p className="erreur">{error}</p>}
         <Outlet />
-        <footer className="site">Infrastructure du football local · Bukavu / Uvira</footer>
+        <footer className="site">
+          <NavLink to="/login">Espace organisateur</NavLink>
+        </footer>
       </div>
       <nav className="bottom-nav">
         <NavLink to="/" end>Accueil</NavLink>
-        <NavLink to="/classement">Classement</NavLink>
         <NavLink to="/matchs">Matchs</NavLink>
+        <NavLink to="/classement">Classement</NavLink>
         <NavLink to="/clubs">Clubs</NavLink>
-        <NavLink to="/buteurs">Buteurs</NavLink>
       </nav>
     </>
   );
