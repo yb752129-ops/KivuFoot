@@ -53,7 +53,7 @@ button, input, select, textarea { font: inherit; }
 .masthead-row {
   width: 100%;
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
   gap: 1rem;
 }
@@ -64,7 +64,8 @@ button, input, select, textarea { font: inherit; }
   letter-spacing: 1.4px;
   text-transform: uppercase;
   color: var(--stamp);
-  padding-bottom: 0.15rem;
+  padding-bottom: 0;
+  flex: 0 0 auto;
 }
 .compte-tabs {
   display: grid;
@@ -90,11 +91,25 @@ button, input, select, textarea { font: inherit; }
   border-bottom-color: var(--rule-strong);
 }
 .compte-form { margin-top: 0.4rem; }
-.wordmark {
+.wordmark { min-width: 0; }
+.wordmark-lockup {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+.brand-sceau {
+  flex: 0 0 auto;
+  width: 2.05rem;
+  height: 2.05rem;
+  color: var(--ink);
+  display: block;
+}
+.wordmark-col {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 0.08rem;
+  gap: 0.1rem;
+  min-width: 0;
 }
 .wordmark-name {
   font-family: var(--serif);
@@ -126,7 +141,7 @@ button, input, select, textarea { font: inherit; }
   font-style: normal;
 }
 
-/* —— Bottom index —— */
+/* —— Sommaire (pas une tab bar d’appli) —— */
 .bottom-nav {
   position: fixed;
   left: 0;
@@ -137,21 +152,43 @@ button, input, select, textarea { font: inherit; }
   grid-template-columns: repeat(4, 1fr);
   background: var(--paper);
   border-top: 2px solid var(--rule-strong);
-  padding: 0.15rem 0.2rem calc(0.25rem + env(safe-area-inset-bottom));
+  padding: 0 0.15rem calc(0.2rem + env(safe-area-inset-bottom));
 }
 .bottom-nav a {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   text-align: center;
   color: var(--ink-soft);
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   font-weight: 600;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  padding: 0.7rem 0.15rem 0.55rem;
-  border-top: 3px solid transparent;
+  padding: 1.05rem 0.1rem 0.72rem;
 }
 .bottom-nav a.active {
   color: var(--ink);
-  border-top-color: var(--stamp);
+}
+.bottom-nav a.active::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 0.36rem;
+  width: 1.55rem;
+  height: 1.5px;
+  background: var(--ink);
+  transform: translateX(-50%);
+}
+.nav-sceau {
+  position: absolute;
+  top: 0.22rem;
+  left: 50%;
+  width: 0.62rem;
+  height: 0.62rem;
+  color: var(--ink);
+  transform: translateX(-50%);
+  display: block;
 }
 
 /* —— Page titles —— */
@@ -512,5 +549,6 @@ footer.site a.orga-entry {
 @media (max-width: 360px) {
   .sb-name { font-size: 0.82rem; }
   .wordmark-name { font-size: 1.6rem; }
-  .bottom-nav a { font-size: 0.64rem; letter-spacing: 0.02em; }
+  .brand-sceau { width: 1.75rem; height: 1.75rem; }
+  .bottom-nav a { font-size: 0.62rem; letter-spacing: 0.06em; }
 }
