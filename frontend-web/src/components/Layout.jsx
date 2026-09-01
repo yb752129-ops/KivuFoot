@@ -1,16 +1,23 @@
 import { NavLink, Outlet } from "react-router-dom";
+import { useAuth } from "../auth.jsx";
 import { useKivu } from "../context.jsx";
 
 export default function Layout() {
   const { competition, error } = useKivu();
+  const { prenom } = useAuth();
   return (
     <>
       <header className="masthead">
         <div className="masthead-inner">
-          <NavLink to="/" className="wordmark">
-            <span className="wordmark-name">KivuFoot</span>
-            <span className="wordmark-place">Sud-Kivu</span>
-          </NavLink>
+          <div className="masthead-row">
+            <NavLink to="/" className="wordmark">
+              <span className="wordmark-name">KivuFoot</span>
+              <span className="wordmark-place">Sud-Kivu</span>
+            </NavLink>
+            <NavLink to="/compte" className="compte-link">
+              {prenom || "Compte"}
+            </NavLink>
+          </div>
           {competition?.est_demo && (
             <p className="demo-line">Données de démonstration</p>
           )}

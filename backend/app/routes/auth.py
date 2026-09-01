@@ -5,35 +5,62 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user
-from app.auth.hashing import verify_password
+from app.auth.hashing import hash_password, verify_password
 from app.auth.jwt import create_access_token, create_refresh_token_raw, hash_refresh_token
 from app.config import settings
 from app.database import get_db
+from app.models.enums import RoleUtilisateur
 from app.models.user import RefreshToken, User
-from app.schemas.auth import LoginRequest, RefreshRequest, TokenResponse, UserOut
+from app.schemas.auth import LoginRequest, RefreshRequest, RegisterRequest, TokenResponse, UserOut
 
 router = APIRouter(prefix="/auth", tags=["Authentification"])
 
 
+def _role_value(user: User) -> str:
+    return user.role.value if hasattr(user.role, "value") else user.role
+
+
+async def _issue_tokens(db: AsyncSession, user: User) -> TokenResponse:
+    access_token = create_access_token(user.id, _role_value(user))
+    raw_refresh = create_refresh_token_raw()
+    db.add(
+        RefreshToken(
+            user_id=user.id,
+            token_hash=hash_refresh_token(raw_refresh),
+            expires_at=datetime.now(timezone.utc) + timedelta(days=settings.refresh_token_expire_days),
+        )
+    )
+    await db.commit()
+    return TokenResponse(access_token=access_token, refresh_token=raw_refresh)
+
+
+@router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
+async def register(payload: RegisterRequest, db: AsyncSession = Depends(get_db)):
+    """Inscription supporter uniquement. Ne crée jamais de rôle staff."""
+    email = str(payload.email).lower()
+    existant = await db.execute(select(User).where(User.email == email))
+    if existant.scalar_one_or_none() is not None:
+        raise HTTPException(status.HTTP_409_CONFLICT, "Un compte existe déjà avec cet e-mail.")
+
+    user = User(
+        email=email,
+        mot_de_passe_hash=hash_password(payload.mot_de_passe),
+        role=RoleUtilisateur.SUPPORTER,
+        nom_complet=payload.nom_complet.strip(),
+        est_actif=True,
+    )
+    db.add(user)
+    await db.flush()
+    return await _issue_tokens(db, user)
+
+
 @router.post("/login", response_model=TokenResponse)
 async def login(payload: LoginRequest, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(User).where(User.email == payload.email))
+    result = await db.execute(select(User).where(User.email == str(payload.email).lower()))
     user = result.scalar_one_or_none()
     if user is None or not user.est_actif or not verify_password(payload.mot_de_passe, user.mot_de_passe_hash):
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Email ou mot de passe incorrect.")
-
-    access_token = create_access_token(user.id, user.role.value if hasattr(user.role, "value") else user.role)
-
-    raw_refresh = create_refresh_token_raw()
-    refresh_entry = RefreshToken(
-        user_id=user.id,
-        token_hash=hash_refresh_token(raw_refresh),
-        expires_at=datetime.now(timezone.utc) + timedelta(days=settings.refresh_token_expire_days),
-    )
-    db.add(refresh_entry)
-    await db.commit()
-
-    return TokenResponse(access_token=access_token, refresh_token=raw_refresh)
+    return await _issue_tokens(db, user)
 
 
 @router.post("/refresh", response_model=TokenResponse)
@@ -50,18 +77,17 @@ async def refresh(payload: RefreshRequest, db: AsyncSession = Depends(get_db)):
     if user is None or not user.est_actif:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Utilisateur introuvable ou désactivé.")
 
-    # Rotation : on révoque l'ancien et on en émet un nouveau.
     stored.revoked = True
     new_raw = create_refresh_token_raw()
-    new_entry = RefreshToken(
-        user_id=user.id,
-        token_hash=hash_refresh_token(new_raw),
-        expires_at=now + timedelta(days=settings.refresh_token_expire_days),
+    db.add(
+        RefreshToken(
+            user_id=user.id,
+            token_hash=hash_refresh_token(new_raw),
+            expires_at=now + timedelta(days=settings.refresh_token_expire_days),
+        )
     )
-    db.add(new_entry)
-    access_token = create_access_token(user.id, user.role.value if hasattr(user.role, "value") else user.role)
+    access_token = create_access_token(user.id, _role_value(user))
     await db.commit()
-
     return TokenResponse(access_token=access_token, refresh_token=new_raw)
 
 

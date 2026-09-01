@@ -54,3 +54,33 @@ async def test_logout_revoque_le_refresh_token(client, db_session):
 async def test_route_protegee_sans_token_refusee(client):
     resp = await client.get("/api/v1/auth/me")
     assert resp.status_code == 401
+
+
+async def test_register_supporter_puis_me(client):
+    resp = await client.post(
+        "/api/v1/auth/register",
+        json={
+            "nom_complet": "Yves Test",
+            "email": "yves.supporter@example.com",
+            "mot_de_passe": "MotDePasse123",
+        },
+    )
+    assert resp.status_code == 201
+    tokens = resp.json()
+    me = await client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {tokens['access_token']}"})
+    assert me.status_code == 200
+    body = me.json()
+    assert body["email"] == "yves.supporter@example.com"
+    assert body["role"] == "supporter"
+    assert body["nom_complet"] == "Yves Test"
+
+
+async def test_register_email_deja_pris(client):
+    payload = {
+        "nom_complet": "Yves Test",
+        "email": "yves.dup@example.com",
+        "mot_de_passe": "MotDePasse123",
+    }
+    assert (await client.post("/api/v1/auth/register", json=payload)).status_code == 201
+    resp = await client.post("/api/v1/auth/register", json=payload)
+    assert resp.status_code == 409

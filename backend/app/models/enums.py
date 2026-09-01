@@ -12,6 +12,7 @@ class RoleUtilisateur(str, enum.Enum):
     ORGANISATEUR = "organisateur"
     CLUB_MANAGER = "club_manager"
     ADMIN = "admin"
+    SUPPORTER = "supporter"
 
 
 class TypeCompetition(str, enum.Enum):

@@ -50,6 +50,46 @@ button, input, select, textarea { font: inherit; }
   align-items: flex-start;
   gap: 0.5rem;
 }
+.masthead-row {
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.compte-link {
+  font-family: var(--sans);
+  font-weight: 600;
+  font-size: 12px;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  color: var(--stamp);
+  padding-bottom: 0.15rem;
+}
+.compte-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  margin: 1.1rem 0 1.2rem;
+  border-bottom: 2px solid var(--rule-strong);
+}
+.compte-tabs button {
+  background: none;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  padding: 0.65rem 0.2rem;
+  font-weight: 600;
+  font-size: 0.82rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+.compte-tabs button.on {
+  color: var(--ink);
+  border-bottom-color: var(--rule-strong);
+}
+.compte-form { margin-top: 0.4rem; }
 .wordmark {
   display: flex;
   flex-direction: column;

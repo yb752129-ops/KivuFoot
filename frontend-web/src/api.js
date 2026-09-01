@@ -69,7 +69,10 @@ export const api = {
   buteurs: (saisonId) => request(`/stats/meilleurs-buteurs?saison_id=${saisonId}&limit=10`),
   passeurs: (saisonId) => request(`/stats/meilleurs-passeurs?saison_id=${saisonId}&limit=10`),
   login: (email, mot_de_passe) => request("/auth/login", { method: "POST", body: { email, mot_de_passe } }),
+  register: (nom_complet, email, mot_de_passe) =>
+    request("/auth/register", { method: "POST", body: { nom_complet, email, mot_de_passe } }),
   me: () => request("/auth/me", { auth: true }),
+  logout: (refresh_token) => request("/auth/logout", { method: "POST", body: { refresh_token } }),
   matchsGestion: (saisonId) =>
     request(`/matchs/gestion?limit=50${saisonId ? `&saison_id=${saisonId}` : ""}`, { auth: true }),
   matchGestion: (id) => request(`/matchs/gestion/${id}`, { auth: true }),
