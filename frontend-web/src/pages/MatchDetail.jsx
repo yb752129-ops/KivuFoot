@@ -52,7 +52,7 @@ export default function MatchDetail() {
       <div className="sheet" style={{ marginTop: "0.85rem" }}>
         <Scoreboard match={match} clubsById={clubsById} />
       </div>
-      <p className="stamp" style={{ margin: "0.7rem 0 0" }}>Validé</p>
+      {match.statut === "valide" && <p className="stamp">Validé</p>}
       {match.forfait && <p className="lead">Forfait</p>}
 
       <div className="section-head">

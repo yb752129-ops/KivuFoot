@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { clubName } from "../context.jsx";
+import { formatDateline, journeeTitre } from "../display.js";
 
 function displayName(name) {
   return (name || "").replace(/^DEMO\s*[-–]?\s*/i, "").trim() || name;
@@ -13,13 +14,7 @@ export default function Scoreboard({ match, clubsById, to }) {
   const played = sd != null && se != null;
   const homeWin = played && sd > se;
   const awayWin = played && se > sd;
-  const date = match.date_heure
-    ? new Date(match.date_heure).toLocaleDateString("fr-FR", {
-        day: "numeric",
-        month: "short",
-      })
-    : "";
-  const meta = [match.stade, match.journee, date].filter(Boolean).join(" · ");
+  const lieu = formatDateline(match.date_heure, match.stade);
 
   const inner = (
     <>
@@ -42,7 +37,10 @@ export default function Scoreboard({ match, clubsById, to }) {
           {away}
         </span>
       </div>
-      {meta && <div className="sb-meta">{meta}</div>}
+      <div className="sb-meta">
+        <span className="sb-meta-journee">{journeeTitre(match.journee)}</span>
+        {lieu && <span className="sb-meta-lieu">{lieu}</span>}
+      </div>
     </>
   );
 

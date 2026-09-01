@@ -17,6 +17,18 @@ export function formatJour(iso, long = false) {
   );
 }
 
+/** dim. 23 août — Stade Kadutu */
+export function formatDateline(iso, stade) {
+  const jour = iso
+    ? new Date(iso).toLocaleDateString("fr-FR", {
+        weekday: "short",
+        day: "numeric",
+        month: "short",
+      })
+    : "";
+  return [jour, stade].filter(Boolean).join(" — ");
+}
+
 /** Groupes du plus récent au plus ancien. Même API, affichage seulement. */
 export function groupMatchsByJournee(matchs) {
   const map = new Map();
