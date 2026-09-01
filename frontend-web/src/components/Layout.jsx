@@ -11,16 +11,18 @@ export default function Layout() {
             <span className="wordmark-name">KivuFoot</span>
             <span className="wordmark-place">Sud-Kivu</span>
           </NavLink>
+          {competition?.est_demo && (
+            <p className="demo-line">Données de démonstration</p>
+          )}
         </div>
       </header>
       <div className="shell">
-        {competition?.est_demo && (
-          <p className="demo-line">Données de démonstration</p>
-        )}
         {error && <p className="erreur">{error}</p>}
         <Outlet />
         <footer className="site">
-          <NavLink to="/login">Espace organisateur</NavLink>
+          <NavLink to="/login" className="orga-entry">
+            Espace organisateur →
+          </NavLink>
         </footer>
       </div>
       <nav className="bottom-nav">

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { api } from "../api.js";
 import { useKivu } from "../context.jsx";
 import Scoreboard from "../components/Scoreboard.jsx";

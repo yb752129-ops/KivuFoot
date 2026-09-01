@@ -6,7 +6,7 @@ import Scoreboard from "../components/Scoreboard.jsx";
 import { formatJour, groupMatchsByJournee, journeeTitre, stripDemo } from "../display.js";
 
 export default function Home() {
-  const { loading, saison, clubsById } = useKivu();
+  const { loading, saison, clubsById, competition } = useKivu();
   const [classement, setClassement] = useState([]);
   const [matchs, setMatchs] = useState([]);
 
@@ -21,9 +21,14 @@ export default function Home() {
   const last = groupMatchsByJournee(matchs)[0];
   const items = last?.items || [];
 
+  const enTete = [stripDemo(competition?.nom || ""), saison?.nom]
+    .filter(Boolean)
+    .join(" — ");
+
   return (
     <>
       <section>
+        {enTete && <p className="comp-head">{enTete}</p>}
         <h1>{items.length ? journeeTitre(last.code) : "Aucun match publié"}</h1>
         {last?.date && <p className="journee-date">{formatJour(last.date, true)}</p>}
 
