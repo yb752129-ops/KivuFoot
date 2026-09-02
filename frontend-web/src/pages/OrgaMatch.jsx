@@ -1,19 +1,28 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { api, clearTokens } from "../api.js";
-import Chrono, { elapsed } from "../components/Chrono.jsx";
+import Chrono from "../components/Chrono.jsx";
 import { clubName, useKivu } from "../context.jsx";
-import { stripDemo } from "../display.js";
+import { clockFromMatch, formatMinute, periodeLabel, splitMinute, stripDemo } from "../display.js";
 
 const LABELS = {
   but: "But",
-  carton_jaune: "Carton jaune",
-  carton_rouge: "Carton rouge",
+  carton_jaune: "Jaune",
+  carton_rouge: "Rouge",
   but_contre_son_camp: "CSC",
   penalty: "Penalty",
   remplacement: "Changement",
   passe_decisive: "Passe",
 };
+
+const TYPES = [
+  { value: "but", label: "But" },
+  { value: "but_contre_son_camp", label: "CSC" },
+  { value: "penalty", label: "Penalty" },
+  { value: "carton_jaune", label: "Jaune" },
+  { value: "carton_rouge", label: "Rouge" },
+  { value: "remplacement", label: "Changement" },
+];
 
 export default function OrgaMatch() {
   const { id } = useParams();
@@ -21,26 +30,51 @@ export default function OrgaMatch() {
   const { clubsById } = useKivu();
   const [match, setMatch] = useState(null);
   const [evts, setEvts] = useState([]);
-  const [joueurs, setJoueurs] = useState([]);
+  const [joueursDom, setJoueursDom] = useState([]);
+  const [joueursExt, setJoueursExt] = useState([]);
+  const [parts, setParts] = useState([]);
   const [err, setErr] = useState("");
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
   const [type, setType] = useState("but");
   const [cote, setCote] = useState("domicile");
   const [joueurId, setJoueurId] = useState("");
+  const [secondaireId, setSecondaireId] = useState("");
+  const [resultat, setResultat] = useState("marque");
   const [minute, setMinute] = useState("0");
+  const [now, setNow] = useState(Date.now());
+  const [compDraft, setCompDraft] = useState({});
+  const [autre, setAutre] = useState(false);
 
   const home = stripDemo(clubName(clubsById, match?.equipe_domicile_id));
   const away = stripDemo(clubName(clubsById, match?.equipe_exterieur_id));
+  const joueurs = cote === "exterieur" ? joueursExt : joueursDom;
+  const periode = match?.periode || (match?.statut === "en_cours" ? "1" : null);
+  const enCours = match?.statut === "en_cours";
+  const ht = enCours && periode === "mi_temps";
+  const running = enCours && !ht;
 
   async function load() {
     try {
-      const [m, e] = await Promise.all([api.matchGestion(id), api.evenementsStaff(id)]);
+      const [m, e, p] = await Promise.all([
+        api.matchGestion(id),
+        api.evenementsStaff(id),
+        api.participations(id).catch(() => []),
+      ]);
       setMatch(m);
       setEvts(e || []);
-      const clubId = cote === "exterieur" ? m.equipe_exterieur_id : m.equipe_domicile_id;
-      const js = await api.joueurs(clubId).catch(() => []);
-      setJoueurs(js || []);
+      setParts(p || []);
+      const [jd, je] = await Promise.all([
+        api.joueurs(m.equipe_domicile_id).catch(() => []),
+        api.joueurs(m.equipe_exterieur_id).catch(() => []),
+      ]);
+      setJoueursDom(jd || []);
+      setJoueursExt(je || []);
+      const draft = {};
+      (p || []).forEach((x) => {
+        draft[x.joueur_id] = x.statut;
+      });
+      setCompDraft(draft);
     } catch (ex) {
       setErr(ex.message);
       if (ex.status === 401) {
@@ -56,19 +90,15 @@ export default function OrgaMatch() {
   }, [id]);
 
   useEffect(() => {
-    if (!match) return;
-    const clubId = cote === "exterieur" ? match.equipe_exterieur_id : match.equipe_domicile_id;
-    api.joueurs(clubId).then((js) => {
-      setJoueurs(js || []);
-      setJoueurId("");
-    }).catch(() => setJoueurs([]));
-  }, [cote, match]);
+    if (!running) return undefined;
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, [running]);
 
-  const running = match?.statut === "en_cours";
   const liveMin = useMemo(() => {
     if (!match?.started_at) return 0;
-    return elapsed(match.started_at, match.ended_at, Date.now()).min;
-  }, [match]);
+    return clockFromMatch(match, now).min;
+  }, [match, now]);
 
   useEffect(() => {
     if (running) setMinute(String(liveMin));
@@ -90,33 +120,54 @@ export default function OrgaMatch() {
   }
 
   function demarrer() {
-    return act(() => api.changerStatut(id, "en_cours"), "Match démarré. Le chrono tourne.");
+    return act(() => api.changerStatut(id, "en_cours"), "Coup d’envoi. 1re période.");
+  }
+  function miTemps() {
+    return act(() => api.changerPeriode(id, "mi_temps"), "Mi-temps. Chrono arrêté.");
+  }
+  function reprise() {
+    return act(() => api.changerPeriode(id, "2"), "2e période. Le chrono reprend à 45′.");
   }
   function terminer() {
-    return act(() => api.changerStatut(id, "termine"), "Match terminé. Le chrono est arrêté.");
+    return act(() => api.changerStatut(id, "termine"), "Match terminé. Chrono figé.");
   }
   function publier() {
-    return act(() => api.validerMatch(id), "Match validé. Classement et site public à jour.");
+    return act(() => api.validerMatch(id), "Match validé. Classement officiel à jour.");
+  }
+  function contester() {
+    return act(() => api.changerStatut(id, "conteste"), "Match contesté. Hors classement.");
+  }
+  function forfait(equipe) {
+    const nom = equipe === "domicile" ? home : away;
+    return act(() => api.forfait(id, equipe), `Forfait ${nom} : 0–3. À valider pour le classement.`);
   }
 
-  async function ajouter(e) {
-    e.preventDefault();
-    if (!joueurId) {
-      setErr("Choisissez un joueur.");
-      return;
-    }
+  async function enregistrerFeuille() {
     setBusy(true);
     setErr("");
     setMsg("");
     try {
-      await api.saisirEvenement(id, {
-        temp_id: crypto.randomUUID(),
-        minute: Number.parseInt(String(minute), 10) || 0,
-        type,
-        joueur_id: Number(joueurId),
-        equipe_concernee: cote,
-      });
-      setMsg(type === "but" ? "But enregistré. Le score a changé." : "Carton enregistré.");
+      const deja = new Set(parts.map((p) => p.joueur_id));
+      const lignes = [];
+      const pushClub = (liste, equipe, clubId) => {
+        liste.forEach((j) => {
+          const st = compDraft[j.id];
+          if (!st || deja.has(j.id)) return;
+          lignes.push({
+            joueur_id: j.id,
+            club_id: clubId,
+            equipe_concernee: equipe,
+            statut: st,
+            minute_entree: st === "titulaire" ? 0 : 0,
+          });
+        });
+      };
+      pushClub(joueursDom, "domicile", match.equipe_domicile_id);
+      pushClub(joueursExt, "exterieur", match.equipe_exterieur_id);
+      for (const payload of lignes) {
+        await api.ajouterParticipation(id, payload);
+      }
+      setMsg(lignes.length ? "Feuille enregistrée." : "Rien de nouveau à enregistrer.");
       await load();
     } catch (ex) {
       setErr(ex.message);
@@ -125,7 +176,70 @@ export default function OrgaMatch() {
     }
   }
 
+  function nomJoueur(jid) {
+    const j = [...joueursDom, ...joueursExt].find((x) => x.id === jid);
+    return j?.nom_complet || "Joueur";
+  }
+
+  async function ajouter(e) {
+    e.preventDefault();
+    if (!joueurId) {
+      setErr("Choisissez un joueur.");
+      return;
+    }
+    if ((type === "remplacement") && !secondaireId) {
+      setErr("Indiquez le joueur qui entre.");
+      return;
+    }
+    setBusy(true);
+    setErr("");
+    setMsg("");
+    try {
+      const split = splitMinute(minute, periode === "2" ? "2" : "1");
+      const payload = {
+        temp_id: crypto.randomUUID(),
+        minute: split.minute,
+        minute_additionnelle: split.minute_additionnelle,
+        periode: split.periode,
+        type,
+        joueur_id: Number(joueurId),
+        equipe_concernee: cote,
+      };
+      if (type === "but" && secondaireId) payload.joueur_secondaire_id = Number(secondaireId);
+      if (type === "remplacement") payload.joueur_secondaire_id = Number(secondaireId);
+      if (type === "penalty") payload.resultat = resultat;
+      await api.saisirEvenement(id, payload);
+      setMsg(`${LABELS[type] || type} enregistré.`);
+      setSecondaireId("");
+      await load();
+    } catch (ex) {
+      setErr(ex.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function cycleComp(joueurId) {
+    setCompDraft((d) => {
+      const cur = d[joueurId];
+      const next = cur === "titulaire" ? "remplacant" : cur === "remplacant" ? "" : "titulaire";
+      const copy = { ...d };
+      if (!next) delete copy[joueurId];
+      else copy[joueurId] = next;
+      return copy;
+    });
+  }
+
+  function badgeComp(joueurId) {
+    const st = compDraft[joueurId];
+    if (st === "titulaire") return "Titu";
+    if (st === "remplacant") return "Banc";
+    return "—";
+  }
+
   if (!match) return <p className="empty">Chargement…</p>;
+
+  const formOk = enCours && !ht && !match.locked;
 
   return (
     <div className="shell">
@@ -133,20 +247,19 @@ export default function OrgaMatch() {
         <Link to="/orga">← Organisateur</Link>
       </p>
       <section className="hero">
-        <p className="kicker">{match.journee} · {match.statut}</p>
+        <p className="kicker">
+          {match.journee} · {match.statut}
+          {periodeLabel(periode) ? ` · ${periodeLabel(periode)}` : ""}
+        </p>
         <h1>{home} {match.score_domicile}–{match.score_exterieur} {away}</h1>
-        {match.statut === "en_cours" && (
+        {enCours && (
           <p className="live-now" style={{ marginTop: "0.6rem" }}>
             <span className="live-dot" aria-hidden="true"><b /></span>
-            En cours
+            {ht ? "Mi-temps" : "En cours"}
           </p>
         )}
-        {(match.statut === "en_cours" || match.statut === "termine") && match.started_at && (
-          <Chrono
-            startedAt={match.started_at}
-            endedAt={match.ended_at}
-            running={match.statut === "en_cours"}
-          />
+        {(enCours || match.statut === "termine") && match.started_at && (
+          <Chrono match={match} running={running} endedAt={match.ended_at} />
         )}
       </section>
       {err && <p className="erreur">{err}</p>}
@@ -155,10 +268,20 @@ export default function OrgaMatch() {
       <div className="orga-actions">
         {match.statut === "programme" && (
           <button className="btn btn-primary" type="button" disabled={busy} onClick={demarrer}>
-            Démarrer le match
+            Démarrer — coup d’envoi
           </button>
         )}
-        {match.statut === "en_cours" && (
+        {enCours && periode !== "mi_temps" && periode !== "2" && (
+          <button className="btn" type="button" disabled={busy} onClick={miTemps}>
+            Mi-temps
+          </button>
+        )}
+        {ht && (
+          <button className="btn btn-primary" type="button" disabled={busy} onClick={reprise}>
+            Reprise — 2e période
+          </button>
+        )}
+        {enCours && (
           <button className="btn" type="button" disabled={busy} onClick={terminer}>
             Terminer le match
           </button>
@@ -171,25 +294,33 @@ export default function OrgaMatch() {
         {match.locked && <p className="empty">Match verrouillé — plus aucune modification.</p>}
       </div>
 
-      {match.statut === "en_cours" && (
-        <form className="compte-form" onSubmit={ajouter} style={{ marginTop: "1.2rem" }}>
-          <p className="kicker">Ajouter un événement</p>
-          <label className="field">
-            Type
-            <select value={type} onChange={(e) => setType(e.target.value)}>
-              <option value="but">But</option>
-              <option value="carton_jaune">Carton jaune</option>
-            </select>
-          </label>
+      {formOk && (
+        <form className="compte-form" onSubmit={ajouter} style={{ marginTop: "0.4rem" }}>
+          <p className="kicker">Fait de jeu</p>
+          <div className="type-row" role="group" aria-label="Type">
+            {TYPES.map((t) => (
+              <button
+                key={t.value}
+                type="button"
+                className={type === t.value ? "on" : ""}
+                onClick={() => {
+                  setType(t.value);
+                  setSecondaireId("");
+                }}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
           <label className="field">
             Équipe
-            <select value={cote} onChange={(e) => setCote(e.target.value)}>
+            <select value={cote} onChange={(e) => { setCote(e.target.value); setJoueurId(""); setSecondaireId(""); }}>
               <option value="domicile">{home}</option>
               <option value="exterieur">{away}</option>
             </select>
           </label>
           <label className="field">
-            Joueur
+            {type === "remplacement" ? "Sortant" : type === "but_contre_son_camp" ? "Joueur fautif" : "Joueur"}
             <select value={joueurId} onChange={(e) => setJoueurId(e.target.value)} required>
               <option value="">—</option>
               {joueurs.map((j) => (
@@ -197,6 +328,40 @@ export default function OrgaMatch() {
               ))}
             </select>
           </label>
+          {type === "but" && (
+            <label className="field">
+              Passeur (optionnel)
+              <select value={secondaireId} onChange={(e) => setSecondaireId(e.target.value)}>
+                <option value="">Aucune passe décisive</option>
+                {joueurs.filter((j) => String(j.id) !== String(joueurId)).map((j) => (
+                  <option key={j.id} value={j.id}>{j.nom_complet}</option>
+                ))}
+              </select>
+            </label>
+          )}
+          {type === "remplacement" && (
+            <label className="field">
+              Entrant
+              <select value={secondaireId} onChange={(e) => setSecondaireId(e.target.value)} required>
+                <option value="">—</option>
+                {joueurs.filter((j) => String(j.id) !== String(joueurId)).map((j) => (
+                  <option key={j.id} value={j.id}>{j.nom_complet}</option>
+                ))}
+              </select>
+            </label>
+          )}
+          {type === "penalty" && (
+            <label className="field">
+              Tir
+              <select value={resultat} onChange={(e) => setResultat(e.target.value)}>
+                <option value="marque">Marqué</option>
+                <option value="rate">Raté</option>
+              </select>
+            </label>
+          )}
+          {type === "but_contre_son_camp" && (
+            <p className="empty" style={{ paddingTop: 0 }}>Le but est crédité à l’adversaire. Pas au joueur.</p>
+          )}
           <label className="field">
             Minute
             <input
@@ -209,11 +374,17 @@ export default function OrgaMatch() {
               required
             />
           </label>
+          <p className="kicker">
+            Enregistré comme {formatMinute(splitMinute(minute, periode === "2" ? "2" : "1").minute, splitMinute(minute, periode === "2" ? "2" : "1").minute_additionnelle)}
+            {periode === "2" ? " · 2e période" : " · 1re période"}
+          </p>
           <button className="btn btn-primary" type="submit" disabled={busy}>
             Enregistrer
           </button>
         </form>
       )}
+
+      {ht && <p className="empty">Mi-temps. Pas de saisie avant la reprise.</p>}
 
       <div className="section-head">
         <h2>Feuille</h2>
@@ -222,10 +393,78 @@ export default function OrgaMatch() {
       <ul className="timeline">
         {evts.map((e) => (
           <li key={e.id}>
-            {e.minute}′ · {LABELS[e.type] || e.type} · {e.equipe_concernee} · {e.statut_validation}
+            {formatMinute(e.minute, e.minute_additionnelle)} · {LABELS[e.type] || e.type}
+            {e.type === "penalty" && e.resultat ? ` ${e.resultat}` : ""}
+            {e.type === "remplacement"
+              ? ` · OUT ${nomJoueur(e.joueur_id)} · IN ${nomJoueur(e.joueur_secondaire_id)}`
+              : e.type === "passe_decisive"
+                ? ` · ${nomJoueur(e.joueur_secondaire_id)} pour ${nomJoueur(e.joueur_id)}`
+                : ` · ${nomJoueur(e.joueur_id)}`}
+            {e.joueur_secondaire_id && e.type === "but" ? ` · passe ${nomJoueur(e.joueur_secondaire_id)}` : ""}
+            {" · "}
+            {e.statut_validation}
           </li>
         ))}
       </ul>
+
+      {!match.locked && match.statut !== "valide" && (
+        <>
+          <div className="section-head">
+            <h2>Compositions</h2>
+          </div>
+          <p className="lead">Toucher un nom : titulaire, banc, ou rien. Quatre joueurs DEMO suffisent pour tester un changement.</p>
+          <div className="comp-grid">
+            <div>
+              <p className="kicker">{home}</p>
+              {joueursDom.map((j) => (
+                <button key={j.id} type="button" className="comp-row" onClick={() => cycleComp(j.id)}>
+                  <span>{j.nom_complet}</span>
+                  <strong>{badgeComp(j.id)}</strong>
+                </button>
+              ))}
+            </div>
+            <div>
+              <p className="kicker">{away}</p>
+              {joueursExt.map((j) => (
+                <button key={j.id} type="button" className="comp-row" onClick={() => cycleComp(j.id)}>
+                  <span>{j.nom_complet}</span>
+                  <strong>{badgeComp(j.id)}</strong>
+                </button>
+              ))}
+            </div>
+          </div>
+          <button className="btn" type="button" disabled={busy} onClick={enregistrerFeuille} style={{ marginTop: "0.7rem" }}>
+            Enregistrer la feuille
+          </button>
+        </>
+      )}
+
+      {!match.locked && match.statut !== "valide" && (
+        <>
+          <p className="kicker" style={{ marginTop: "1.6rem" }}>
+            <button className="linkish" type="button" onClick={() => setAutre((v) => !v)}>
+              {autre ? "Masquer" : "Forfait / contestation"}
+            </button>
+          </p>
+          {autre && (
+            <div className="orga-actions">
+              {match.statut !== "conteste" && (
+                <button className="btn" type="button" disabled={busy} onClick={contester}>Contester le match</button>
+              )}
+              {match.statut !== "termine" && (
+                <>
+                  <button className="btn btn-danger" type="button" disabled={busy} onClick={() => forfait("domicile")}>
+                    Forfait {home} (0–3)
+                  </button>
+                  <button className="btn btn-danger" type="button" disabled={busy} onClick={() => forfait("exterieur")}>
+                    Forfait {away} (0–3)
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }

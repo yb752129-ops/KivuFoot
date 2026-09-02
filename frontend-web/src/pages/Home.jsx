@@ -4,7 +4,7 @@ import { api } from "../api.js";
 import { clubName, useKivu } from "../context.jsx";
 import Chrono from "../components/Chrono.jsx";
 import Scoreboard from "../components/Scoreboard.jsx";
-import { formatJour, groupMatchsByJournee, journeeTitre, stripDemo } from "../display.js";
+import { formatJour, formatMinute, groupMatchsByJournee, journeeTitre, stripDemo } from "../display.js";
 
 const EVT = {
   but: "But",
@@ -51,9 +51,9 @@ function LiveUne({ match, clubsById, evt }) {
     >
       <p className="live-now">
         <span className="live-dot" aria-hidden="true"><b /></span>
-        En cours
+        {match.periode === "mi_temps" ? "Mi-temps" : "En cours"}
       </p>
-      <Chrono startedAt={match.started_at} endedAt={match.ended_at} running />
+      <Chrono match={match} running={match.periode !== "mi_temps"} />
       <div className="sb-line">
         <span className="sb-name">{home}</span>
         <span className="sb-score">
@@ -65,7 +65,7 @@ function LiveUne({ match, clubsById, evt }) {
       </div>
         {evt && (
         <p className="live-evt">
-          {minute}′ · {EVT[evt.type] || evt.type}
+          {formatMinute(minute, evt.minute_additionnelle)} · {EVT[evt.type] || evt.type}
           {cote ? ` · ${cote}` : ""}
         </p>
       )}
@@ -106,7 +106,11 @@ export default function Home() {
     api.evenementsPublics(live.id)
       .then((list) => {
         if (stop) return;
-        const sorted = [...(list || [])].sort((a, b) => (b.minute || 0) - (a.minute || 0));
+        const sorted = [...(list || [])].sort(
+          (a, b) =>
+            (b.minute || 0) + (b.minute_additionnelle || 0) -
+            ((a.minute || 0) + (a.minute_additionnelle || 0)),
+        );
         setEvt(sorted[0] || null);
       })
       .catch(() => {

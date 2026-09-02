@@ -4,7 +4,7 @@ from sqlalchemy import Boolean, CheckConstraint, DateTime, ForeignKey, Integer, 
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
-from app.models.enums import EquipeConcernee, StatutMatch
+from app.models.enums import EquipeConcernee, PeriodeMatch, StatutMatch
 
 
 class Match(Base):
@@ -28,6 +28,9 @@ class Match(Base):
     statut: Mapped[StatutMatch] = mapped_column(String(20), default=StatutMatch.PROGRAMME, nullable=False)
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     ended_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    periode: Mapped[PeriodeMatch | None] = mapped_column(String(12))
+    periode_started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    paused_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     # Forfait : ajouté suite à l'analyse Phase 0 pour ne jamais masquer un
     # forfait derrière un score 3-0 "normal" (traçabilité).

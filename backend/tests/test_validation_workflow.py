@@ -4,7 +4,7 @@ import pytest
 from fastapi import HTTPException
 from sqlalchemy import select
 
-from app.models.enums import EquipeConcernee, ResultatPenalty, StatutValidationEvenement, TypeEvenement
+from app.models.enums import EquipeConcernee, ResultatPenalty, StatutMatch, StatutValidationEvenement, TypeEvenement
 from app.models.evenement import EvenementMatch
 from app.models.stats import StatistiqueJoueur
 from app.services.validation import rejeter_evenement, valider_evenement, valider_match
@@ -148,6 +148,8 @@ async def test_match_ne_peut_pas_etre_valide_avec_evenements_en_attente(db_sessi
 
 async def test_match_verrouille_apres_validation_bloque_nouveaux_evenements(db_session):
     organisateur, _, _, _, _, joueur, match_ = await _setup_match_avec_joueur(db_session)
+    match_.statut = StatutMatch.TERMINE
+    await db_session.flush()
     await valider_match(db_session, match_.id, organisateur.id)
     await db_session.flush()
     assert match_.locked is True

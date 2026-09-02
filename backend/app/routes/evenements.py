@@ -59,8 +59,12 @@ async def saisir_evenement(
     if match_ is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Match introuvable.")
     staff_orga = current_user.role in (RoleUtilisateur.ORGANISATEUR, RoleUtilisateur.ADMIN)
-    if staff_orga and match_.statut != StatutMatch.EN_COURS:
+    statut = match_.statut.value if hasattr(match_.statut, "value") else match_.statut
+    if staff_orga and statut != StatutMatch.EN_COURS.value:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Le match n'est pas en cours.")
+    periode = match_.periode.value if match_.periode and hasattr(match_.periode, "value") else match_.periode
+    if staff_orga and periode == "mi_temps":
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Mi-temps : la saisie reprend à la reprise.")
     try:
         resultat = await pousser_evenement(db, match_id, payload, current_user.id)
         if resultat.evenement_id is None:

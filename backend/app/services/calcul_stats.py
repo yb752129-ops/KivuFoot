@@ -20,9 +20,9 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.competition import Saison
-from app.models.enums import EquipeConcernee, ResultatPenalty, TypeEvenement
+from app.models.enums import EquipeConcernee, ResultatPenalty, StatutParticipation, TypeEvenement
 from app.models.evenement import EvenementMatch
-from app.models.match import Match
+from app.models.match import Match, MatchParticipation
 from app.models.stats import StatistiqueJoueur
 
 
@@ -88,8 +88,45 @@ async def appliquer_evenement_valide(db: AsyncSession, evenement: EvenementMatch
             stat = await _get_or_create_stat(db, evenement.joueur_id, competition_id, match_.saison_id)
             stat.cartons_rouges += 1
 
-    # REMPLACEMENT : n'affecte pas le score ; les minutes jouées sont
-    # dérivées de match_participations (voir services/feuille_de_match.py).
+    elif evenement.type == TypeEvenement.REMPLACEMENT:
+        minute_eff = evenement.minute + (evenement.minute_additionnelle or 0)
+        if evenement.joueur_id:
+            result = await db.execute(
+                select(MatchParticipation).where(
+                    MatchParticipation.match_id == match_.id,
+                    MatchParticipation.joueur_id == evenement.joueur_id,
+                )
+            )
+            sortant = result.scalar_one_or_none()
+            if sortant is not None and sortant.minute_sortie is None:
+                sortant.minute_sortie = minute_eff
+        if evenement.joueur_secondaire_id:
+            result = await db.execute(
+                select(MatchParticipation).where(
+                    MatchParticipation.match_id == match_.id,
+                    MatchParticipation.joueur_id == evenement.joueur_secondaire_id,
+                )
+            )
+            entrant = result.scalar_one_or_none()
+            club_id = (
+                match_.equipe_exterieur_id
+                if evenement.equipe_concernee == EquipeConcernee.EXTERIEUR
+                else match_.equipe_domicile_id
+            )
+            if entrant is not None:
+                if entrant.minute_entree == 0:
+                    entrant.minute_entree = minute_eff
+            elif club_id:
+                db.add(
+                    MatchParticipation(
+                        match_id=match_.id,
+                        joueur_id=evenement.joueur_secondaire_id,
+                        club_id=club_id,
+                        equipe_concernee=evenement.equipe_concernee,
+                        statut=StatutParticipation.REMPLACANT.value,
+                        minute_entree=minute_eff,
+                    )
+                )
 
     if but_marque_pour == EquipeConcernee.DOMICILE:
         match_.score_domicile += 1

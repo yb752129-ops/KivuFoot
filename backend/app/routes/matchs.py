@@ -8,7 +8,7 @@ from app.auth.dependencies import get_current_user
 from app.auth.rbac import require_roles, verifier_organisateur_de_competition, verifier_organisateur_du_match
 from app.database import get_db
 from app.models.competition import Saison
-from app.models.enums import ActionAudit, EquipeConcernee, RoleUtilisateur, StatutMatch
+from app.models.enums import ActionAudit, EquipeConcernee, PeriodeMatch, RoleUtilisateur, StatutMatch
 from app.models.match import Match, MatchParticipation
 from app.models.user import User
 from app.schemas.match import MatchCreate, MatchOut, ParticipationCreate, ParticipationOut
@@ -119,6 +119,9 @@ async def changer_statut_match(
             raise HTTPException(status.HTTP_400_BAD_REQUEST, "Seul un match programmé peut être démarré.")
         match_.started_at = now
         match_.ended_at = None
+        match_.periode = PeriodeMatch.PREMIERE
+        match_.periode_started_at = now
+        match_.paused_at = None
     elif nouveau_statut == StatutMatch.TERMINE:
         if actuel != StatutMatch.EN_COURS.value and actuel != StatutMatch.EN_COURS:
             raise HTTPException(status.HTTP_400_BAD_REQUEST, "Seul un match en cours peut être terminé.")
@@ -126,6 +129,50 @@ async def changer_statut_match(
     old_statut = actuel
     match_.statut = nouveau_statut
     await log_audit(db, "matchs", match_.id, ActionAudit.UPDATE, current_user.id, {"statut": old_statut}, {"statut": nouveau_statut.value})
+    await db.commit()
+    await db.refresh(match_)
+    return match_
+
+
+@router.put("/{match_id}/periode", response_model=MatchOut)
+async def changer_periode_match(
+    match_id: int,
+    periode: PeriodeMatch,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles(RoleUtilisateur.ADMIN, RoleUtilisateur.ORGANISATEUR)),
+):
+    """Mi-temps / reprise : le match reste EN COURS (C5). Ce n'est pas un statut."""
+    match_ = await verifier_organisateur_du_match(match_id, current_user, db)
+    if match_.locked:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Ce match est verrouillé.")
+    actuel_statut = match_.statut.value if hasattr(match_.statut, "value") else match_.statut
+    if actuel_statut != StatutMatch.EN_COURS.value:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Seul un match en cours a une période à changer.")
+    actuelle = match_.periode.value if match_.periode and hasattr(match_.periode, "value") else match_.periode
+    now = datetime.now(timezone.utc)
+    if periode == PeriodeMatch.MI_TEMPS:
+        if actuelle not in (PeriodeMatch.PREMIERE.value, PeriodeMatch.PREMIERE, None, "1"):
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "La mi-temps se siffle à la fin de la première période.")
+        match_.paused_at = now
+        match_.periode = PeriodeMatch.MI_TEMPS
+    elif periode == PeriodeMatch.SECONDE:
+        if actuelle not in (PeriodeMatch.MI_TEMPS.value, PeriodeMatch.MI_TEMPS, "mi_temps"):
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "La deuxième période commence après la mi-temps.")
+        match_.periode = PeriodeMatch.SECONDE
+        match_.periode_started_at = now
+    elif periode == PeriodeMatch.PREMIERE:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "La première période démarre avec le coup d'envoi.")
+    else:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Période inconnue.")
+    await log_audit(
+        db,
+        "matchs",
+        match_.id,
+        ActionAudit.UPDATE,
+        current_user.id,
+        {"periode": actuelle},
+        {"periode": periode.value},
+    )
     await db.commit()
     await db.refresh(match_)
     return match_

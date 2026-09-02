@@ -47,6 +47,8 @@ class EvenementMatch(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     match_id: Mapped[int] = mapped_column(ForeignKey("matchs.id", ondelete="CASCADE"), nullable=False)
     minute: Mapped[int] = mapped_column(Integer, nullable=False)
+    minute_additionnelle: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    periode: Mapped[str | None] = mapped_column(String(12))
     type: Mapped[TypeEvenement] = mapped_column(String(30), nullable=False)
 
     joueur_id: Mapped[int | None] = mapped_column(ForeignKey("joueurs.id", ondelete="SET NULL"))

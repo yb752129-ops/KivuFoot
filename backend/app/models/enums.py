@@ -42,6 +42,13 @@ class StatutMatch(str, enum.Enum):
     CONTESTE = "conteste"
 
 
+class PeriodeMatch(str, enum.Enum):
+    """Phase de jeu — distincte du statut C5. Un match EN COURS a une période."""
+    PREMIERE = "1"
+    MI_TEMPS = "mi_temps"
+    SECONDE = "2"
+
+
 class EquipeConcernee(str, enum.Enum):
     DOMICILE = "domicile"
     EXTERIEUR = "exterieur"

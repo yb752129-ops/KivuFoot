@@ -2,6 +2,63 @@ export function stripDemo(name) {
   return (name || "").replace(/^DEMO\s*[-–]?\s*/i, "").trim();
 }
 
+export function formatMinute(minute, added) {
+  const m = Number(minute) || 0;
+  const a = Number(added) || 0;
+  if (a > 0) return `${m}+${a}′`;
+  return `${m}′`;
+}
+
+export function periodeLabel(periode) {
+  if (periode === "mi_temps") return "Mi-temps";
+  if (periode === "2") return "2e période";
+  if (periode === "1") return "1re période";
+  return "";
+}
+
+export function elapsed(startedAt, endedAt, now = Date.now()) {
+  if (!startedAt) return { min: 0, sec: 0 };
+  const start = new Date(startedAt).getTime();
+  const end = endedAt ? new Date(endedAt).getTime() : now;
+  const ms = Math.max(0, end - start);
+  return { min: Math.floor(ms / 60000), sec: Math.floor((ms % 60000) / 1000) };
+}
+
+/** Horloge de match : P1 depuis le coup d'envoi, P2 depuis la reprise (affiche 45+). */
+export function clockFromMatch(match, now = Date.now()) {
+  const periode = match?.periode || "1";
+  if (!match?.started_at) return { min: 0, sec: 0, periode };
+  if (periode === "mi_temps") {
+    return { ...elapsed(match.started_at, match.paused_at || now, now), periode };
+  }
+  if (periode === "2" && match.periode_started_at) {
+    const p2 = elapsed(match.periode_started_at, match.ended_at, now);
+    return { min: 45 + p2.min, sec: p2.sec, periode };
+  }
+  return { ...elapsed(match.started_at, match.ended_at, now), periode };
+}
+
+export function formatClock(min, sec, periode) {
+  const s = String(sec).padStart(2, "0");
+  if (periode === "2") {
+    if (min > 90) return `90+${min - 90}′${s}″`;
+    return `${min}′${s}″`;
+  }
+  if (min > 45) return `45+${min - 45}′${s}″`;
+  return `${min}′${s}″`;
+}
+
+export function splitMinute(min, periode) {
+  const p = periode === "2" ? "2" : "1";
+  const n = Math.max(0, Number.parseInt(String(min), 10) || 0);
+  if (p === "1") {
+    if (n > 45) return { minute: 45, minute_additionnelle: n - 45, periode: "1" };
+    return { minute: n, minute_additionnelle: 0, periode: "1" };
+  }
+  if (n > 90) return { minute: 90, minute_additionnelle: n - 90, periode: "2" };
+  return { minute: n, minute_additionnelle: 0, periode: "2" };
+}
+
 export function journeeTitre(code) {
   const m = String(code || "").match(/(\d+)/);
   return m ? `Journée ${m[1]}` : code || "Journée";

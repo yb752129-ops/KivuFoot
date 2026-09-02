@@ -443,6 +443,69 @@ h1 {
   gap: 0.5rem;
   margin: 0.4rem 0 1rem;
 }
+.type-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0.35rem 0 0.95rem;
+}
+.type-row button {
+  border: 1px solid var(--rule-strong);
+  background: var(--paper);
+  color: var(--ink);
+  padding: 0.5rem 0.72rem;
+  font-weight: 600;
+  font-size: 0.82rem;
+  cursor: pointer;
+  border-radius: 0;
+}
+.type-row button.on {
+  background: var(--ink);
+  color: var(--paper);
+}
+.comp-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.8rem;
+  margin-top: 0.4rem;
+}
+.comp-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.4rem;
+  width: 100%;
+  padding: 0.55rem 0;
+  border: 0;
+  border-bottom: 1px solid var(--rule);
+  background: transparent;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+}
+.comp-row strong {
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--stamp);
+}
+.file-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.45rem;
+}
+.file-actions .btn { padding: 0.45rem 0.7rem; width: auto; }
+.field-inline {
+  background: var(--paper);
+  border: 1px solid var(--rule-strong);
+  color: var(--ink);
+  padding: 0.45rem 0.6rem;
+  min-width: 8rem;
+  flex: 1;
+  color-scheme: only light;
+}
 .field select,
 .field input, .field textarea {
   background: var(--paper);

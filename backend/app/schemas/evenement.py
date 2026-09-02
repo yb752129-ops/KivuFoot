@@ -31,6 +31,8 @@ class EvenementCreate(BaseModel):
     """
     temp_id: uuid.UUID
     minute: int
+    minute_additionnelle: int = 0
+    periode: str | None = None
     type: TypeEvenement
     joueur_id: int | None = None
     joueur_secondaire_id: int | None = None
@@ -44,6 +46,24 @@ class EvenementCreate(BaseModel):
             raise ValueError("La minute ne peut pas être négative.")
         if v > 130:
             raise ValueError("Minute improbable (> 130) - vérifier la saisie.")
+        return v
+
+    @field_validator("minute_additionnelle")
+    @classmethod
+    def additionnelle_valide(cls, v: int) -> int:
+        if v < 0:
+            raise ValueError("Le temps additionnel ne peut pas être négatif.")
+        if v > 20:
+            raise ValueError("Temps additionnel improbable (> 20).")
+        return v
+
+    @field_validator("periode")
+    @classmethod
+    def periode_valide(cls, v: str | None) -> str | None:
+        if v is None or v == "":
+            return None
+        if v not in ("1", "2"):
+            raise ValueError("La période d'un événement est 1 ou 2.")
         return v
 
     @model_validator(mode="after")
@@ -63,6 +83,8 @@ class EvenementOut(BaseModel):
     id: int
     match_id: int
     minute: int
+    minute_additionnelle: int = 0
+    periode: str | None = None
     type: TypeEvenement
     joueur_id: int | None
     joueur_secondaire_id: int | None

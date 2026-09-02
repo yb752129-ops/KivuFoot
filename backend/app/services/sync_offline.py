@@ -61,6 +61,8 @@ async def pousser_evenement(
         rejet = EvenementMatch(
             match_id=match_id,
             minute=ev.minute,
+            minute_additionnelle=ev.minute_additionnelle or 0,
+            periode=ev.periode,
             type=ev.type,
             joueur_id=ev.joueur_id,
             joueur_secondaire_id=ev.joueur_secondaire_id,
@@ -81,9 +83,16 @@ async def pousser_evenement(
     # 3. Cas 1 §6.3 : conflit potentiel avec un événement déjà présent.
     conflit_existant = await _trouver_conflit_potentiel(db, match_id, ev)
 
+    periode = ev.periode
+    if periode is None:
+        mp = match_.periode.value if match_.periode and hasattr(match_.periode, "value") else match_.periode
+        periode = mp if mp in ("1", "2") else None
+
     nouvel_evenement = EvenementMatch(
         match_id=match_id,
         minute=ev.minute,
+        minute_additionnelle=ev.minute_additionnelle or 0,
+        periode=periode,
         type=ev.type,
         joueur_id=ev.joueur_id,
         joueur_secondaire_id=ev.joueur_secondaire_id,

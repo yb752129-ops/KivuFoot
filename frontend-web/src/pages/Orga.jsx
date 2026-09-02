@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api, clearTokens } from "../api.js";
 import { clubName, useKivu } from "../context.jsx";
-import { stripDemo } from "../display.js";
+import { formatMinute, stripDemo } from "../display.js";
 
 const STATUT = {
   programme: "Programmé",
@@ -84,6 +84,23 @@ export default function Orga() {
     }
   }
 
+  async function actFile(fn, ok) {
+    setBusy(true);
+    setErr("");
+    setMsg("");
+    try {
+      await fn();
+      setMsg(ok);
+      setRejetId(null);
+      setRejetCom("");
+      await load();
+    } catch (e) {
+      setErr(e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   function logout() {
     clearTokens();
     nav("/", { replace: true });
@@ -115,9 +132,43 @@ export default function Orga() {
       <ul className="timeline">
         {file.map((e) => (
           <li key={e.id}>
-            Match #{e.match_id} · {e.minute}′ · {e.type}
-            {" · "}
-            <Link to={`/orga/matchs/${e.match_id}`}>Ouvrir</Link>
+            <div>
+              Match #{e.match_id} · {formatMinute(e.minute, e.minute_additionnelle)} · {e.type}
+              {" · "}
+              <Link to={`/orga/matchs/${e.match_id}`}>Ouvrir</Link>
+            </div>
+            <div className="file-actions">
+              <button
+                className="btn"
+                type="button"
+                disabled={busy}
+                onClick={() => actFile(() => api.validerEvenement(e.id), "Événement validé.")}
+              >
+                Valider
+              </button>
+              {rejetId === e.id ? (
+                <>
+                  <input
+                    className="field-inline"
+                    value={rejetCom}
+                    onChange={(ev) => setRejetCom(ev.target.value)}
+                    placeholder="Motif du rejet"
+                  />
+                  <button
+                    className="btn btn-danger"
+                    type="button"
+                    disabled={busy || !rejetCom.trim()}
+                    onClick={() => actFile(() => api.rejeterEvenement(e.id, rejetCom.trim()), "Événement rejeté.")}
+                  >
+                    Confirmer
+                  </button>
+                </>
+              ) : (
+                <button className="btn btn-danger" type="button" disabled={busy} onClick={() => { setRejetId(e.id); setRejetCom(""); }}>
+                  Rejeter
+                </button>
+              )}
+            </div>
           </li>
         ))}
       </ul>

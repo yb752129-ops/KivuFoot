@@ -2,7 +2,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, field_validator
 
-from app.models.enums import EquipeConcernee, StatutMatch, StatutParticipation
+from app.models.enums import EquipeConcernee, PeriodeMatch, StatutMatch, StatutParticipation
 
 
 class MatchOut(BaseModel):
@@ -20,6 +20,9 @@ class MatchOut(BaseModel):
     statut: StatutMatch
     started_at: datetime | None = None
     ended_at: datetime | None = None
+    periode: PeriodeMatch | None = None
+    periode_started_at: datetime | None = None
+    paused_at: datetime | None = None
     forfait: bool
     forfait_equipe: EquipeConcernee | None
     locked: bool

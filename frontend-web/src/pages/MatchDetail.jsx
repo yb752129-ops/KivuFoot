@@ -4,7 +4,7 @@ import { api } from "../api.js";
 import Chrono from "../components/Chrono.jsx";
 import { useKivu } from "../context.jsx";
 import Scoreboard from "../components/Scoreboard.jsx";
-import { formatJour, journeeTitre, stripDemo } from "../display.js";
+import { formatJour, formatMinute, journeeTitre, periodeLabel, stripDemo } from "../display.js";
 
 const LABELS = {
   but: "But",
@@ -78,9 +78,12 @@ export default function MatchDetail() {
         <>
           <p className="live-now">
             <span className="live-dot" aria-hidden="true"><b /></span>
-            En cours
+            {match.periode === "mi_temps" ? "Mi-temps" : "En cours"}
           </p>
-          <Chrono startedAt={match.started_at} endedAt={match.ended_at} running />
+          {periodeLabel(match.periode) && match.periode !== "mi_temps" && (
+            <p className="kicker">{periodeLabel(match.periode)}</p>
+          )}
+          <Chrono match={match} running={match.periode !== "mi_temps"} endedAt={match.ended_at} />
         </>
       )}
       {!live && (

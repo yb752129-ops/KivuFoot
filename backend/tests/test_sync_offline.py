@@ -2,7 +2,7 @@ import uuid
 
 import pytest
 
-from app.models.enums import EquipeConcernee, StatutValidationEvenement, TypeEvenement
+from app.models.enums import EquipeConcernee, StatutMatch, StatutValidationEvenement, TypeEvenement
 from app.schemas.evenement import EvenementCreate
 from app.services.sync_offline import pousser_evenement
 from app.services.validation import valider_match
