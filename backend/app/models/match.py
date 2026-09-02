@@ -26,6 +26,8 @@ class Match(Base):
     score_domicile: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     score_exterieur: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     statut: Mapped[StatutMatch] = mapped_column(String(20), default=StatutMatch.PROGRAMME, nullable=False)
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    ended_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     # Forfait : ajouté suite à l'analyse Phase 0 pour ne jamais masquer un
     # forfait derrière un score 3-0 "normal" (traçabilité).

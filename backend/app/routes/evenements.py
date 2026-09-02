@@ -42,17 +42,30 @@ async def saisir_evenement(
     match_id: int,
     payload: EvenementCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles(RoleUtilisateur.COLLECTEUR, RoleUtilisateur.ADMIN)),
+    current_user: User = Depends(
+        require_roles(RoleUtilisateur.COLLECTEUR, RoleUtilisateur.ADMIN, RoleUtilisateur.ORGANISATEUR)
+    ),
 ):
     """
     Saisie directe (en ligne). Le flux principal offline-first passe par
     POST /sync/push (voir routes/sync.py) ; cette route sert la saisie
     en direct quand le réseau est disponible, avec les mêmes garanties
     d'idempotence (temp_id) et de gestion de conflit.
+    L'organisateur qui saisit depuis le tableau de bord voit l'événement
+    validé tout de suite (score à jour) — le collecteur reste en attente.
     """
+    match_ = await db.get(Match, match_id)
+    if match_ is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Match introuvable.")
+    staff_orga = current_user.role in (RoleUtilisateur.ORGANISATEUR, RoleUtilisateur.ADMIN)
+    if staff_orga and match_.statut != StatutMatch.EN_COURS:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Le match n'est pas en cours.")
     resultat = await pousser_evenement(db, match_id, payload, current_user.id)
-    await db.commit()
     if resultat.evenement_id is None:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, resultat.erreur or "Erreur de saisie.")
     evenement = await db.get(EvenementMatch, resultat.evenement_id)
+    if staff_orga:
+        evenement = await valider_evenement(db, evenement.id, current_user.id)
+    await db.commit()
+    await db.refresh(evenement)
     return evenement

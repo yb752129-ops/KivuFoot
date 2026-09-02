@@ -18,6 +18,8 @@ class MatchOut(BaseModel):
     score_domicile: int
     score_exterieur: int
     statut: StatutMatch
+    started_at: datetime | None = None
+    ended_at: datetime | None = None
     forfait: bool
     forfait_equipe: EquipeConcernee | None
     locked: bool

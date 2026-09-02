@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api.js";
 import { clubName, useKivu } from "../context.jsx";
+import Chrono from "../components/Chrono.jsx";
 import Scoreboard from "../components/Scoreboard.jsx";
 import { formatJour, groupMatchsByJournee, journeeTitre, stripDemo } from "../display.js";
 
@@ -52,7 +53,7 @@ function LiveUne({ match, clubsById, evt }) {
         <span className="live-dot" aria-hidden="true"><b /></span>
         En cours
       </p>
-      {minute != null && <p className="live-min">{minute}′</p>}
+      <Chrono startedAt={match.started_at} endedAt={match.ended_at} running />
       <div className="sb-line">
         <span className="sb-name">{home}</span>
         <span className="sb-score">
@@ -87,10 +88,7 @@ export default function Home() {
 
   const last = groupMatchsByJournee(matchs)[0];
   const items = last?.items || [];
-  const live =
-    matchs.find((m) => m.statut === "en_cours") ||
-    (competition?.est_demo ? items[0] : null) ||
-    null;
+  const live = matchs.find((m) => m.statut === "en_cours") || null;
   const rest = live ? items.filter((m) => m.id !== live.id) : items;
 
   useEffect(() => {

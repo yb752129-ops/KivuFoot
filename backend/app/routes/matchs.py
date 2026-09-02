@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -27,7 +29,7 @@ async def lister_matchs(
     Public : uniquement les matchs `valide` (§5.3). Les autres statuts
     ne sont visibles que via les routes protégées (organisateur).
     """
-    query = select(Match).where(Match.statut == StatutMatch.VALIDE)
+    query = select(Match).where(Match.statut.in_([StatutMatch.VALIDE, StatutMatch.EN_COURS]))
     if saison_id:
         query = query.where(Match.saison_id == saison_id)
     result = await db.execute(query.order_by(Match.date_heure.desc()).limit(min(limit, 100)).offset(offset))
@@ -109,7 +111,18 @@ async def changer_statut_match(
             status.HTTP_400_BAD_REQUEST,
             "Utilisez POST /matchs/{id}/valider pour valider un match (vérifications supplémentaires requises).",
         )
-    old_statut = match_.statut.value if hasattr(match_.statut, "value") else match_.statut
+    actuel = match_.statut.value if hasattr(match_.statut, "value") else match_.statut
+    now = datetime.now(timezone.utc)
+    if nouveau_statut == StatutMatch.EN_COURS:
+        if actuel != StatutMatch.PROGRAMME.value and actuel != StatutMatch.PROGRAMME:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "Seul un match programmé peut être démarré.")
+        match_.started_at = now
+        match_.ended_at = None
+    elif nouveau_statut == StatutMatch.TERMINE:
+        if actuel != StatutMatch.EN_COURS.value and actuel != StatutMatch.EN_COURS:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "Seul un match en cours peut être terminé.")
+        match_.ended_at = now
+    old_statut = actuel
     match_.statut = nouveau_statut
     await log_audit(db, "matchs", match_.id, ActionAudit.UPDATE, current_user.id, {"statut": old_statut}, {"statut": nouveau_statut.value})
     await db.commit()

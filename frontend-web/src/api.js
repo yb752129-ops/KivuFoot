@@ -82,4 +82,9 @@ export const api = {
   rejeterEvenement: (id, commentaire) =>
     request(`/validation/evenements/${id}/rejeter`, { method: "PUT", auth: true, body: { commentaire } }),
   validerMatch: (id) => request(`/matchs/${id}/valider`, { method: "POST", auth: true }),
+  creerMatch: (payload) => request("/matchs", { method: "POST", body: payload, auth: true }),
+  changerStatut: (id, statut) =>
+    request(`/matchs/${id}/statut?nouveau_statut=${encodeURIComponent(statut)}`, { method: "PUT", auth: true }),
+  saisirEvenement: (matchId, payload) =>
+    request(`/matchs/${matchId}/evenements`, { method: "POST", body: payload, auth: true }),
 };
