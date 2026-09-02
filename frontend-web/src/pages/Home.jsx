@@ -28,7 +28,26 @@ function LiveUne({ match, clubsById, evt }) {
   const cote =
     evt?.equipe_concernee === "exterieur" ? away : evt ? home : "";
   return (
-    <Link to={`/matchs/${match.id}`} className="live-band">
+    <>
+    <style>{`
+      .live-dot{position:relative;width:12px;height:12px;flex:0 0 auto}
+      .live-dot b{display:block;width:12px;height:12px;border-radius:50%;background:#e31c1c;animation:live-beat .9s ease-in-out infinite}
+      .live-dot::after{content:"";position:absolute;inset:-4px;border-radius:50%;border:2px solid #e31c1c;animation:live-ping .9s ease-out infinite}
+      @keyframes live-beat{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(.72);opacity:.55}}
+      @keyframes live-ping{0%{transform:scale(.6);opacity:.9}100%{transform:scale(1.8);opacity:0}}
+      .live-band .sb-score,.live-band .sb-name{color:#f3efe4}
+    `}</style>
+    <Link
+      to={`/matchs/${match.id}`}
+      className="live-band"
+      style={{
+        display: "block",
+        background: "#1f4d36",
+        color: "#f3efe4",
+        margin: "0 -1rem 0.4rem",
+        padding: "1rem 1rem 1.2rem",
+      }}
+    >
       <p className="live-now">
         <span className="live-dot" aria-hidden="true"><b /></span>
         En cours
@@ -43,13 +62,14 @@ function LiveUne({ match, clubsById, evt }) {
         </span>
         <span className="sb-name away">{away}</span>
       </div>
-      {evt && (
+        {evt && (
         <p className="live-evt">
           {minute}′ · {EVT[evt.type] || evt.type}
           {cote ? ` · ${cote}` : ""}
         </p>
       )}
     </Link>
+    </>
   );
 }
 

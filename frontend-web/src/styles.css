@@ -559,6 +559,76 @@ footer.site a.orga-entry {
 @media (max-width: 360px) {
   .sb-name { font-size: 0.82rem; }
   .wordmark-name { font-size: 1.6rem; }
-  .brand-sceau { width: 1.75rem; height: 1.75rem; }
   .bottom-nav a { font-size: 0.62rem; letter-spacing: 0.06em; }
+}
+
+/* —— Match en cours (doit gagner sur .sb-score encre) —— */
+.live-band {
+  display: block;
+  background: #1f4d36;
+  color: #f3efe4;
+  margin: 0 -1rem 0.4rem;
+  padding: 1rem 1rem 1.2rem;
+}
+.live-now {
+  margin: 0 0 0.15rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #f3efe4;
+}
+.live-dot {
+  position: relative;
+  width: 12px;
+  height: 12px;
+  flex: 0 0 auto;
+}
+.live-dot b {
+  display: block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #e31c1c;
+  animation: live-beat 0.9s ease-in-out infinite;
+}
+.live-dot::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 2px solid #e31c1c;
+  animation: live-ping 0.9s ease-out infinite;
+}
+@keyframes live-beat {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(0.72); opacity: 0.55; }
+}
+@keyframes live-ping {
+  0% { transform: scale(0.6); opacity: 0.9; }
+  100% { transform: scale(1.8); opacity: 0; }
+}
+.live-min {
+  margin: 0 0 0.75rem;
+  font-family: var(--score);
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #f3efe4;
+}
+.live-band .sb-name,
+.live-band .sb-score {
+  color: #f3efe4;
+}
+.live-band .sb-score {
+  font-size: clamp(2.4rem, 10vw, 3.3rem);
+}
+.live-evt {
+  margin: 0.85rem 0 0;
+  font-size: 0.9rem;
+  color: #f3efe4;
+  opacity: 0.85;
 }
