@@ -61,12 +61,21 @@ async def saisir_evenement(
     staff_orga = current_user.role in (RoleUtilisateur.ORGANISATEUR, RoleUtilisateur.ADMIN)
     if staff_orga and match_.statut != StatutMatch.EN_COURS:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Le match n'est pas en cours.")
-    resultat = await pousser_evenement(db, match_id, payload, current_user.id)
-    if resultat.evenement_id is None:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, resultat.erreur or "Erreur de saisie.")
-    evenement = await db.get(EvenementMatch, resultat.evenement_id)
-    if staff_orga:
-        evenement = await valider_evenement(db, evenement.id, current_user.id)
-    await db.commit()
-    await db.refresh(evenement)
-    return evenement
+    try:
+        resultat = await pousser_evenement(db, match_id, payload, current_user.id)
+        if resultat.evenement_id is None:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, resultat.erreur or "Erreur de saisie.")
+        evenement = await db.get(EvenementMatch, resultat.evenement_id)
+        if evenement is None:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "Événement non créé.")
+        if staff_orga:
+            evenement = await valider_evenement(db, evenement.id, current_user.id)
+        await db.commit()
+        await db.refresh(evenement)
+        return evenement
+    except HTTPException:
+        await db.rollback()
+        raise
+    except Exception as ex:
+        await db.rollback()
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(ex)) from ex

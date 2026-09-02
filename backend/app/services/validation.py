@@ -26,6 +26,10 @@ from app.services.calcul_stats import appliquer_evenement_valide
 from app.services.feuille_de_match import appliquer_feuille_de_match
 
 
+def _val(x):
+    return x.value if hasattr(x, "value") else x
+
+
 async def valider_evenement(db: AsyncSession, evenement_id: int, valide_par_id: int) -> EvenementMatch:
     evenement = await db.get(EvenementMatch, evenement_id)
     if evenement is None:
@@ -41,7 +45,7 @@ async def valider_evenement(db: AsyncSession, evenement_id: int, valide_par_id: 
     if evenement.statut_validation == StatutValidationEvenement.REJETE:
         raise HTTPException(status.HTTP_409_CONFLICT, "Cet événement a déjà été rejeté.")
 
-    old_data = {"statut_validation": evenement.statut_validation.value}
+    old_data = {"statut_validation": _val(evenement.statut_validation)}
 
     evenement.statut_validation = StatutValidationEvenement.VALIDE
     evenement.valide_par = valide_par_id
@@ -75,7 +79,7 @@ async def rejeter_evenement(
     if evenement.locked:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Cet événement est déjà validé et verrouillé.")
 
-    old_data = {"statut_validation": evenement.statut_validation.value}
+    old_data = {"statut_validation": _val(evenement.statut_validation)}
 
     evenement.statut_validation = StatutValidationEvenement.REJETE
     evenement.valide_par = valide_par_id
@@ -113,7 +117,7 @@ async def valider_match(db: AsyncSession, match_id: int, valide_par_id: int) -> 
             "Impossible de valider ce match : des événements sont encore en attente de traitement.",
         )
 
-    old_data = {"statut": match_.statut.value, "locked": match_.locked}
+    old_data = {"statut": _val(match_.statut), "locked": match_.locked}
 
     await appliquer_feuille_de_match(db, match_)
 
