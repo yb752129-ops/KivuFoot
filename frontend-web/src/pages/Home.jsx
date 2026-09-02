@@ -1,14 +1,63 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api.js";
-import { useKivu } from "../context.jsx";
+import { clubName, useKivu } from "../context.jsx";
 import Scoreboard from "../components/Scoreboard.jsx";
 import { formatJour, groupMatchsByJournee, journeeTitre, stripDemo } from "../display.js";
+
+const EVT = {
+  but: "But",
+  but_contre_son_camp: "CSC",
+  passe_decisive: "Passe",
+  carton_jaune: "Jaune",
+  carton_rouge: "Rouge",
+  remplacement: "Changement",
+  penalty: "Penalty",
+};
+
+function nomClub(clubsById, id) {
+  return stripDemo(clubName(clubsById, id));
+}
+
+function LiveUne({ match, clubsById, evt }) {
+  const home = nomClub(clubsById, match.equipe_domicile_id);
+  const away = nomClub(clubsById, match.equipe_exterieur_id);
+  const sd = match.score_domicile;
+  const se = match.score_exterieur;
+  const minute = evt?.minute;
+  const cote =
+    evt?.equipe_concernee === "exterieur" ? away : evt ? home : "";
+  return (
+    <Link to={`/matchs/${match.id}`} className="live-band">
+      <p className="live-now">
+        <span className="live-dot" aria-hidden="true"><b /></span>
+        En cours
+      </p>
+      {minute != null && <p className="live-min">{minute}′</p>}
+      <div className="sb-line">
+        <span className="sb-name">{home}</span>
+        <span className="sb-score">
+          {sd}
+          <span className="sb-dash">–</span>
+          {se}
+        </span>
+        <span className="sb-name away">{away}</span>
+      </div>
+      {evt && (
+        <p className="live-evt">
+          {minute}′ · {EVT[evt.type] || evt.type}
+          {cote ? ` · ${cote}` : ""}
+        </p>
+      )}
+    </Link>
+  );
+}
 
 export default function Home() {
   const { loading, saison, clubsById, competition } = useKivu();
   const [classement, setClassement] = useState([]);
   const [matchs, setMatchs] = useState([]);
+  const [evt, setEvt] = useState(null);
 
   useEffect(() => {
     if (!saison) return;
@@ -16,10 +65,35 @@ export default function Home() {
     api.matchs(saison.id).then(setMatchs).catch(() => setMatchs([]));
   }, [saison]);
 
-  if (loading) return <p className="empty">Chargement…</p>;
-
   const last = groupMatchsByJournee(matchs)[0];
   const items = last?.items || [];
+  const live =
+    matchs.find((m) => m.statut === "en_cours") ||
+    (competition?.est_demo ? items[0] : null) ||
+    null;
+  const rest = live ? items.filter((m) => m.id !== live.id) : items;
+
+  useEffect(() => {
+    if (!live?.id) {
+      setEvt(null);
+      return;
+    }
+    let stop = false;
+    api.evenementsPublics(live.id)
+      .then((list) => {
+        if (stop) return;
+        const sorted = [...(list || [])].sort((a, b) => (b.minute || 0) - (a.minute || 0));
+        setEvt(sorted[0] || null);
+      })
+      .catch(() => {
+        if (!stop) setEvt(null);
+      });
+    return () => {
+      stop = true;
+    };
+  }, [live?.id]);
+
+  if (loading) return <p className="empty">Chargement…</p>;
 
   const enTete = [stripDemo(competition?.nom || ""), saison?.nom]
     .filter(Boolean)
@@ -27,20 +101,36 @@ export default function Home() {
 
   return (
     <>
-      <section>
-        {enTete && <p className="comp-head">{enTete}</p>}
-        <h1>{items.length ? journeeTitre(last.code) : "Aucun match publié"}</h1>
-        {last?.date && <p className="journee-date">{formatJour(last.date, true)}</p>}
+      {live && <LiveUne match={live} clubsById={clubsById} evt={evt} />}
 
-        {items.length === 0 && <p className="empty">Aucun résultat public pour le moment.</p>}
-        {items.length > 0 && (
+      {!live && (
+        <section>
+          {enTete && <p className="comp-head">{enTete}</p>}
+          <h1>{items.length ? journeeTitre(last.code) : "Aucun match publié"}</h1>
+          {last?.date && <p className="journee-date">{formatJour(last.date, true)}</p>}
+          {items.length === 0 && <p className="empty">Aucun résultat public pour le moment.</p>}
+          {items.length > 0 && (
+            <div className="sheet">
+              {items.map((m) => (
+                <Scoreboard key={m.id} match={m} clubsById={clubsById} to={`/matchs/${m.id}`} />
+              ))}
+            </div>
+          )}
+        </section>
+      )}
+
+      {live && rest.length > 0 && (
+        <section>
+          <div className="section-head">
+            <h2>Terminé</h2>
+          </div>
           <div className="sheet">
-            {items.map((m) => (
+            {rest.map((m) => (
               <Scoreboard key={m.id} match={m} clubsById={clubsById} to={`/matchs/${m.id}`} />
             ))}
           </div>
-        )}
-      </section>
+        </section>
+      )}
 
       <section>
         <div className="section-head">
