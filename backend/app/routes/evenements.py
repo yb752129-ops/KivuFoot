@@ -3,7 +3,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.rbac import require_roles
-from app.database import get_db
+from app.database import AsyncSessionLocal, get_db
 from app.models.enums import EquipeConcernee, RoleUtilisateur, StatutMatch, TypeEvenement
 from app.models.evenement import EvenementMatch
 from app.models.joueur import Joueur
@@ -11,7 +11,11 @@ from app.models.match import Match
 from app.models.user import User
 from app.schemas.evenement import EvenementCreate, EvenementOut
 from app.services.sync_offline import pousser_evenement
-from app.services.validation import assert_joueur_peut_recevoir_fait, valider_evenement
+from app.services.validation import (
+    assert_joueur_peut_recevoir_fait,
+    reparer_expulsions_deuxieme_jaune,
+    valider_evenement,
+)
 
 router = APIRouter(prefix="/matchs", tags=["Événements"])
 
@@ -96,6 +100,12 @@ async def saisir_evenement(
     periode = match_.periode.value if match_.periode and hasattr(match_.periode, "value") else match_.periode
     if staff_orga and periode == "mi_temps":
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Mi-temps : la saisie reprend à la reprise.")
+    try:
+        async with AsyncSessionLocal() as extra:
+            await reparer_expulsions_deuxieme_jaune(extra, match_id, current_user.id)
+            await extra.commit()
+    except Exception:
+        pass
     await verifier_joueurs_du_fait(db, match_, payload)
     try:
         resultat = await pousser_evenement(db, match_id, payload, current_user.id)

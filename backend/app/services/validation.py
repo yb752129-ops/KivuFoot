@@ -229,6 +229,7 @@ async def valider_evenement(db: AsyncSession, evenement_id: int, valide_par_id: 
     evenement.valide_par = valide_par_id
     evenement.date_validation = datetime.now(timezone.utc)
     evenement.locked = True
+    await db.flush()
 
     await appliquer_evenement_valide(db, evenement, match_)
     await _assurer_passe_du_but(db, evenement, valide_par_id)
