@@ -333,3 +333,35 @@ async def test_deux_jaunes_joueurs_differents_pas_de_rouge(db_session):
         )
     )).scalars().all()
     assert rouges == []
+
+
+async def test_troisieme_jaune_et_but_interdits_apres_expulsion(db_session):
+    from app.services.validation import assert_joueur_peut_recevoir_fait
+
+    organisateur, _, _, _, _, joueur, match_ = await _setup_match_avec_joueur(db_session)
+    j1 = EvenementMatch(
+        match_id=match_.id, minute=20, type=TypeEvenement.CARTON_JAUNE, joueur_id=joueur.id,
+        equipe_concernee=EquipeConcernee.DOMICILE, temp_id=uuid.uuid4(),
+    )
+    j2 = EvenementMatch(
+        match_id=match_.id, minute=55, type=TypeEvenement.CARTON_JAUNE, joueur_id=joueur.id,
+        equipe_concernee=EquipeConcernee.DOMICILE, temp_id=uuid.uuid4(),
+    )
+    db_session.add_all([j1, j2])
+    await db_session.flush()
+    await valider_evenement(db_session, j1.id, organisateur.id)
+    await valider_evenement(db_session, j2.id, organisateur.id)
+    await db_session.flush()
+
+    with pytest.raises(HTTPException) as jaune:
+        await assert_joueur_peut_recevoir_fait(
+            db_session, match_.id, joueur.id, TypeEvenement.CARTON_JAUNE
+        )
+    assert jaune.value.status_code == 400
+
+    with pytest.raises(HTTPException) as but:
+        await assert_joueur_peut_recevoir_fait(
+            db_session, match_.id, joueur.id, TypeEvenement.BUT
+        )
+    assert but.value.status_code == 400
+    assert "expulsé" in but.value.detail

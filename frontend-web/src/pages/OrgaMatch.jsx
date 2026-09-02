@@ -183,6 +183,16 @@ export default function OrgaMatch() {
     return j?.nom_complet || "Joueur";
   }
 
+  function estExpulse(jid) {
+    return evts.some(
+      (e) =>
+        e.joueur_id === jid
+        && e.type === "carton_rouge"
+        && e.statut_validation === "valide"
+        && !e.refuse,
+    );
+  }
+
   async function ajouter(e) {
     e.preventDefault();
     if (!joueurId) {
@@ -191,6 +201,10 @@ export default function OrgaMatch() {
     }
     if ((type === "remplacement") && !secondaireId) {
       setErr("Indiquez le joueur qui entre.");
+      return;
+    }
+    if (estExpulse(Number(joueurId)) || (secondaireId && estExpulse(Number(secondaireId)))) {
+      setErr("Ce joueur est déjà expulsé.");
       return;
     }
     setBusy(true);
@@ -258,6 +272,12 @@ export default function OrgaMatch() {
   if (!match) return <p className="empty">Chargement…</p>;
 
   const formOk = enCours && !ht && !match.locked;
+  const feuille = [...evts].sort(
+    (a, b) =>
+      (a.minute || 0) - (b.minute || 0)
+      || (a.minute_additionnelle || 0) - (b.minute_additionnelle || 0)
+      || a.id - b.id,
+  );
 
   return (
     <div className="shell">
@@ -342,7 +362,9 @@ export default function OrgaMatch() {
             <select value={joueurId} onChange={(e) => setJoueurId(e.target.value)} required>
               <option value="">—</option>
               {joueurs.map((j) => (
-                <option key={j.id} value={j.id}>{j.nom_complet}</option>
+                <option key={j.id} value={j.id} disabled={estExpulse(j.id)}>
+                  {j.nom_complet}{estExpulse(j.id) ? " — expulsé" : ""}
+                </option>
               ))}
             </select>
           </label>
@@ -352,7 +374,9 @@ export default function OrgaMatch() {
               <select value={secondaireId} onChange={(e) => setSecondaireId(e.target.value)}>
                 <option value="">Aucune passe décisive</option>
                 {joueurs.filter((j) => String(j.id) !== String(joueurId)).map((j) => (
-                  <option key={j.id} value={j.id}>{j.nom_complet}</option>
+                  <option key={j.id} value={j.id} disabled={estExpulse(j.id)}>
+                    {j.nom_complet}{estExpulse(j.id) ? " — expulsé" : ""}
+                  </option>
                 ))}
               </select>
             </label>
@@ -363,7 +387,9 @@ export default function OrgaMatch() {
               <select value={secondaireId} onChange={(e) => setSecondaireId(e.target.value)} required>
                 <option value="">—</option>
                 {joueurs.filter((j) => String(j.id) !== String(joueurId)).map((j) => (
-                  <option key={j.id} value={j.id}>{j.nom_complet}</option>
+                  <option key={j.id} value={j.id} disabled={estExpulse(j.id)}>
+                    {j.nom_complet}{estExpulse(j.id) ? " — expulsé" : ""}
+                  </option>
                 ))}
               </select>
             </label>
@@ -409,7 +435,7 @@ export default function OrgaMatch() {
       </div>
       {evts.length === 0 && <p className="empty">Aucun événement.</p>}
       <ul className="timeline">
-        {evts.map((e) => (
+        {feuille.map((e) => (
           <li key={e.id}>
             {formatMinute(e.minute, e.minute_additionnelle)} · {labelEvenement(e)}
             {e.type === "penalty" && e.resultat ? ` ${e.resultat}` : ""}

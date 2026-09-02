@@ -16,7 +16,7 @@ import uuid
 from datetime import datetime, timezone
 
 from fastapi import HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.enums import ActionAudit, MotifRefusArbitral, StatutMatch, StatutValidationEvenement, TypeEvenement
@@ -29,6 +29,56 @@ from app.services.feuille_de_match import appliquer_feuille_de_match
 
 def _val(x):
     return x.value if hasattr(x, "value") else x
+
+
+def _non_refuse():
+    return or_(EvenementMatch.refuse.is_(False), EvenementMatch.refuse.is_(None))
+
+
+async def _est_expulse(db: AsyncSession, match_id: int, joueur_id: int) -> bool:
+    rouge = (
+        await db.execute(
+            select(EvenementMatch.id).where(
+                EvenementMatch.match_id == match_id,
+                EvenementMatch.joueur_id == joueur_id,
+                EvenementMatch.type == TypeEvenement.CARTON_ROUGE,
+                EvenementMatch.statut_validation == StatutValidationEvenement.VALIDE,
+                _non_refuse(),
+            )
+        )
+    ).first()
+    return rouge is not None
+
+
+async def _nb_jaunes_actifs(db: AsyncSession, match_id: int, joueur_id: int) -> int:
+    jaunes = (
+        await db.execute(
+            select(EvenementMatch).where(
+                EvenementMatch.match_id == match_id,
+                EvenementMatch.joueur_id == joueur_id,
+                EvenementMatch.type == TypeEvenement.CARTON_JAUNE,
+                EvenementMatch.statut_validation == StatutValidationEvenement.VALIDE,
+                _non_refuse(),
+            )
+        )
+    ).scalars().all()
+    return len(jaunes)
+
+
+async def assert_joueur_peut_recevoir_fait(
+    db: AsyncSession, match_id: int, joueur_id: int | None, type_evenement
+) -> None:
+    """Un expulsé ne reçoit plus de fait. Un 3e jaune est interdit (les 2 jaunes restent)."""
+    if not joueur_id:
+        return
+    if await _est_expulse(db, match_id, joueur_id):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Ce joueur est déjà expulsé.")
+    if _val(type_evenement) == TypeEvenement.CARTON_JAUNE.value:
+        if await _nb_jaunes_actifs(db, match_id, joueur_id) >= 2:
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                "Deuxième jaune déjà sifflé : ce joueur est expulsé.",
+            )
 
 
 async def _assurer_passe_du_but(db: AsyncSession, evenement: EvenementMatch, valide_par_id: int) -> None:
@@ -81,7 +131,7 @@ async def _assurer_rouge_deuxieme_jaune(db: AsyncSession, evenement: EvenementMa
                 EvenementMatch.joueur_id == evenement.joueur_id,
                 EvenementMatch.type == TypeEvenement.CARTON_JAUNE,
                 EvenementMatch.statut_validation == StatutValidationEvenement.VALIDE,
-                EvenementMatch.refuse.is_(False),
+                _non_refuse(),
             )
         )
     ).scalars().all()
@@ -94,7 +144,7 @@ async def _assurer_rouge_deuxieme_jaune(db: AsyncSession, evenement: EvenementMa
                 EvenementMatch.joueur_id == evenement.joueur_id,
                 EvenementMatch.type == TypeEvenement.CARTON_ROUGE,
                 EvenementMatch.statut_validation != StatutValidationEvenement.REJETE,
-                EvenementMatch.refuse.is_(False),
+                _non_refuse(),
             )
         )
     ).scalars().first()
@@ -131,6 +181,12 @@ async def valider_evenement(db: AsyncSession, evenement_id: int, valide_par_id: 
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Cet événement a déjà été validé et est verrouillé.")
     if evenement.statut_validation == StatutValidationEvenement.REJETE:
         raise HTTPException(status.HTTP_409_CONFLICT, "Cet événement a déjà été rejeté.")
+    if _val(evenement.source) != "deuxieme_jaune":
+        await assert_joueur_peut_recevoir_fait(db, evenement.match_id, evenement.joueur_id, evenement.type)
+        if evenement.joueur_secondaire_id:
+            await assert_joueur_peut_recevoir_fait(
+                db, evenement.match_id, evenement.joueur_secondaire_id, evenement.type
+            )
 
     old_data = {"statut_validation": _val(evenement.statut_validation)}
 

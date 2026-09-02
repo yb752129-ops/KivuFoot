@@ -17,10 +17,12 @@ Règles appliquées :
   normalement, le second est marqué conflit=True et une entrée est
   créée dans conflits_synchronisation pour arbitrage par l'organisateur.
 """
+from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.enums import StatutValidationEvenement
+from app.services.validation import assert_joueur_peut_recevoir_fait
 from app.models.evenement import EvenementMatch
 from app.models.match import Match
 from app.models.sync import ConflitSynchronisation
@@ -58,6 +60,13 @@ async def pousser_evenement(
         return SyncPushResultItem(temp_id=ev.temp_id, statut=StatutSync.LOCAL, erreur="Match introuvable.")
 
     # 2. Cas 2 §6.3 : match déjà verrouillé -> rejet automatique tracé.
+    try:
+        await assert_joueur_peut_recevoir_fait(db, match_id, ev.joueur_id, ev.type)
+        if ev.joueur_secondaire_id:
+            await assert_joueur_peut_recevoir_fait(db, match_id, ev.joueur_secondaire_id, ev.type)
+    except HTTPException as ex:
+        return SyncPushResultItem(temp_id=ev.temp_id, statut=StatutSync.LOCAL, erreur=ex.detail)
+
     if match_.locked:
         rejet = EvenementMatch(
             match_id=match_id,

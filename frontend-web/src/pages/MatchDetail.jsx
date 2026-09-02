@@ -95,7 +95,12 @@ export default function MatchDetail() {
         <p className="empty">Aucun événement rendu public pour ce match.</p>
       )}
       <ul className="timeline">
-        {evts.map((e) => (
+        {[...evts].sort(
+          (a, b) =>
+            (a.minute || 0) - (b.minute || 0)
+            || (a.minute_additionnelle || 0) - (b.minute_additionnelle || 0)
+            || a.id - b.id,
+        ).map((e) => (
           <li key={e.id}>
             <strong>{formatMinute(e.minute, e.minute_additionnelle)}</strong>
             {" · "}

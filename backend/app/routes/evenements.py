@@ -11,7 +11,7 @@ from app.models.match import Match
 from app.models.user import User
 from app.schemas.evenement import EvenementCreate, EvenementOut
 from app.services.sync_offline import pousser_evenement
-from app.services.validation import valider_evenement
+from app.services.validation import assert_joueur_peut_recevoir_fait, valider_evenement
 
 router = APIRouter(prefix="/matchs", tags=["Événements"])
 
@@ -32,6 +32,9 @@ async def verifier_joueurs_du_fait(db: AsyncSession, match_: Match, payload: Eve
             raise HTTPException(status.HTTP_400_BAD_REQUEST, "Joueur introuvable.")
         if joueur.club_actuel_id and club_id and joueur.club_actuel_id != club_id:
             raise HTTPException(status.HTTP_400_BAD_REQUEST, "Ce joueur n'appartient pas à cette équipe.")
+        await assert_joueur_peut_recevoir_fait(db, match_.id, payload.joueur_id, payload.type)
+    if payload.joueur_secondaire_id:
+        await assert_joueur_peut_recevoir_fait(db, match_.id, payload.joueur_secondaire_id, payload.type)
     if typ == TypeEvenement.BUT_CONTRE_SON_CAMP.value and payload.joueur_secondaire_id:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Un but contre son camp n'a pas de passeur.")
     if typ == TypeEvenement.BUT.value and payload.joueur_secondaire_id:
