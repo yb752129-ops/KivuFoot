@@ -111,7 +111,7 @@ export default function OrgaMatch() {
     try {
       await api.saisirEvenement(id, {
         temp_id: crypto.randomUUID(),
-        minute: Number(minute),
+        minute: Number.parseInt(String(minute), 10) || 0,
         type,
         joueur_id: Number(joueurId),
         equipe_concernee: cote,
@@ -203,6 +203,7 @@ export default function OrgaMatch() {
               type="number"
               min="0"
               max="130"
+              step="1"
               value={minute}
               onChange={(e) => setMinute(e.target.value)}
               required

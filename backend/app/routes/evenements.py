@@ -10,6 +10,7 @@ from app.models.match import Match
 from app.models.user import User
 from app.schemas.evenement import EvenementCreate, EvenementOut
 from app.services.sync_offline import pousser_evenement
+from app.services.validation import valider_evenement
 
 router = APIRouter(prefix="/matchs", tags=["Événements"])
 
