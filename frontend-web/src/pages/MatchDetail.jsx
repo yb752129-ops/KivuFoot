@@ -30,6 +30,7 @@ export default function MatchDetail() {
       api.evenementsPublics(id).catch(() => []),
       api.joueurs().catch(() => []),
     ]);
+    setErr("");
     setMatch(m);
     setEvts(e || []);
     setJoueurs(Object.fromEntries((js || []).map((j) => [j.id, j.nom_complet])));
