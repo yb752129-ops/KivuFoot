@@ -13,22 +13,22 @@ const SOMMAIRE = [
 export default function Layout() {
   const { competition, error } = useKivu();
   const { prenom } = useAuth();
+  const initiale = prenom ? prenom.charAt(0).toUpperCase() : "";
   return (
     <>
       <header className="masthead">
         <div className="masthead-inner">
           <div className="masthead-row">
             <NavLink to="/" className="wordmark">
-              <span className="wordmark-lockup">
-                <Sceau className="brand-sceau" />
-                <span className="wordmark-col">
-                  <span className="wordmark-name">KivuFoot</span>
-                  <span className="wordmark-place">Sud-Kivu</span>
-                </span>
-              </span>
+              <span className="wordmark-name">KivuFoot</span>
+              <span className="wordmark-place">Sud-Kivu</span>
             </NavLink>
-            <NavLink to="/compte" className="compte-link">
-              {prenom || "Compte"}
+            <NavLink
+              to="/compte"
+              className={initiale ? "compte-mark" : "compte-link"}
+              aria-label={prenom ? `Compte ${prenom}` : "Compte"}
+            >
+              {initiale || "Compte"}
             </NavLink>
           </div>
           {competition?.est_demo && (

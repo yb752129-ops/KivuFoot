@@ -178,9 +178,15 @@ export default function Compte() {
           </label>
         )}
         {err && <p className="erreur">{err}</p>}
-        <button className="btn btn-primary" type="submit" disabled={busy}>
+        <button
+          className={`btn btn-primary${busy ? " is-busy" : ""}`}
+          type="submit"
+          disabled={busy}
+        >
           {busy
-            ? "…"
+            ? mode === "creer"
+              ? "Création…"
+              : "Connexion…"
             : mode === "creer"
               ? "Créer le compte"
               : "Se connecter"}
