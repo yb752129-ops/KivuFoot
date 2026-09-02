@@ -2,6 +2,20 @@ export function stripDemo(name) {
   return (name || "").replace(/^DEMO\s*[-–]?\s*/i, "").trim();
 }
 
+export function labelEvenement(e) {
+  if (e?.type === "carton_rouge" && e.source === "deuxieme_jaune") return "Rouge (2e jaune)";
+  const labels = {
+    but: "But",
+    but_contre_son_camp: "CSC",
+    passe_decisive: "Passe",
+    carton_jaune: "Jaune",
+    carton_rouge: "Rouge",
+    remplacement: "Changement",
+    penalty: "Penalty",
+  };
+  return labels[e?.type] || e?.type || "";
+}
+
 export const MOTIF_REFUS = {
   hors_jeu: "Hors-jeu",
   faute_attaquant: "Faute de l'attaquant",

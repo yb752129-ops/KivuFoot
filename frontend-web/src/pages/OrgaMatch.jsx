@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { api, clearTokens } from "../api.js";
 import Chrono from "../components/Chrono.jsx";
 import { clubName, useKivu } from "../context.jsx";
-import { clockFromMatch, formatMinute, MOTIF_REFUS, periodeLabel, splitMinute, stripDemo } from "../display.js";
+import { clockFromMatch, formatMinute, labelEvenement, MOTIF_REFUS, periodeLabel, splitMinute, stripDemo } from "../display.js";
 
 const LABELS = {
   but: "But",
@@ -411,7 +411,7 @@ export default function OrgaMatch() {
       <ul className="timeline">
         {evts.map((e) => (
           <li key={e.id}>
-            {formatMinute(e.minute, e.minute_additionnelle)} · {LABELS[e.type] || e.type}
+            {formatMinute(e.minute, e.minute_additionnelle)} · {labelEvenement(e)}
             {e.type === "penalty" && e.resultat ? ` ${e.resultat}` : ""}
             {e.type === "remplacement"
               ? ` · OUT ${nomJoueur(e.joueur_id)} · IN ${nomJoueur(e.joueur_secondaire_id)}`

@@ -68,6 +68,55 @@ async def _assurer_passe_du_but(db: AsyncSession, evenement: EvenementMatch, val
     await valider_evenement(db, passe.id, valide_par_id)
 
 
+async def _assurer_rouge_deuxieme_jaune(db: AsyncSession, evenement: EvenementMatch, valide_par_id: int) -> None:
+    """2e jaune du même joueur sur le même match → rouge dérivé. Les deux jaunes restent."""
+    if _val(evenement.type) != TypeEvenement.CARTON_JAUNE.value:
+        return
+    if not evenement.joueur_id:
+        return
+    jaunes = (
+        await db.execute(
+            select(EvenementMatch).where(
+                EvenementMatch.match_id == evenement.match_id,
+                EvenementMatch.joueur_id == evenement.joueur_id,
+                EvenementMatch.type == TypeEvenement.CARTON_JAUNE,
+                EvenementMatch.statut_validation == StatutValidationEvenement.VALIDE,
+                EvenementMatch.refuse.is_(False),
+            )
+        )
+    ).scalars().all()
+    if len(jaunes) < 2:
+        return
+    deja_rouge = (
+        await db.execute(
+            select(EvenementMatch).where(
+                EvenementMatch.match_id == evenement.match_id,
+                EvenementMatch.joueur_id == evenement.joueur_id,
+                EvenementMatch.type == TypeEvenement.CARTON_ROUGE,
+                EvenementMatch.statut_validation != StatutValidationEvenement.REJETE,
+                EvenementMatch.refuse.is_(False),
+            )
+        )
+    ).scalars().first()
+    if deja_rouge is not None:
+        return
+    rouge = EvenementMatch(
+        match_id=evenement.match_id,
+        minute=evenement.minute,
+        minute_additionnelle=evenement.minute_additionnelle or 0,
+        periode=evenement.periode,
+        type=TypeEvenement.CARTON_ROUGE,
+        joueur_id=evenement.joueur_id,
+        equipe_concernee=evenement.equipe_concernee,
+        temp_id=uuid.uuid4(),
+        cree_par_id=valide_par_id,
+        source="deuxieme_jaune",
+    )
+    db.add(rouge)
+    await db.flush()
+    await valider_evenement(db, rouge.id, valide_par_id)
+
+
 async def valider_evenement(db: AsyncSession, evenement_id: int, valide_par_id: int) -> EvenementMatch:
     evenement = await db.get(EvenementMatch, evenement_id)
     if evenement is None:
@@ -92,6 +141,7 @@ async def valider_evenement(db: AsyncSession, evenement_id: int, valide_par_id: 
 
     await appliquer_evenement_valide(db, evenement, match_)
     await _assurer_passe_du_but(db, evenement, valide_par_id)
+    await _assurer_rouge_deuxieme_jaune(db, evenement, valide_par_id)
 
     await log_audit(
         db,

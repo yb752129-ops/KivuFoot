@@ -265,3 +265,71 @@ async def test_match_verrouille_apres_validation_bloque_nouveaux_evenements(db_s
     with pytest.raises(HTTPException) as exc_info:
         await valider_evenement(db_session, ev_tardif.id, organisateur.id)
     assert exc_info.value.status_code == 403
+
+
+async def test_deuxieme_jaune_cree_rouge_derive_sans_effacer_les_jaunes(db_session):
+    organisateur, _, _, _, _, joueur, match_ = await _setup_match_avec_joueur(db_session)
+    j1 = EvenementMatch(
+        match_id=match_.id, minute=31, type=TypeEvenement.CARTON_JAUNE, joueur_id=joueur.id,
+        equipe_concernee=EquipeConcernee.DOMICILE, temp_id=uuid.uuid4(),
+    )
+    j2 = EvenementMatch(
+        match_id=match_.id, minute=74, type=TypeEvenement.CARTON_JAUNE, joueur_id=joueur.id,
+        equipe_concernee=EquipeConcernee.DOMICILE, temp_id=uuid.uuid4(),
+    )
+    db_session.add_all([j1, j2])
+    await db_session.flush()
+    await valider_evenement(db_session, j1.id, organisateur.id)
+    await db_session.flush()
+    rouges_avant = (await db_session.execute(
+        select(EvenementMatch).where(
+            EvenementMatch.match_id == match_.id,
+            EvenementMatch.type == TypeEvenement.CARTON_ROUGE,
+        )
+    )).scalars().all()
+    assert rouges_avant == []
+
+    await valider_evenement(db_session, j2.id, organisateur.id)
+    await db_session.flush()
+    assert j1.type == TypeEvenement.CARTON_JAUNE
+    assert j2.type == TypeEvenement.CARTON_JAUNE
+    rouges = (await db_session.execute(
+        select(EvenementMatch).where(
+            EvenementMatch.match_id == match_.id,
+            EvenementMatch.type == TypeEvenement.CARTON_ROUGE,
+        )
+    )).scalars().all()
+    assert len(rouges) == 1
+    assert rouges[0].source == "deuxieme_jaune"
+    assert rouges[0].joueur_id == joueur.id
+    assert rouges[0].statut_validation == StatutValidationEvenement.VALIDE
+    stats = (await db_session.execute(
+        select(StatistiqueJoueur).where(StatistiqueJoueur.joueur_id == joueur.id)
+    )).scalar_one()
+    assert stats.cartons_jaunes == 2
+    assert stats.cartons_rouges == 1
+
+
+async def test_deux_jaunes_joueurs_differents_pas_de_rouge(db_session):
+    organisateur, _, _, club_a, _, joueur, match_ = await _setup_match_avec_joueur(db_session)
+    autre = await creer_joueur(db_session, club_a.id, "Autre Test")
+    j1 = EvenementMatch(
+        match_id=match_.id, minute=12, type=TypeEvenement.CARTON_JAUNE, joueur_id=joueur.id,
+        equipe_concernee=EquipeConcernee.DOMICILE, temp_id=uuid.uuid4(),
+    )
+    j2 = EvenementMatch(
+        match_id=match_.id, minute=40, type=TypeEvenement.CARTON_JAUNE, joueur_id=autre.id,
+        equipe_concernee=EquipeConcernee.DOMICILE, temp_id=uuid.uuid4(),
+    )
+    db_session.add_all([j1, j2])
+    await db_session.flush()
+    await valider_evenement(db_session, j1.id, organisateur.id)
+    await valider_evenement(db_session, j2.id, organisateur.id)
+    await db_session.flush()
+    rouges = (await db_session.execute(
+        select(EvenementMatch).where(
+            EvenementMatch.match_id == match_.id,
+            EvenementMatch.type == TypeEvenement.CARTON_ROUGE,
+        )
+    )).scalars().all()
+    assert rouges == []

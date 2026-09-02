@@ -4,17 +4,7 @@ import { api } from "../api.js";
 import { clubName, useKivu } from "../context.jsx";
 import Chrono from "../components/Chrono.jsx";
 import Scoreboard from "../components/Scoreboard.jsx";
-import { formatJour, formatMinute, groupMatchsByJournee, journeeTitre, stripDemo } from "../display.js";
-
-const EVT = {
-  but: "But",
-  but_contre_son_camp: "CSC",
-  passe_decisive: "Passe",
-  carton_jaune: "Jaune",
-  carton_rouge: "Rouge",
-  remplacement: "Changement",
-  penalty: "Penalty",
-};
+import { formatJour, formatMinute, groupMatchsByJournee, journeeTitre, labelEvenement, stripDemo } from "../display.js";
 
 function nomClub(clubsById, id) {
   return stripDemo(clubName(clubsById, id));
@@ -65,7 +55,7 @@ function LiveUne({ match, clubsById, evt }) {
       </div>
         {evt && (
         <p className="live-evt">
-          {formatMinute(minute, evt.minute_additionnelle)} · {EVT[evt.type] || evt.type}
+          {formatMinute(minute, evt.minute_additionnelle)} · {labelEvenement(evt)}
           {cote ? ` · ${cote}` : ""}
         </p>
       )}

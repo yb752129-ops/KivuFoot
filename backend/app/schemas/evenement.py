@@ -100,6 +100,7 @@ class EvenementOut(BaseModel):
     refuse: bool = False
     motif_refus: str | None = None
     commentaire_refus: str | None = None
+    source: str | None = None
     created_at: datetime
 
 

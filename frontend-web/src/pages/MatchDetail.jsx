@@ -4,17 +4,7 @@ import { api } from "../api.js";
 import Chrono from "../components/Chrono.jsx";
 import { useKivu } from "../context.jsx";
 import Scoreboard from "../components/Scoreboard.jsx";
-import { formatJour, formatMinute, journeeTitre, MOTIF_REFUS, periodeLabel, stripDemo } from "../display.js";
-
-const LABELS = {
-  but: "But",
-  but_contre_son_camp: "CSC",
-  passe_decisive: "Passe",
-  carton_jaune: "Jaune",
-  carton_rouge: "Rouge",
-  remplacement: "Changement",
-  penalty: "Penalty",
-};
+import { formatJour, formatMinute, journeeTitre, labelEvenement, MOTIF_REFUS, periodeLabel, stripDemo } from "../display.js";
 
 export default function MatchDetail() {
   const { id } = useParams();
@@ -109,7 +99,7 @@ export default function MatchDetail() {
           <li key={e.id}>
             <strong>{formatMinute(e.minute, e.minute_additionnelle)}</strong>
             {" · "}
-            {LABELS[e.type] || e.type}
+            {labelEvenement(e)}
             {e.type === "penalty" && e.resultat ? ` ${e.resultat}` : ""}
             {" · "}
             {e.type === "remplacement"
