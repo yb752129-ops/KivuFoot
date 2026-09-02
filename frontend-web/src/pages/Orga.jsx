@@ -21,6 +21,8 @@ export default function Orga() {
   const [err, setErr] = useState("");
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
+  const [rejetId, setRejetId] = useState(null);
+  const [rejetCom, setRejetCom] = useState("");
 
   async function load() {
     setErr("");
