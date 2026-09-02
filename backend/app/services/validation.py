@@ -16,7 +16,7 @@ import uuid
 from datetime import datetime, timezone
 
 from fastapi import HTTPException, status
-from sqlalchemy import or_, select, text
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.enums import ActionAudit, MotifRefusArbitral, StatutMatch, StatutValidationEvenement, TypeEvenement
@@ -33,10 +33,6 @@ def _val(x):
 
 def _non_refuse():
     return or_(EvenementMatch.refuse.is_(False), EvenementMatch.refuse.is_(None))
-
-
-async def _lock_joueur_match(db: AsyncSession, match_id: int, joueur_id: int) -> None:
-    await db.execute(text("SELECT pg_advisory_xact_lock(:m, :j)"), {"m": int(match_id), "j": int(joueur_id)})
 
 
 async def _est_expulse(db: AsyncSession, match_id: int, joueur_id: int) -> bool:
@@ -127,7 +123,6 @@ async def reparer_expulsions_deuxieme_jaune(db: AsyncSession, match_id: int, use
     for joueur_id, liste in par_joueur.items():
         if len(liste) < 2:
             continue
-        await _lock_joueur_match(db, match_id, joueur_id)
         if await _est_expulse(db, match_id, joueur_id):
             continue
         await _creer_rouge_deuxieme_jaune(db, liste[1], user_id)
@@ -178,7 +173,6 @@ async def _assurer_rouge_deuxieme_jaune(db: AsyncSession, evenement: EvenementMa
         return
     if not evenement.joueur_id:
         return
-    await _lock_joueur_match(db, evenement.match_id, evenement.joueur_id)
     jaunes = (
         await db.execute(
             select(EvenementMatch).where(
