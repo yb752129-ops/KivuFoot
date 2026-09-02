@@ -2,6 +2,28 @@ export function stripDemo(name) {
   return (name || "").replace(/^DEMO\s*[-–]?\s*/i, "").trim();
 }
 
+/** Feuille : 1er jaune + rouge (2e jaune). Les jaunes extra restent en base. */
+export function feuilleAffichee(evts) {
+  const list = [...(evts || [])].sort(
+    (a, b) =>
+      (a.minute || 0) - (b.minute || 0)
+      || (a.minute_additionnelle || 0) - (b.minute_additionnelle || 0)
+      || (a.id || 0) - (b.id || 0),
+  );
+  const expulses2j = new Set(
+    list
+      .filter((e) => e.type === "carton_rouge" && e.source === "deuxieme_jaune" && !e.refuse)
+      .map((e) => e.joueur_id),
+  );
+  const vuJaune = new Set();
+  return list.filter((e) => {
+    if (e.type !== "carton_jaune" || e.refuse || !expulses2j.has(e.joueur_id)) return true;
+    if (vuJaune.has(e.joueur_id)) return false;
+    vuJaune.add(e.joueur_id);
+    return true;
+  });
+}
+
 export function labelEvenement(e) {
   if (e?.type === "carton_rouge" && e.source === "deuxieme_jaune") return "Rouge (2e jaune)";
   const labels = {

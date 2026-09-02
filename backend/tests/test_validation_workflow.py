@@ -365,3 +365,32 @@ async def test_troisieme_jaune_et_but_interdits_apres_expulsion(db_session):
         )
     assert but.value.status_code == 400
     assert "expulsé" in but.value.detail
+
+
+async def test_reparer_cree_rouge_si_deux_jaunes_sans_expulsion(db_session):
+    from app.services.validation import reparer_expulsions_deuxieme_jaune
+
+    organisateur, _, _, _, _, joueur, match_ = await _setup_match_avec_joueur(db_session)
+    j1 = EvenementMatch(
+        match_id=match_.id, minute=12, type=TypeEvenement.CARTON_JAUNE, joueur_id=joueur.id,
+        equipe_concernee=EquipeConcernee.DOMICILE, temp_id=uuid.uuid4(),
+        statut_validation=StatutValidationEvenement.VALIDE, locked=True,
+    )
+    j2 = EvenementMatch(
+        match_id=match_.id, minute=12, type=TypeEvenement.CARTON_JAUNE, joueur_id=joueur.id,
+        equipe_concernee=EquipeConcernee.DOMICILE, temp_id=uuid.uuid4(),
+        statut_validation=StatutValidationEvenement.VALIDE, locked=True,
+    )
+    db_session.add_all([j1, j2])
+    await db_session.flush()
+    n = await reparer_expulsions_deuxieme_jaune(db_session, match_.id, organisateur.id)
+    await db_session.flush()
+    assert n == 1
+    rouges = (await db_session.execute(
+        select(EvenementMatch).where(
+            EvenementMatch.match_id == match_.id,
+            EvenementMatch.type == TypeEvenement.CARTON_ROUGE,
+        )
+    )).scalars().all()
+    assert len(rouges) == 1
+    assert rouges[0].source == "deuxieme_jaune"

@@ -4,7 +4,7 @@ import { api } from "../api.js";
 import Chrono from "../components/Chrono.jsx";
 import { useKivu } from "../context.jsx";
 import Scoreboard from "../components/Scoreboard.jsx";
-import { formatJour, formatMinute, journeeTitre, labelEvenement, MOTIF_REFUS, periodeLabel, stripDemo } from "../display.js";
+import { feuilleAffichee, formatJour, formatMinute, journeeTitre, labelEvenement, MOTIF_REFUS, periodeLabel, stripDemo } from "../display.js";
 
 export default function MatchDetail() {
   const { id } = useParams();

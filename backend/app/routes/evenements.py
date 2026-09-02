@@ -96,6 +96,8 @@ async def saisir_evenement(
     periode = match_.periode.value if match_.periode and hasattr(match_.periode, "value") else match_.periode
     if staff_orga and periode == "mi_temps":
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Mi-temps : la saisie reprend à la reprise.")
+    await reparer_expulsions_deuxieme_jaune(db, match_id, current_user.id)
+    await db.commit()
     await verifier_joueurs_du_fait(db, match_, payload)
     try:
         resultat = await pousser_evenement(db, match_id, payload, current_user.id)

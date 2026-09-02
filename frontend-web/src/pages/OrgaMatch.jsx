@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { api, clearTokens } from "../api.js";
 import Chrono from "../components/Chrono.jsx";
 import { clubName, useKivu } from "../context.jsx";
-import { clockFromMatch, formatMinute, labelEvenement, MOTIF_REFUS, periodeLabel, splitMinute, stripDemo } from "../display.js";
+import { clockFromMatch, feuilleAffichee, formatMinute, labelEvenement, MOTIF_REFUS, periodeLabel, splitMinute, stripDemo } from "../display.js";
 
 const LABELS = {
   but: "But",
@@ -47,6 +47,7 @@ export default function OrgaMatch() {
   const [autre, setAutre] = useState(false);
   const [refusId, setRefusId] = useState(null);
   const [refusMotif, setRefusMotif] = useState("hors_jeu");
+  const busyRef = useRef(false);
 
   const home = stripDemo(clubName(clubsById, match?.equipe_domicile_id));
   const away = stripDemo(clubName(clubsById, match?.equipe_exterieur_id));
@@ -207,6 +208,8 @@ export default function OrgaMatch() {
       setErr("Ce joueur est déjà expulsé.");
       return;
     }
+    if (busyRef.current) return;
+    busyRef.current = true;
     setBusy(true);
     setErr("");
     setMsg("");
@@ -230,7 +233,9 @@ export default function OrgaMatch() {
       await load();
     } catch (ex) {
       setErr(ex.message);
+      await load();
     } finally {
+      busyRef.current = false;
       setBusy(false);
     }
   }
@@ -272,12 +277,7 @@ export default function OrgaMatch() {
   if (!match) return <p className="empty">Chargement…</p>;
 
   const formOk = enCours && !ht && !match.locked;
-  const feuille = [...evts].sort(
-    (a, b) =>
-      (a.minute || 0) - (b.minute || 0)
-      || (a.minute_additionnelle || 0) - (b.minute_additionnelle || 0)
-      || a.id - b.id,
-  );
+  const feuille = feuilleAffichee(evts);
 
   return (
     <div className="shell">

@@ -16,7 +16,7 @@ import uuid
 from datetime import datetime, timezone
 
 from fastapi import HTTPException, status
-from sqlalchemy import or_, select
+from sqlalchemy import or_, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.enums import ActionAudit, MotifRefusArbitral, StatutMatch, StatutValidationEvenement, TypeEvenement
@@ -33,6 +33,10 @@ def _val(x):
 
 def _non_refuse():
     return or_(EvenementMatch.refuse.is_(False), EvenementMatch.refuse.is_(None))
+
+
+async def _lock_joueur_match(db: AsyncSession, match_id: int, joueur_id: int) -> None:
+    await db.execute(text("SELECT pg_advisory_xact_lock(:m, :j)"), {"m": int(match_id), "j": int(joueur_id)})
 
 
 async def _est_expulse(db: AsyncSession, match_id: int, joueur_id: int) -> bool:
@@ -81,6 +85,56 @@ async def assert_joueur_peut_recevoir_fait(
             )
 
 
+async def _creer_rouge_deuxieme_jaune(
+    db: AsyncSession, jaune: EvenementMatch, valide_par_id: int
+) -> EvenementMatch:
+    rouge = EvenementMatch(
+        match_id=jaune.match_id,
+        minute=jaune.minute,
+        minute_additionnelle=jaune.minute_additionnelle or 0,
+        periode=jaune.periode,
+        type=TypeEvenement.CARTON_ROUGE,
+        joueur_id=jaune.joueur_id,
+        equipe_concernee=jaune.equipe_concernee,
+        temp_id=uuid.uuid4(),
+        cree_par_id=valide_par_id,
+        source="deuxieme_jaune",
+    )
+    db.add(rouge)
+    await db.flush()
+    return await valider_evenement(db, rouge.id, valide_par_id)
+
+
+async def reparer_expulsions_deuxieme_jaune(db: AsyncSession, match_id: int, user_id: int) -> int:
+    """Si 2 jaunes validés sans rouge (double saisie), crée le rouge. Pas de DELETE."""
+    jaunes = (
+        await db.execute(
+            select(EvenementMatch)
+            .where(
+                EvenementMatch.match_id == match_id,
+                EvenementMatch.type == TypeEvenement.CARTON_JAUNE,
+                EvenementMatch.statut_validation == StatutValidationEvenement.VALIDE,
+                _non_refuse(),
+            )
+            .order_by(EvenementMatch.id)
+        )
+    ).scalars().all()
+    par_joueur: dict[int, list[EvenementMatch]] = {}
+    for j in jaunes:
+        if j.joueur_id:
+            par_joueur.setdefault(j.joueur_id, []).append(j)
+    n = 0
+    for joueur_id, liste in par_joueur.items():
+        if len(liste) < 2:
+            continue
+        await _lock_joueur_match(db, match_id, joueur_id)
+        if await _est_expulse(db, match_id, joueur_id):
+            continue
+        await _creer_rouge_deuxieme_jaune(db, liste[1], user_id)
+        n += 1
+    return n
+
+
 async def _assurer_passe_du_but(db: AsyncSession, evenement: EvenementMatch, valide_par_id: int) -> None:
     """Un but avec passeur optionnel produit l'événement passe_decisive déjà prévu — pas un nouveau type."""
     if _val(evenement.type) != TypeEvenement.BUT.value:
@@ -124,6 +178,7 @@ async def _assurer_rouge_deuxieme_jaune(db: AsyncSession, evenement: EvenementMa
         return
     if not evenement.joueur_id:
         return
+    await _lock_joueur_match(db, evenement.match_id, evenement.joueur_id)
     jaunes = (
         await db.execute(
             select(EvenementMatch).where(
@@ -150,21 +205,7 @@ async def _assurer_rouge_deuxieme_jaune(db: AsyncSession, evenement: EvenementMa
     ).scalars().first()
     if deja_rouge is not None:
         return
-    rouge = EvenementMatch(
-        match_id=evenement.match_id,
-        minute=evenement.minute,
-        minute_additionnelle=evenement.minute_additionnelle or 0,
-        periode=evenement.periode,
-        type=TypeEvenement.CARTON_ROUGE,
-        joueur_id=evenement.joueur_id,
-        equipe_concernee=evenement.equipe_concernee,
-        temp_id=uuid.uuid4(),
-        cree_par_id=valide_par_id,
-        source="deuxieme_jaune",
-    )
-    db.add(rouge)
-    await db.flush()
-    await valider_evenement(db, rouge.id, valide_par_id)
+    await _creer_rouge_deuxieme_jaune(db, evenement, valide_par_id)
 
 
 async def valider_evenement(db: AsyncSession, evenement_id: int, valide_par_id: int) -> EvenementMatch:
