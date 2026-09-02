@@ -72,12 +72,9 @@ export default function Compte() {
   }
 
   if (user) {
-    const initiales = (user.nom_complet || user.email || "?")
-      .split(/\s+/)
-      .filter(Boolean)
-      .map((w) => w[0])
-      .join("")
-      .slice(0, 2)
+    const initiale = (user.nom_complet || user.email || "?")
+      .trim()
+      .charAt(0)
       .toUpperCase();
     return (
       <section className="hero">

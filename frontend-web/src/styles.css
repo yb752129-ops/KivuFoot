@@ -69,19 +69,29 @@ button, input, select, textarea { font: inherit; }
   flex: 0 0 auto;
 }
 .compte-mark {
+  position: relative;
   flex: 0 0 auto;
-  width: 1.7rem;
-  height: 1.7rem;
+  width: 2rem;
+  height: 2rem;
   display: grid;
   place-items: center;
-  border: 1.4px solid var(--rule-strong);
+  border: 1px solid var(--ink);
+  border-radius: 50%;
   background: transparent;
   font-family: var(--serif);
-  font-weight: 650;
-  font-size: 0.92rem;
-  letter-spacing: 0.02em;
+  font-weight: 500;
+  font-size: 0.82rem;
+  letter-spacing: 0;
   line-height: 1;
   color: var(--ink);
+}
+.compte-mark::after {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  border: 1px solid var(--ink);
+  border-radius: 50%;
+  pointer-events: none;
 }
 .compte-tabs {
   display: grid;
@@ -556,18 +566,29 @@ h1 {
 .id-head h1 { margin: 0 0 0.2rem; }
 .id-head .journee-date { margin: 0; }
 .id-mark {
+  position: relative;
   flex: 0 0 auto;
-  width: 3.4rem;
-  height: 3.4rem;
+  width: 60px;
+  height: 60px;
   display: grid;
   place-items: center;
-  border: 1.4px solid var(--rule-strong);
+  border: 1px solid var(--ink);
+  border-radius: 50%;
   background: transparent;
   font-family: var(--serif);
-  font-weight: 650;
-  font-size: 1.15rem;
-  letter-spacing: 0.04em;
+  font-weight: 500;
+  font-size: 20px;
+  letter-spacing: 0;
+  line-height: 1;
   color: var(--ink);
+}
+.id-mark::after {
+  content: "";
+  position: absolute;
+  inset: 6px;
+  border: 1px solid var(--ink);
+  border-radius: 50%;
+  pointer-events: none;
 }
 .id-row {
   display: flex;
