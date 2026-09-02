@@ -82,14 +82,20 @@ export default function Home() {
 
   useEffect(() => {
     if (!saison) return;
-    api.classement(saison.id).then(setClassement).catch(() => setClassement([]));
-    api.matchs(saison.id).then(setMatchs).catch(() => setMatchs([]));
+    function refresh() {
+      api.classement(saison.id).then(setClassement).catch(() => setClassement([]));
+      api.matchs(saison.id).then(setMatchs).catch(() => setMatchs([]));
+    }
+    refresh();
+    const t = setInterval(refresh, 5000);
+    return () => clearInterval(t);
   }, [saison]);
 
-  const last = groupMatchsByJournee(matchs)[0];
-  const items = last?.items || [];
   const live = matchs.find((m) => m.statut === "en_cours") || null;
-  const rest = live ? items.filter((m) => m.id !== live.id) : items;
+  const valides = matchs.filter((m) => m.statut === "valide");
+  const last = groupMatchsByJournee(valides)[0];
+  const items = last?.items || [];
+  const rest = items;
 
   useEffect(() => {
     if (!live?.id) {

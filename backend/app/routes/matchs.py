@@ -65,7 +65,8 @@ async def detail_match_gestion(
 @router.get("/{match_id}", response_model=MatchOut)
 async def detail_match(match_id: int, db: AsyncSession = Depends(get_db)):
     match_ = await db.get(Match, match_id)
-    if match_ is None or match_.statut != StatutMatch.VALIDE:
+    statut = match_.statut.value if match_ and hasattr(match_.statut, "value") else match_.statut
+    if match_ is None or statut not in ("valide", "en_cours"):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Match introuvable ou non publié.")
     return match_
 

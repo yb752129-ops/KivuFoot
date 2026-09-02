@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { api } from "../api.js";
+import Chrono from "../components/Chrono.jsx";
 import { useKivu } from "../context.jsx";
 import Scoreboard from "../components/Scoreboard.jsx";
 import { formatJour, journeeTitre, stripDemo } from "../display.js";
@@ -23,27 +24,36 @@ export default function MatchDetail() {
   const [joueurs, setJoueurs] = useState({});
   const [err, setErr] = useState("");
 
+  async function load() {
+    const m = await api.match(id);
+    const [e, js] = await Promise.all([
+      api.evenementsPublics(id).catch(() => []),
+      api.joueurs().catch(() => []),
+    ]);
+    setMatch(m);
+    setEvts(e || []);
+    setJoueurs(Object.fromEntries((js || []).map((j) => [j.id, j.nom_complet])));
+  }
+
   useEffect(() => {
     let stop = false;
+    setErr("");
+    setMatch(null);
     (async () => {
       try {
-        const m = await api.match(id);
-        if (stop) return;
-        setMatch(m);
-        const [e, js] = await Promise.all([
-          api.evenementsPublics(id).catch(() => []),
-          api.joueurs().catch(() => []),
-        ]);
-        if (stop) return;
-        setEvts(e || []);
-        setJoueurs(Object.fromEntries((js || []).map((j) => [j.id, j.nom_complet])));
+        await load();
       } catch (e) {
         if (!stop) setErr(e.message || "Match introuvable.");
       }
     })();
+    const t = setInterval(() => {
+      load().catch(() => {});
+    }, 5000);
     return () => {
       stop = true;
+      clearInterval(t);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   if (err) {
@@ -58,14 +68,26 @@ export default function MatchDetail() {
 
   const home = clubsById[match.equipe_domicile_id];
   const away = clubsById[match.equipe_exterieur_id];
+  const live = match.statut === "en_cours";
 
   return (
     <section className="hero">
-      <p className="kicker"><Link to="/matchs">← Matchs</Link></p>
-      <p className="kicker">
-        {journeeTitre(match.journee)}
-        {match.date_heure ? ` · ${formatJour(match.date_heure, true)}` : ""}
-      </p>
+      <p className="kicker"><Link to={live ? "/" : "/matchs"}>{live ? "← Accueil" : "← Matchs"}</Link></p>
+      {live && (
+        <>
+          <p className="live-now">
+            <span className="live-dot" aria-hidden="true"><b /></span>
+            En cours
+          </p>
+          <Chrono startedAt={match.started_at} endedAt={match.ended_at} running />
+        </>
+      )}
+      {!live && (
+        <p className="kicker">
+          {journeeTitre(match.journee)}
+          {match.date_heure ? ` · ${formatJour(match.date_heure, true)}` : ""}
+        </p>
+      )}
       <div className="sheet" style={{ marginTop: "0.85rem" }}>
         <Scoreboard match={match} clubsById={clubsById} />
       </div>
