@@ -71,6 +71,12 @@ class EvenementMatch(Base):
     temp_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), unique=True, index=True)
     cree_par_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
 
+    refuse: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    motif_refus: Mapped[str | None] = mapped_column(String(30))
+    commentaire_refus: Mapped[str | None] = mapped_column(String)
+    refuse_par_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    date_refus: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     match_ = relationship("Match", back_populates="evenements")

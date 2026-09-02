@@ -2,6 +2,15 @@ export function stripDemo(name) {
   return (name || "").replace(/^DEMO\s*[-–]?\s*/i, "").trim();
 }
 
+export const MOTIF_REFUS = {
+  hors_jeu: "Hors-jeu",
+  faute_attaquant: "Faute de l'attaquant",
+  main: "Main",
+  ballon_sorti: "Ballon sorti",
+  faute_gardien: "Faute sur le gardien",
+  autre: "Autre",
+};
+
 export function formatMinute(minute, added) {
   const m = Number(minute) || 0;
   const a = Number(added) || 0;

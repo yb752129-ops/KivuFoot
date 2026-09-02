@@ -81,6 +81,12 @@ export const api = {
   validerEvenement: (id) => request(`/validation/evenements/${id}`, { method: "PUT", auth: true }),
   rejeterEvenement: (id, commentaire) =>
     request(`/validation/evenements/${id}/rejeter`, { method: "PUT", auth: true, body: { commentaire } }),
+  refuserArbitral: (id, motif, commentaire) =>
+    request(`/validation/evenements/${id}/refuser`, {
+      method: "PUT",
+      auth: true,
+      body: commentaire ? { motif, commentaire } : { motif },
+    }),
   validerMatch: (id) => request(`/matchs/${id}/valider`, { method: "POST", auth: true }),
   creerMatch: (payload) => request("/matchs", { method: "POST", body: payload, auth: true }),
   changerStatut: (id, statut) =>

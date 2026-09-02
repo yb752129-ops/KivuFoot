@@ -5,6 +5,7 @@ from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 
 from app.models.enums import (
     EquipeConcernee,
+    MotifRefusArbitral,
     ResultatPenalty,
     StatutValidationEvenement,
     TypeEvenement,
@@ -74,6 +75,8 @@ class EvenementCreate(BaseModel):
                 raise ValueError(f"Le champ '{champ}' est obligatoire pour un événement de type '{self.type}'.")
         if self.type != TypeEvenement.PENALTY and self.resultat is not None:
             raise ValueError("Le champ 'resultat' n'est utilisé que pour les penalties.")
+        if self.type == TypeEvenement.BUT_CONTRE_SON_CAMP and self.joueur_secondaire_id is not None:
+            raise ValueError("Un but contre son camp n'a pas de passeur.")
         return self
 
 
@@ -94,7 +97,23 @@ class EvenementOut(BaseModel):
     conflit: bool
     locked: bool
     commentaire_rejet: str | None
+    refuse: bool = False
+    motif_refus: str | None = None
+    commentaire_refus: str | None = None
     created_at: datetime
+
+
+class RefusArbitralRequest(BaseModel):
+    motif: MotifRefusArbitral
+    commentaire: str | None = None
+
+    @field_validator("commentaire")
+    @classmethod
+    def commentaire_si_autre(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        v = v.strip()
+        return v or None
 
 
 class ValidationRejetRequest(BaseModel):

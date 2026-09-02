@@ -19,11 +19,11 @@ from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.enums import ActionAudit, StatutMatch, StatutValidationEvenement, TypeEvenement
+from app.models.enums import ActionAudit, MotifRefusArbitral, StatutMatch, StatutValidationEvenement, TypeEvenement
 from app.models.evenement import EvenementMatch
 from app.models.match import Match
 from app.services.audit import log_audit
-from app.services.calcul_stats import appliquer_evenement_valide
+from app.services.calcul_stats import appliquer_evenement_valide, retirer_evenement_valide
 from app.services.feuille_de_match import appliquer_feuille_de_match
 
 
@@ -45,6 +45,7 @@ async def _assurer_passe_du_but(db: AsyncSession, evenement: EvenementMatch, val
             EvenementMatch.joueur_id == evenement.joueur_id,
             EvenementMatch.joueur_secondaire_id == evenement.joueur_secondaire_id,
             EvenementMatch.statut_validation != StatutValidationEvenement.REJETE,
+            EvenementMatch.refuse.is_(False),
         )
     )
     if result.scalars().first() is not None:
@@ -133,6 +134,96 @@ async def rejeter_evenement(
         old_data=old_data,
         new_data={"statut_validation": "rejete", "commentaire_rejet": commentaire},
     )
+    return evenement
+
+
+_TYPES_REFUSABLES = {
+    TypeEvenement.BUT.value,
+    TypeEvenement.BUT_CONTRE_SON_CAMP.value,
+    TypeEvenement.PENALTY.value,
+    TypeEvenement.PASSE_DECISIVE.value,
+}
+
+
+async def _marquer_refus(
+    db: AsyncSession,
+    evenement: EvenementMatch,
+    match_: Match,
+    motif: MotifRefusArbitral,
+    refuse_par_id: int,
+    commentaire: str | None,
+) -> None:
+    await retirer_evenement_valide(db, evenement, match_)
+    old_data = {
+        "refuse": bool(evenement.refuse),
+        "statut_validation": _val(evenement.statut_validation),
+        "type": _val(evenement.type),
+        "joueur_id": evenement.joueur_id,
+    }
+    evenement.refuse = True
+    evenement.motif_refus = _val(motif)
+    evenement.commentaire_refus = commentaire
+    evenement.refuse_par_id = refuse_par_id
+    evenement.date_refus = datetime.now(timezone.utc)
+    await log_audit(
+        db,
+        table_name="evenements_match",
+        record_id=evenement.id,
+        action=ActionAudit.UPDATE,
+        user_id=refuse_par_id,
+        old_data=old_data,
+        new_data={"refuse": True, "motif_refus": _val(motif)},
+    )
+
+
+async def refuser_evenement_arbitral(
+    db: AsyncSession,
+    evenement_id: int,
+    motif: MotifRefusArbitral,
+    refuse_par_id: int,
+    commentaire: str | None = None,
+) -> EvenementMatch:
+    """Refus arbitral : l'événement validé reste, le score/stats sont inversés. Jamais un DELETE."""
+    evenement = await db.get(EvenementMatch, evenement_id)
+    if evenement is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Événement introuvable.")
+
+    match_ = await db.get(Match, evenement.match_id)
+    if match_ is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Match introuvable.")
+    if match_.locked:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Ce match est verrouillé.")
+    if evenement.refuse:
+        raise HTTPException(status.HTTP_409_CONFLICT, "Cet événement a déjà été refusé.")
+    if _val(evenement.statut_validation) != StatutValidationEvenement.VALIDE.value:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "Seul un fait déjà validé peut être refusé par l'arbitre.",
+        )
+    if _val(evenement.type) not in _TYPES_REFUSABLES:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "Seuls un but, un CSC, un penalty ou une passe peuvent être refusés.",
+        )
+
+    await _marquer_refus(db, evenement, match_, motif, refuse_par_id, commentaire)
+
+    if _val(evenement.type) == TypeEvenement.BUT.value and evenement.joueur_secondaire_id:
+        result = await db.execute(
+            select(EvenementMatch).where(
+                EvenementMatch.match_id == evenement.match_id,
+                EvenementMatch.type == TypeEvenement.PASSE_DECISIVE,
+                EvenementMatch.minute == evenement.minute,
+                EvenementMatch.minute_additionnelle == (evenement.minute_additionnelle or 0),
+                EvenementMatch.joueur_id == evenement.joueur_id,
+                EvenementMatch.joueur_secondaire_id == evenement.joueur_secondaire_id,
+                EvenementMatch.statut_validation != StatutValidationEvenement.REJETE,
+                EvenementMatch.refuse.is_(False),
+            )
+        )
+        for passe in result.scalars().all():
+            await _marquer_refus(db, passe, match_, motif, refuse_par_id, commentaire)
+
     return evenement
 
 

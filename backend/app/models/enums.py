@@ -78,6 +78,15 @@ class StatutValidationEvenement(str, enum.Enum):
     REJETE = "rejete"
 
 
+class MotifRefusArbitral(str, enum.Enum):
+    HORS_JEU = "hors_jeu"
+    FAUTE_ATTAQUANT = "faute_attaquant"
+    MAIN = "main"
+    BALLON_SORTI = "ballon_sorti"
+    FAUTE_GARDIEN = "faute_gardien"
+    AUTRE = "autre"
+
+
 class StatutParticipation(str, enum.Enum):
     TITULAIRE = "titulaire"
     REMPLACANT = "remplacant"

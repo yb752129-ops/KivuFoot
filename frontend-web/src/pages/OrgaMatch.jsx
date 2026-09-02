@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { api, clearTokens } from "../api.js";
 import Chrono from "../components/Chrono.jsx";
 import { clubName, useKivu } from "../context.jsx";
-import { clockFromMatch, formatMinute, periodeLabel, splitMinute, stripDemo } from "../display.js";
+import { clockFromMatch, formatMinute, MOTIF_REFUS, periodeLabel, splitMinute, stripDemo } from "../display.js";
 
 const LABELS = {
   but: "But",
@@ -45,6 +45,8 @@ export default function OrgaMatch() {
   const [now, setNow] = useState(Date.now());
   const [compDraft, setCompDraft] = useState({});
   const [autre, setAutre] = useState(false);
+  const [refusId, setRefusId] = useState(null);
+  const [refusMotif, setRefusMotif] = useState("hors_jeu");
 
   const home = stripDemo(clubName(clubsById, match?.equipe_domicile_id));
   const away = stripDemo(clubName(clubsById, match?.equipe_exterieur_id));
@@ -230,6 +232,22 @@ export default function OrgaMatch() {
     });
   }
 
+  function peutRefuser(e) {
+    return (
+      !match.locked
+      && e.statut_validation === "valide"
+      && !e.refuse
+      && ["but", "but_contre_son_camp", "penalty"].includes(e.type)
+    );
+  }
+
+  function refuser(e) {
+    return act(
+      () => api.refuserArbitral(e.id, refusMotif),
+      "Fait refusé. Score et stats inversés. L'événement reste en feuille.",
+    );
+  }
+
   function badgeComp(joueurId) {
     const st = compDraft[joueurId];
     if (st === "titulaire") return "Titu";
@@ -401,8 +419,31 @@ export default function OrgaMatch() {
                 ? ` · ${nomJoueur(e.joueur_secondaire_id)} pour ${nomJoueur(e.joueur_id)}`
                 : ` · ${nomJoueur(e.joueur_id)}`}
             {e.joueur_secondaire_id && e.type === "but" ? ` · passe ${nomJoueur(e.joueur_secondaire_id)}` : ""}
-            {" · "}
-            {e.statut_validation}
+            {e.refuse ? ` · refusé (${MOTIF_REFUS[e.motif_refus] || e.motif_refus})` : ` · ${e.statut_validation}`}
+            {peutRefuser(e) && (
+              <div className="file-actions">
+                {refusId === e.id ? (
+                  <>
+                    <select
+                      className="field-inline"
+                      value={refusMotif}
+                      onChange={(ev) => setRefusMotif(ev.target.value)}
+                    >
+                      {Object.entries(MOTIF_REFUS).map(([k, lab]) => (
+                        <option key={k} value={k}>{lab}</option>
+                      ))}
+                    </select>
+                    <button className="btn btn-danger" type="button" disabled={busy} onClick={() => { setRefusId(null); refuser(e); }}>
+                      Confirmer le refus
+                    </button>
+                  </>
+                ) : (
+                  <button className="btn btn-danger" type="button" disabled={busy} onClick={() => setRefusId(e.id)}>
+                    Refuser
+                  </button>
+                )}
+              </div>
+            )}
           </li>
         ))}
       </ul>

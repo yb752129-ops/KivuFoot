@@ -38,6 +38,7 @@ async def _trouver_conflit_potentiel(db: AsyncSession, match_id: int, ev: Evenem
             EvenementMatch.type == ev.type,
             EvenementMatch.joueur_id == ev.joueur_id,
             EvenementMatch.statut_validation != StatutValidationEvenement.REJETE,
+            EvenementMatch.refuse.is_(False),
         )
     )
     return result.scalars().first()

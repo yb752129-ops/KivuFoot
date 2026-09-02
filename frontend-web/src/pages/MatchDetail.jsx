@@ -4,7 +4,7 @@ import { api } from "../api.js";
 import Chrono from "../components/Chrono.jsx";
 import { useKivu } from "../context.jsx";
 import Scoreboard from "../components/Scoreboard.jsx";
-import { formatJour, formatMinute, journeeTitre, periodeLabel, stripDemo } from "../display.js";
+import { formatJour, formatMinute, journeeTitre, MOTIF_REFUS, periodeLabel, stripDemo } from "../display.js";
 
 const LABELS = {
   but: "But",
@@ -107,11 +107,20 @@ export default function MatchDetail() {
       <ul className="timeline">
         {evts.map((e) => (
           <li key={e.id}>
-            <strong>{e.minute}′</strong>
+            <strong>{formatMinute(e.minute, e.minute_additionnelle)}</strong>
             {" · "}
             {LABELS[e.type] || e.type}
+            {e.type === "penalty" && e.resultat ? ` ${e.resultat}` : ""}
             {" · "}
-            {joueurs[e.joueur_id] || "Joueur"}
+            {e.type === "remplacement"
+              ? `OUT ${joueurs[e.joueur_id] || "Joueur"} · IN ${joueurs[e.joueur_secondaire_id] || "Joueur"}`
+              : e.type === "passe_decisive"
+                ? `${joueurs[e.joueur_secondaire_id] || "Passeur"} pour ${joueurs[e.joueur_id] || "Buteur"}`
+                : (joueurs[e.joueur_id] || "Joueur")}
+            {e.type === "but" && e.joueur_secondaire_id
+              ? ` · passe ${joueurs[e.joueur_secondaire_id] || "Passeur"}`
+              : ""}
+            {e.refuse ? ` · refusé (${MOTIF_REFUS[e.motif_refus] || e.motif_refus})` : ""}
           </li>
         ))}
       </ul>

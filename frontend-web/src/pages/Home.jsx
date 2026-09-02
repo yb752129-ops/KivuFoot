@@ -106,11 +106,13 @@ export default function Home() {
     api.evenementsPublics(live.id)
       .then((list) => {
         if (stop) return;
-        const sorted = [...(list || [])].sort(
-          (a, b) =>
-            (b.minute || 0) + (b.minute_additionnelle || 0) -
-            ((a.minute || 0) + (a.minute_additionnelle || 0)),
-        );
+        const sorted = [...(list || [])]
+          .filter((x) => !x.refuse)
+          .sort(
+            (a, b) =>
+              (b.minute || 0) + (b.minute_additionnelle || 0) -
+              ((a.minute || 0) + (a.minute_additionnelle || 0)),
+          );
         setEvt(sorted[0] || null);
       })
       .catch(() => {

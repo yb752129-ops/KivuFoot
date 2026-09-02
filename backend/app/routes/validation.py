@@ -9,8 +9,8 @@ from app.models.enums import ActionAudit, RoleUtilisateur, StatutValidationEvene
 from app.models.evenement import EvenementMatch
 from app.models.match import Match
 from app.models.user import User
-from app.schemas.evenement import EvenementOut, ValidationRejetRequest
-from app.services.validation import rejeter_evenement, valider_evenement
+from app.schemas.evenement import EvenementOut, RefusArbitralRequest, ValidationRejetRequest
+from app.services.validation import refuser_evenement_arbitral, rejeter_evenement, valider_evenement
 
 router = APIRouter(prefix="/validation", tags=["Validation"])
 
@@ -71,6 +71,25 @@ async def rejeter(
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Événement introuvable.")
     await verifier_organisateur_du_match(ev.match_id, current_user, db)
     evenement = await rejeter_evenement(db, evenement_id, payload.commentaire, current_user.id)
+    await db.commit()
+    await db.refresh(evenement)
+    return evenement
+
+
+@router.put("/evenements/{evenement_id}/refuser", response_model=EvenementOut)
+async def refuser(
+    evenement_id: int,
+    payload: RefusArbitralRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles(RoleUtilisateur.ADMIN, RoleUtilisateur.ORGANISATEUR)),
+):
+    ev = await db.get(EvenementMatch, evenement_id)
+    if ev is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Événement introuvable.")
+    await verifier_organisateur_du_match(ev.match_id, current_user, db)
+    evenement = await refuser_evenement_arbitral(
+        db, evenement_id, payload.motif, current_user.id, payload.commentaire
+    )
     await db.commit()
     await db.refresh(evenement)
     return evenement

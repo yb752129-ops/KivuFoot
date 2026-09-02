@@ -132,3 +132,50 @@ async def appliquer_evenement_valide(db: AsyncSession, evenement: EvenementMatch
         match_.score_domicile += 1
     elif but_marque_pour == EquipeConcernee.EXTERIEUR:
         match_.score_exterieur += 1
+
+
+def _dec(stat: StatistiqueJoueur, champ: str) -> None:
+    val = getattr(stat, champ) or 0
+    setattr(stat, champ, max(0, val - 1))
+
+
+async def retirer_evenement_valide(db: AsyncSession, evenement: EvenementMatch, match_: Match) -> None:
+    """Inverse de appliquer_evenement_valide — refus arbitral, jamais un DELETE."""
+    saison = await db.get(Saison, match_.saison_id)
+    competition_id = saison.competition_id if saison else None
+    but_pour = None
+
+    if evenement.type == TypeEvenement.BUT:
+        but_pour = evenement.equipe_concernee
+        if evenement.joueur_id and competition_id:
+            stat = await _get_or_create_stat(db, evenement.joueur_id, competition_id, match_.saison_id)
+            _dec(stat, "buts")
+
+    elif evenement.type == TypeEvenement.PENALTY and evenement.resultat == ResultatPenalty.MARQUE:
+        but_pour = evenement.equipe_concernee
+        if evenement.joueur_id and competition_id:
+            stat = await _get_or_create_stat(db, evenement.joueur_id, competition_id, match_.saison_id)
+            _dec(stat, "buts")
+
+    elif evenement.type == TypeEvenement.BUT_CONTRE_SON_CAMP:
+        but_pour = _equipe_opposee(evenement.equipe_concernee)
+
+    elif evenement.type == TypeEvenement.PASSE_DECISIVE:
+        if evenement.joueur_secondaire_id and competition_id:
+            stat = await _get_or_create_stat(db, evenement.joueur_secondaire_id, competition_id, match_.saison_id)
+            _dec(stat, "passes_decisives")
+
+    elif evenement.type == TypeEvenement.CARTON_JAUNE:
+        if evenement.joueur_id and competition_id:
+            stat = await _get_or_create_stat(db, evenement.joueur_id, competition_id, match_.saison_id)
+            _dec(stat, "cartons_jaunes")
+
+    elif evenement.type == TypeEvenement.CARTON_ROUGE:
+        if evenement.joueur_id and competition_id:
+            stat = await _get_or_create_stat(db, evenement.joueur_id, competition_id, match_.saison_id)
+            _dec(stat, "cartons_rouges")
+
+    if but_pour == EquipeConcernee.DOMICILE:
+        match_.score_domicile = max(0, match_.score_domicile - 1)
+    elif but_pour == EquipeConcernee.EXTERIEUR:
+        match_.score_exterieur = max(0, match_.score_exterieur - 1)
