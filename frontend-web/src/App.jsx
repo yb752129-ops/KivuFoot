@@ -11,6 +11,7 @@ import Joueur from "./pages/Joueur.jsx";
 import Buteurs from "./pages/Buteurs.jsx";
 import Login from "./pages/Login.jsx";
 import Compte from "./pages/Compte.jsx";
+import Recherche from "./pages/Recherche.jsx";
 import Orga from "./pages/Orga.jsx";
 import OrgaMatch from "./pages/OrgaMatch.jsx";
 import { AuthProvider, useAuth } from "./auth.jsx";
@@ -38,6 +39,7 @@ export default function App() {
             <Route path="/joueurs/:id" element={<Joueur />} />
             <Route path="/buteurs" element={<Buteurs />} />
             <Route path="/compte" element={<Compte />} />
+            <Route path="/recherche" element={<Recherche />} />
           </Route>
           <Route path="/login" element={<Login />} />
           <Route

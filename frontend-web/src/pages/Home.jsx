@@ -152,30 +152,28 @@ export default function Home() {
         <LiveUne key={m.id} match={m} clubsById={clubsById} evt={evtsById[m.id] || null} />
       ))}
 
-      <div className="jour-tabs" role="tablist" aria-label="Jour">
-        <button
-          type="button"
-          role="tab"
-          aria-selected={jourOffset === 0}
-          className={jourOffset === 0 ? "on" : ""}
-          onClick={() => setJourOffset(0)}
-        >
-          Aujourd'hui
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={jourOffset === 1}
-          className={jourOffset === 1 ? "on" : ""}
-          onClick={() => setJourOffset(1)}
-        >
-          Demain
-        </button>
-      </div>
-
       <section>
-        <div className="section-head">
+        <div className="jour-barre">
           <h2>À venir</h2>
+          <div className="jour-nav">
+            <button
+              type="button"
+              aria-label="Aujourd'hui"
+              disabled={jourOffset === 0}
+              onClick={() => setJourOffset(0)}
+            >
+              ‹
+            </button>
+            <span>{jourOffset === 0 ? "Aujourd'hui" : "Demain"}</span>
+            <button
+              type="button"
+              aria-label="Demain"
+              disabled={jourOffset === 1}
+              onClick={() => setJourOffset(1)}
+            >
+              ›
+            </button>
+          </div>
         </div>
         {aVenir.length === 0 && <p className="empty">Pas de match prévu ce jour.</p>}
         {aVenir.length > 0 && (
@@ -235,6 +233,11 @@ export default function Home() {
               ))}
             </tbody>
           </table>
+        )}
+        {classement.length > 0 && (
+          <p className="table-more">
+            <Link to="/classement">Voir le tableau complet</Link>
+          </p>
         )}
       </section>
     </>
