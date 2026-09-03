@@ -4,7 +4,16 @@ import { api } from "../api.js";
 import { clubName, useKivu } from "../context.jsx";
 import Chrono from "../components/Chrono.jsx";
 import Scoreboard from "../components/Scoreboard.jsx";
-import { formatJour, formatMinute, groupMatchsByJournee, journeeTitre, labelEvenement, stripDemo } from "../display.js";
+import {
+  addCivilDays,
+  civilDate,
+  dernierFaitLive,
+  formatHeure,
+  formatMinute,
+  labelEvenement,
+  stripDemo,
+  todayCivil,
+} from "../display.js";
 
 function nomClub(clubsById, id) {
   return stripDemo(clubName(clubsById, id));
@@ -64,88 +73,127 @@ function LiveUne({ match, clubsById, evt }) {
   );
 }
 
+function AVenirLigne({ match, clubsById }) {
+  const home = nomClub(clubsById, match.equipe_domicile_id);
+  const away = nomClub(clubsById, match.equipe_exterieur_id);
+  return (
+    <Link to={`/matchs/${match.id}`} className="avenir-row">
+      <span className="avenir-heure">{formatHeure(match.date_heure)}</span>
+      <span className="avenir-noms">
+        {home}
+        <span className="avenir-sep">·</span>
+        {away}
+      </span>
+    </Link>
+  );
+}
+
 export default function Home() {
-  const { loading, saison, clubsById, competition } = useKivu();
+  const { loading, saison, clubsById } = useKivu();
   const [classement, setClassement] = useState([]);
   const [matchs, setMatchs] = useState([]);
-  const [evt, setEvt] = useState(null);
+  const [evtsById, setEvtsById] = useState({});
+  const [jourOffset, setJourOffset] = useState(0);
 
   useEffect(() => {
     if (!saison) return;
+    let stop = false;
     function refresh() {
-      api.classement(saison.id).then(setClassement).catch(() => setClassement([]));
-      api.matchs(saison.id).then(setMatchs).catch(() => setMatchs([]));
+      api.classement(saison.id).then((c) => { if (!stop) setClassement(c); }).catch(() => { if (!stop) setClassement([]); });
+      api.matchs(saison.id)
+        .then(async (list) => {
+          if (stop) return;
+          const rows = list || [];
+          setMatchs(rows);
+          const lives = rows.filter((m) => m.statut === "en_cours");
+          if (!lives.length) {
+            setEvtsById({});
+            return;
+          }
+          const pairs = await Promise.all(
+            lives.map((m) =>
+              api.evenementsPublics(m.id)
+                .then((evts) => [m.id, dernierFaitLive(evts)])
+                .catch(() => [m.id, null]),
+            ),
+          );
+          if (!stop) setEvtsById(Object.fromEntries(pairs));
+        })
+        .catch(() => {
+          if (!stop) {
+            setMatchs([]);
+            setEvtsById({});
+          }
+        });
     }
     refresh();
     const t = setInterval(refresh, 5000);
-    return () => clearInterval(t);
-  }, [saison]);
-
-  const live = matchs.find((m) => m.statut === "en_cours") || null;
-  const valides = matchs.filter((m) => m.statut === "valide");
-  const last = groupMatchsByJournee(valides)[0];
-  const items = last?.items || [];
-  const rest = items;
-
-  useEffect(() => {
-    if (!live?.id) {
-      setEvt(null);
-      return;
-    }
-    let stop = false;
-    api.evenementsPublics(live.id)
-      .then((list) => {
-        if (stop) return;
-        const sorted = [...(list || [])]
-          .filter((x) => !x.refuse)
-          .sort(
-            (a, b) =>
-              (b.minute || 0) + (b.minute_additionnelle || 0) -
-              ((a.minute || 0) + (a.minute_additionnelle || 0)),
-          );
-        setEvt(sorted[0] || null);
-      })
-      .catch(() => {
-        if (!stop) setEvt(null);
-      });
     return () => {
       stop = true;
+      clearInterval(t);
     };
-  }, [live?.id]);
+  }, [saison]);
+
+  const lives = matchs.filter((m) => m.statut === "en_cours");
+  const jour = jourOffset === 0 ? todayCivil() : addCivilDays(todayCivil(), 1);
+  const aVenir = matchs
+    .filter((m) => m.statut === "programme" && civilDate(m.date_heure) === jour)
+    .sort((a, b) => new Date(a.date_heure) - new Date(b.date_heure));
+  const termines = matchs
+    .filter((m) => (m.statut === "termine" || m.statut === "valide") && civilDate(m.date_heure) === jour)
+    .sort((a, b) => new Date(a.date_heure) - new Date(b.date_heure));
+  const apercu = classement.slice(0, 5);
 
   if (loading) return <p className="empty">Chargement…</p>;
 
-  const enTete = [stripDemo(competition?.nom || ""), saison?.nom]
-    .filter(Boolean)
-    .join(" — ");
-
   return (
     <>
-      {live && <LiveUne match={live} clubsById={clubsById} evt={evt} />}
+      {lives.map((m) => (
+        <LiveUne key={m.id} match={m} clubsById={clubsById} evt={evtsById[m.id] || null} />
+      ))}
 
-      {!live && (
-        <section>
-          {enTete && <p className="comp-head">{enTete}</p>}
-          <h1>{items.length ? journeeTitre(last.code) : "Aucun match publié"}</h1>
-          {last?.date && <p className="journee-date">{formatJour(last.date, true)}</p>}
-          {items.length === 0 && <p className="empty">Aucun résultat public pour le moment.</p>}
-          {items.length > 0 && (
-            <div className="sheet">
-              {items.map((m) => (
-                <Scoreboard key={m.id} match={m} clubsById={clubsById} to={`/matchs/${m.id}`} />
-              ))}
-            </div>
-          )}
-        </section>
-      )}
+      <div className="jour-tabs" role="tablist" aria-label="Jour">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={jourOffset === 0}
+          className={jourOffset === 0 ? "on" : ""}
+          onClick={() => setJourOffset(0)}
+        >
+          Aujourd'hui
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={jourOffset === 1}
+          className={jourOffset === 1 ? "on" : ""}
+          onClick={() => setJourOffset(1)}
+        >
+          Demain
+        </button>
+      </div>
 
-      {live && rest.length > 0 && (
+      <section>
+        <div className="section-head">
+          <h2>À venir</h2>
+        </div>
+        {aVenir.length === 0 && <p className="empty">Pas de match prévu ce jour.</p>}
+        {aVenir.length > 0 && (
+          <div className="sheet">
+            {aVenir.map((m) => (
+              <AVenirLigne key={m.id} match={m} clubsById={clubsById} />
+            ))}
+          </div>
+        )}
+      </section>
+
+      {termines.length > 0 && (
         <section>
           <div className="section-head">
-            <h2>Terminé</h2>
+            <h2>Terminés</h2>
           </div>
           <div className="sheet">
-            {rest.map((m) => (
+            {termines.map((m) => (
               <Scoreboard key={m.id} match={m} clubsById={clubsById} to={`/matchs/${m.id}`} />
             ))}
           </div>
@@ -160,7 +208,7 @@ export default function Home() {
         {classement.length === 0 && (
           <p className="empty">Le classement se calcule sur les matchs validés.</p>
         )}
-        {classement.length > 0 && (
+        {apercu.length > 0 && (
           <table className="table">
             <thead>
               <tr>
@@ -172,7 +220,7 @@ export default function Home() {
               </tr>
             </thead>
             <tbody>
-              {classement.map((l, i) => (
+              {apercu.map((l, i) => (
                 <tr key={l.club_id}>
                   <td className="pos">{i + 1}</td>
                   <td>

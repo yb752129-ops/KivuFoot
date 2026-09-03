@@ -24,6 +24,27 @@ export function feuilleAffichee(evts) {
   });
 }
 
+/** Bandeau live : plus récente minute, rouge avant jaune à minute égale. */
+export function dernierFaitLive(evts) {
+  const poids = (e) => {
+    if (e.type === "carton_rouge") return 4;
+    if (e.type === "but" || e.type === "but_contre_son_camp") return 3;
+    if (e.type === "carton_jaune") return 2;
+    return 1;
+  };
+  const list = feuilleAffichee(evts).filter((x) => !x.refuse);
+  list.sort((a, b) => {
+    const dm = (b.minute || 0) - (a.minute || 0);
+    if (dm) return dm;
+    const da = (b.minute_additionnelle || 0) - (a.minute_additionnelle || 0);
+    if (da) return da;
+    const dp = poids(b) - poids(a);
+    if (dp) return dp;
+    return (b.id || 0) - (a.id || 0);
+  });
+  return list[0] || null;
+}
+
 export function labelEvenement(e) {
   if (e?.type === "carton_rouge" && e.source === "deuxieme_jaune") return "Rouge (2e jaune)";
   const labels = {
@@ -129,6 +150,48 @@ export function formatDateline(iso, stade) {
       })
     : "";
   return [jour, stade].filter(Boolean).join(" — ");
+}
+
+/** Jour civil Sud-Kivu (UTC+2, pas d’heure d’été). */
+export const TZ_SUD_KIVU = "Africa/Lubumbashi";
+
+export function civilDate(iso, timeZone = TZ_SUD_KIVU) {
+  if (!iso) return "";
+  const d = iso instanceof Date ? iso : new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(d);
+  const get = (t) => parts.find((p) => p.type === t)?.value || "";
+  return `${get("year")}-${get("month")}-${get("day")}`;
+}
+
+export function todayCivil(now = new Date(), timeZone = TZ_SUD_KIVU) {
+  return civilDate(now, timeZone);
+}
+
+export function addCivilDays(yyyyMmDd, days) {
+  const [y, m, d] = String(yyyyMmDd || "").split("-").map(Number);
+  if (!y || !m || !d) return "";
+  const dt = new Date(Date.UTC(y, m - 1, d + Number(days || 0)));
+  const mm = String(dt.getUTCMonth() + 1).padStart(2, "0");
+  const dd = String(dt.getUTCDate()).padStart(2, "0");
+  return `${dt.getUTCFullYear()}-${mm}-${dd}`;
+}
+
+export function formatHeure(iso, timeZone = TZ_SUD_KIVU) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleTimeString("fr-FR", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone,
+  });
 }
 
 /** Groupes du plus récent au plus ancien. Même API, affichage seulement. */

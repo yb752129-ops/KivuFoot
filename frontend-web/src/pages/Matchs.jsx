@@ -13,7 +13,9 @@ export default function Matchs() {
     api.matchs(saison.id).then(setMatchs).catch(() => setMatchs([]));
   }, [saison]);
 
-  const groups = groupMatchsByJournee(matchs);
+  const groups = groupMatchsByJournee(
+    matchs.filter((m) => m.statut === "valide" || m.statut === "en_cours"),
+  );
 
   return (
     <section className="hero">

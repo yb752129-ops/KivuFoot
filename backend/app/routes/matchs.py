@@ -26,10 +26,17 @@ async def lister_matchs(
     offset: int = 0,
 ):
     """
-    Public : uniquement les matchs `valide` (§5.3). Les autres statuts
-    ne sont visibles que via les routes protégées (organisateur).
+    Public Accueil : programme (à venir), en_cours, termine (sifflé),
+    valide. Pas `conteste`. Le classement reste calculé sur `valide`.
     """
-    query = select(Match).where(Match.statut.in_([StatutMatch.VALIDE, StatutMatch.EN_COURS]))
+    query = select(Match).where(
+        Match.statut.in_([
+            StatutMatch.PROGRAMME,
+            StatutMatch.EN_COURS,
+            StatutMatch.TERMINE,
+            StatutMatch.VALIDE,
+        ])
+    )
     if saison_id:
         query = query.where(Match.saison_id == saison_id)
     result = await db.execute(query.order_by(Match.date_heure.desc()).limit(min(limit, 100)).offset(offset))
@@ -66,7 +73,7 @@ async def detail_match_gestion(
 async def detail_match(match_id: int, db: AsyncSession = Depends(get_db)):
     match_ = await db.get(Match, match_id)
     statut = match_.statut.value if match_ and hasattr(match_.statut, "value") else match_.statut
-    if match_ is None or statut not in ("valide", "en_cours"):
+    if match_ is None or statut not in ("programme", "en_cours", "termine", "valide"):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Match introuvable ou non publié.")
     return match_
 

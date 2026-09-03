@@ -62,7 +62,7 @@ export const api = {
   club: (id) => request(`/clubs/${id}`),
   joueurs: (clubId) => request(`/joueurs?limit=100${clubId ? `&club_id=${clubId}` : ""}`),
   joueur: (id) => request(`/joueurs/${id}`),
-  matchs: (saisonId) => request(`/matchs?limit=50${saisonId ? `&saison_id=${saisonId}` : ""}`),
+  matchs: (saisonId) => request(`/matchs?limit=100${saisonId ? `&saison_id=${saisonId}` : ""}`),
   match: (id) => request(`/matchs/${id}`),
   evenementsPublics: (id) => request(`/matchs/${id}/evenements-publics`),
   classement: (saisonId) => request(`/classement?saison_id=${saisonId}`),

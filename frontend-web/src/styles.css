@@ -759,3 +759,58 @@ footer.site a.orga-entry {
   color: #f3efe4;
   opacity: 0.85;
 }
+
+.jour-tabs {
+  display: flex;
+  gap: 1.35rem;
+  margin: 0.85rem 0 0.15rem;
+  border-bottom: 2px solid var(--rule-strong);
+}
+.jour-tabs button {
+  background: none;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  padding: 0.55rem 0;
+  font-family: var(--serif);
+  font-weight: 650;
+  font-size: 1.15rem;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+.jour-tabs button.on {
+  color: var(--ink);
+  border-bottom-color: var(--rule-strong);
+}
+.jour-tabs + section .section-head {
+  margin-top: 1.05rem;
+}
+
+.avenir-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.9rem;
+  padding: 0.85rem 0.05rem;
+  border-bottom: 1px solid var(--rule);
+  color: inherit;
+}
+.avenir-row:last-child { border-bottom: 0; }
+.avenir-heure {
+  font-family: var(--score);
+  font-weight: 700;
+  font-size: 1.2rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  min-width: 3.5rem;
+}
+.avenir-noms {
+  font-weight: 600;
+  font-size: 0.95rem;
+  line-height: 1.25;
+  min-width: 0;
+}
+.avenir-sep {
+  color: var(--ink-soft);
+  font-weight: 400;
+  padding: 0 0.28rem;
+}
