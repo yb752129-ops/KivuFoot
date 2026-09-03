@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api.js";
+import { useAuth } from "../auth.jsx";
 import { clubName, useKivu } from "../context.jsx";
 import Chrono from "../components/Chrono.jsx";
 import Scoreboard from "../components/Scoreboard.jsx";
@@ -73,11 +74,18 @@ function LiveUne({ match, clubsById, evt }) {
   );
 }
 
-function AVenirLigne({ match, clubsById }) {
+function fusionner(a, b) {
+  const map = new Map();
+  for (const m of a || []) map.set(m.id, m);
+  for (const m of b || []) map.set(m.id, m);
+  return [...map.values()];
+}
+
+function AVenirLigne({ match, clubsById, to }) {
   const home = nomClub(clubsById, match.equipe_domicile_id);
   const away = nomClub(clubsById, match.equipe_exterieur_id);
   return (
-    <Link to={`/matchs/${match.id}`} className="avenir-row">
+    <Link to={to} className="avenir-row">
       <span className="avenir-heure">{formatHeure(match.date_heure)}</span>
       <span className="avenir-noms">
         {home}
@@ -90,6 +98,8 @@ function AVenirLigne({ match, clubsById }) {
 
 export default function Home() {
   const { loading, saison, clubsById } = useKivu();
+  const { user } = useAuth();
+  const staff = user?.role === "organisateur" || user?.role === "admin";
   const [classement, setClassement] = useState([]);
   const [matchs, setMatchs] = useState([]);
   const [evtsById, setEvtsById] = useState({});
@@ -100,31 +110,26 @@ export default function Home() {
     let stop = false;
     function refresh() {
       api.classement(saison.id).then((c) => { if (!stop) setClassement(c); }).catch(() => { if (!stop) setClassement([]); });
-      api.matchs(saison.id)
-        .then(async (list) => {
-          if (stop) return;
-          const rows = list || [];
-          setMatchs(rows);
-          const lives = rows.filter((m) => m.statut === "en_cours");
-          if (!lives.length) {
-            setEvtsById({});
-            return;
-          }
-          const pairs = await Promise.all(
-            lives.map((m) =>
-              api.evenementsPublics(m.id)
-                .then((evts) => [m.id, dernierFaitLive(evts)])
-                .catch(() => [m.id, null]),
-            ),
-          );
-          if (!stop) setEvtsById(Object.fromEntries(pairs));
-        })
-        .catch(() => {
-          if (!stop) {
-            setMatchs([]);
-            setEvtsById({});
-          }
-        });
+      const pub = api.matchs(saison.id).catch(() => []);
+      const gest = staff ? api.matchsGestion(saison.id).catch(() => []) : Promise.resolve([]);
+      Promise.all([pub, gest]).then(async ([p, g]) => {
+        if (stop) return;
+        const rows = fusionner(p, g);
+        setMatchs(rows);
+        const lives = rows.filter((m) => m.statut === "en_cours");
+        if (!lives.length) {
+          setEvtsById({});
+          return;
+        }
+        const pairs = await Promise.all(
+          lives.map((m) =>
+            api.evenementsPublics(m.id)
+              .then((evts) => [m.id, dernierFaitLive(evts)])
+              .catch(() => [m.id, null]),
+          ),
+        );
+        if (!stop) setEvtsById(Object.fromEntries(pairs));
+      });
     }
     refresh();
     const t = setInterval(refresh, 5000);
@@ -132,13 +137,15 @@ export default function Home() {
       stop = true;
       clearInterval(t);
     };
-  }, [saison]);
+  }, [saison, staff]);
 
   const lives = matchs.filter((m) => m.statut === "en_cours");
   const jour = jourOffset === 0 ? todayCivil() : addCivilDays(todayCivil(), 1);
-  const aVenir = matchs
-    .filter((m) => m.statut === "programme" && civilDate(m.date_heure) === jour)
+  const programmes = matchs
+    .filter((m) => m.statut === "programme")
     .sort((a, b) => new Date(a.date_heure) - new Date(b.date_heure));
+  const duJour = programmes.filter((m) => civilDate(m.date_heure) === jour);
+  const aVenir = duJour.length ? duJour : (jourOffset === 0 ? programmes : []);
   const termines = matchs
     .filter((m) => (m.statut === "termine" || m.statut === "valide") && civilDate(m.date_heure) === jour)
     .sort((a, b) => new Date(a.date_heure) - new Date(b.date_heure));
@@ -179,7 +186,12 @@ export default function Home() {
         {aVenir.length > 0 && (
           <div className="sheet">
             {aVenir.map((m) => (
-              <AVenirLigne key={m.id} match={m} clubsById={clubsById} />
+              <AVenirLigne
+                key={m.id}
+                match={m}
+                clubsById={clubsById}
+                to={staff ? `/orga/matchs/${m.id}` : `/matchs/${m.id}`}
+              />
             ))}
           </div>
         )}

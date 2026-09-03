@@ -15,7 +15,7 @@
 
 * { box-sizing: border-box; }
 html, body, #root { min-height: 100%; }
-html { color-scheme: light; }
+html { color-scheme: only light; }
 
 body {
   margin: 0;
