@@ -2,10 +2,76 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api } from "../api.js";
 import { useAuth } from "../auth.jsx";
+import { clubName, useKivu } from "../context.jsx";
+import { stripDemo } from "../display.js";
+import { useTheme } from "../theme.jsx";
+
+const ROLE_LIBELLE = {
+  supporter: "Lecteur",
+  organisateur: "Organisateur",
+  admin: "Administration",
+  collecteur: "Collecteur",
+  club_manager: "Club",
+};
+
+const THEMES = [
+  { id: "light", label: "Clair" },
+  { id: "dark", label: "Sombre" },
+  { id: "system", label: "Système" },
+];
+
+function Apparence() {
+  const theme = useTheme();
+  if (!theme) return null;
+  return (
+    <section className="apparence">
+      <div className="section-head">
+        <h2>Apparence</h2>
+      </div>
+      <div className="theme-picks" role="radiogroup" aria-label="Thème">
+        {THEMES.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            role="radio"
+            aria-checked={theme.choice === t.id}
+            className={theme.choice === t.id ? "on" : ""}
+            onClick={() => theme.setChoice(t.id)}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function MotDePasse({ value, onChange, autoComplete, error }) {
+  const [voir, setVoir] = useState(false);
+  return (
+    <label className="field">
+      <span className="field-top">
+        Mot de passe
+        <button type="button" className="linkish" onClick={() => setVoir((v) => !v)}>
+          {voir ? "Masquer" : "Afficher"}
+        </button>
+      </span>
+      <input
+        type={voir ? "text" : "password"}
+        value={value}
+        onChange={onChange}
+        autoComplete={autoComplete}
+        required
+      />
+      {error && <span className="erreur">{error}</span>}
+    </label>
+  );
+}
 
 export default function Compte() {
   const nav = useNavigate();
   const { user, applySession, logout } = useAuth();
+  const { clubsById } = useKivu();
   const [mode, setMode] = useState("connexion");
   const [nom, setNom] = useState("");
   const [email, setEmail] = useState("");
@@ -50,15 +116,66 @@ export default function Compte() {
   }
 
   if (user) {
+    const initiale = (user.nom_complet || user.email || "?")
+      .trim()
+      .charAt(0)
+      .toUpperCase();
+    const role = user.role || "supporter";
+    const statut = ROLE_LIBELLE[role] || "Lecteur";
+    const club = user.club_id ? stripDemo(clubName(clubsById, user.club_id)) : "";
+    const staff = role === "organisateur" || role === "admin" || role === "collecteur";
     return (
       <section className="hero">
         <p className="kicker"><Link to="/">← Accueil</Link></p>
-        <h1>Compte</h1>
-        <p className="lead">{user.nom_complet || user.email}</p>
-        <p className="journee-date">{user.email}</p>
-        <button className="linkish" type="button" onClick={onLogout}>
-          Se déconnecter
-        </button>
+        <div className="id-head">
+          <span className="id-mark" aria-hidden="true">{initiale}</span>
+          <div>
+            <h1>{user.nom_complet || "Compte"}</h1>
+            <p className="journee-date">{statut} — Sud-Kivu</p>
+          </div>
+        </div>
+        <p className="lead">
+          {staff
+            ? "Ce compte ouvre la saisie des matchs. Le public lit sans se connecter."
+            : "Les matchs, le classement et les clubs restent lisibles sans compte. Celui-ci sert à vous reconnaître."}
+        </p>
+        <div className="sheet id-sheet">
+          <div className="id-row">
+            <span>Nom</span>
+            <strong>{user.nom_complet || "—"}</strong>
+          </div>
+          <div className="id-row">
+            <span>E-mail</span>
+            <strong>{user.email}</strong>
+          </div>
+          <div className="id-row">
+            <span>Statut</span>
+            <strong>{statut}</strong>
+          </div>
+          {club && (
+            <div className="id-row">
+              <span>Club</span>
+              <strong>{club}</strong>
+            </div>
+          )}
+        </div>
+        <p className="id-out">
+          <Link to="/matchs">Matchs</Link>
+          {" · "}
+          <Link to="/classement">Classement</Link>
+          {staff && (
+            <>
+              {" · "}
+              <Link to="/orga">Organisation</Link>
+            </>
+          )}
+        </p>
+        <p className="id-out" style={{ borderTop: 0, marginTop: 0, paddingTop: "0.2rem" }}>
+          <button className="linkish" type="button" onClick={onLogout}>
+            Se déconnecter
+          </button>
+        </p>
+        <Apparence />
       </section>
     );
   }
@@ -94,7 +211,6 @@ export default function Compte() {
               value={nom}
               onChange={(e) => setNom(e.target.value)}
               autoComplete="name"
-              placeholder="Ex. Yves Bukasa"
             />
             {fieldErr.nom && <span className="erreur">{fieldErr.nom}</span>}
           </label>
@@ -106,22 +222,16 @@ export default function Compte() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             autoComplete="username"
-            placeholder="vous@exemple.com"
             required
           />
           {fieldErr.email && <span className="erreur">{fieldErr.email}</span>}
         </label>
-        <label className="field">
-          Mot de passe
-          <input
-            type="password"
-            value={mdp}
-            onChange={(e) => setMdp(e.target.value)}
-            autoComplete={mode === "creer" ? "new-password" : "current-password"}
-            required
-          />
-          {fieldErr.mdp && <span className="erreur">{fieldErr.mdp}</span>}
-        </label>
+        <MotDePasse
+          value={mdp}
+          onChange={(e) => setMdp(e.target.value)}
+          autoComplete={mode === "creer" ? "new-password" : "current-password"}
+          error={fieldErr.mdp}
+        />
         {mode === "creer" && (
           <label className="field">
             Confirmer le mot de passe
@@ -135,21 +245,28 @@ export default function Compte() {
           </label>
         )}
         {err && <p className="erreur">{err}</p>}
-        <button className="btn btn-primary" type="submit" disabled={busy}>
+        <button
+          className={`btn btn-primary${busy ? " is-busy" : ""}`}
+          type="submit"
+          disabled={busy}
+        >
           {busy
-            ? "…"
+            ? mode === "creer"
+              ? "Création…"
+              : "Connexion…"
             : mode === "creer"
               ? "Créer le compte"
               : "Se connecter"}
         </button>
       </form>
       {mode === "connexion" && (
-        <p className="meta" style={{ marginTop: "1rem" }}>
+        <p style={{ marginTop: "1.1rem" }}>
           <button className="linkish" type="button" onClick={() => setMode("creer")}>
             Pas encore de compte ? Créer un compte
           </button>
         </p>
       )}
+      <Apparence />
     </section>
   );
 }

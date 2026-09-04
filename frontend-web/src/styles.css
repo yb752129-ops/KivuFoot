@@ -1,21 +1,51 @@
-:root {
+:root,
+html[data-theme="light"] {
   --paper: #f3efe4;
-  --paper-2: #ebe4d4;
+  --paper-2: #e8e0d0;
   --ink: #1c1914;
   --ink-soft: #5e584f;
-  --rule: rgba(28, 25, 20, 0.22);
+  --rule: rgba(28, 25, 20, 0.18);
   --rule-strong: #1c1914;
   --stamp: #1f4d36;
-  --live: #e31c1c;
+  --stamp-2: #163928;
+  --lake: #1e3d4a;
+  --clay: #a65b32;
+  --live: #c62828;
+  --ok: #2f6b4f;
+  --warn: #c4922a;
+  --err: #9c2b2b;
+  --card-y: #e6c35c;
+  --card-r: #c62828;
   --card-red: #9c2b2b;
   --serif: "Newsreader", "Noto Serif", Georgia, serif;
   --sans: "Source Sans 3", "Roboto", "Segoe UI", sans-serif;
   --score: "Barlow Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
 }
 
+html[data-theme="dark"] {
+  --paper: #14120e;
+  --paper-2: #1c1914;
+  --ink: #ede8dc;
+  --ink-soft: #a39c90;
+  --rule: rgba(237, 232, 220, 0.14);
+  --rule-strong: #cfc6b4;
+  --stamp: #6faf86;
+  --stamp-2: #8bc49d;
+  --lake: #8eb4c4;
+  --clay: #d4895c;
+  --live: #e85a5a;
+  --ok: #6faf86;
+  --warn: #e0b14a;
+  --err: #e07a7a;
+  --card-y: #e6c35c;
+  --card-r: #e85a5a;
+  --card-red: #e07a7a;
+}
+
 * { box-sizing: border-box; }
 html, body, #root { min-height: 100%; }
-html { color-scheme: only light; }
+html { color-scheme: light; }
+html[data-theme="dark"] { color-scheme: dark; }
 
 body {
   margin: 0;
@@ -45,7 +75,7 @@ button, input, select, textarea { font: inherit; }
   max-width: 40rem;
   margin: 0 auto;
   padding: 0.7rem 1rem 0.65rem;
-  border-top: 3px solid var(--rule-strong);
+  border-top: 3px solid var(--stamp);
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -71,7 +101,7 @@ button, input, select, textarea { font: inherit; }
   padding: 0.42rem 0.55rem;
   font-size: 0.78rem;
   outline: none;
-  color-scheme: only light;
+  color-scheme: inherit;
 }
 .mast-search input:focus {
   border-width: 2px;
@@ -173,6 +203,15 @@ button, input, select, textarea { font: inherit; }
   text-transform: uppercase;
   color: var(--ink-soft);
 }
+.wordmark-o {
+  display: inline-flex;
+  width: 0.72em;
+  height: 0.72em;
+  vertical-align: -0.06em;
+  margin: 0 0.04em;
+  color: var(--ink);
+}
+.wordmark-o svg { width: 100%; height: 100%; display: block; }
 
 .demo-line {
   margin: 0;
@@ -218,7 +257,7 @@ button, input, select, textarea { font: inherit; }
   padding: 0.55rem 0.1rem 0.5rem;
 }
 .bottom-nav a.active {
-  color: var(--ink);
+  color: var(--stamp);
 }
 .nav-ico {
   width: 1.25rem;
@@ -437,9 +476,13 @@ h1 {
 }
 .btn-primary {
   width: 100%;
-  background: var(--ink);
+  background: var(--stamp);
   color: var(--paper);
-  border-color: var(--ink);
+  border-color: var(--stamp);
+}
+.btn-primary:hover:not(:disabled) {
+  background: var(--stamp-2);
+  border-color: var(--stamp-2);
 }
 @keyframes ink-pulse {
   0%, 100% { opacity: 1; }
@@ -546,7 +589,7 @@ h1 {
   border-radius: 0;
   padding: 0.85rem 0.9rem;
   outline: none;
-  color-scheme: only light;
+  color-scheme: inherit;
 }
 .field select {
   appearance: none;
@@ -856,3 +899,36 @@ footer.site a.orga-entry {
   font-weight: 400;
   padding: 0 0.28rem;
 }
+
+.apparence { margin-top: 1.6rem; }
+.theme-picks {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 0.4rem;
+  margin-top: 0.55rem;
+}
+.theme-picks button {
+  border: 1px solid var(--rule-strong);
+  background: var(--paper);
+  color: var(--ink);
+  padding: 0.7rem 0.3rem;
+  font-weight: 650;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+.theme-picks button.on {
+  background: var(--stamp);
+  color: var(--paper);
+  border-color: var(--stamp);
+}
+
+.kf-carton {
+  display: inline-block;
+  width: 0.72rem;
+  height: 0.95rem;
+  border-radius: 1px;
+  vertical-align: -0.12em;
+  flex: 0 0 auto;
+}
+.kf-carton-jaune { background: var(--card-y); }
+.kf-carton-rouge { background: var(--card-r); }
