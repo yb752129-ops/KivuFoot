@@ -2,6 +2,7 @@ import { useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth.jsx";
 import { useKivu } from "../context.jsx";
+import { stripDemo } from "../display.js";
 import { IcoBouclier, IcoCalendrier, IcoClassement, IcoHome, IcoPersonne } from "../icons.jsx";
 import Marque from "./Marque.jsx";
 
@@ -36,7 +37,7 @@ function RechercheChamp() {
 }
 
 export default function Layout() {
-  const { competition, error } = useKivu();
+  const { competition, competitions, choisirCompetition, error } = useKivu();
   const { prenom } = useAuth();
   return (
     <>
@@ -55,6 +56,21 @@ export default function Layout() {
               <IcoPersonne className="compte-ico" />
             </NavLink>
           </div>
+          {competitions.length > 0 && (
+            <label className="comp-switch">
+              <span className="visually-hidden">Compétition</span>
+              <select
+                value={competition?.id || ""}
+                onChange={(e) => choisirCompetition(Number(e.target.value))}
+              >
+                {competitions.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.est_demo ? `Démo — ${stripDemo(c.nom)}` : stripDemo(c.nom)}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
           {competition?.est_demo && (
             <p className="demo-line">Données de démonstration</p>
           )}

@@ -3,9 +3,9 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user
-from app.auth.rbac import require_roles
+from app.auth.rbac import require_roles, verifier_organisateur_de_competition
 from app.database import get_db
-from app.models.competition import Competition, Saison, SaisonClub
+from app.models.competition import Competition, OrganisateurCompetition, Saison, SaisonClub
 from app.models.enums import ActionAudit, RoleUtilisateur
 from app.models.user import User
 from app.schemas.competition import CompetitionCreate, CompetitionOut, SaisonCreate, SaisonOut
@@ -42,6 +42,8 @@ async def creer_competition(
     comp = Competition(**payload.model_dump())
     db.add(comp)
     await db.flush()
+    if current_user.role == RoleUtilisateur.ORGANISATEUR:
+        db.add(OrganisateurCompetition(user_id=current_user.id, competition_id=comp.id))
     await log_audit(db, "competitions", comp.id, ActionAudit.INSERT, current_user.id, None, payload.model_dump(mode="json"))
     await db.commit()
     await db.refresh(comp)
@@ -57,6 +59,7 @@ async def creer_saison(
     comp = await db.get(Competition, payload.competition_id)
     if comp is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Compétition introuvable.")
+    await verifier_organisateur_de_competition(payload.competition_id, current_user, db)
     saison = Saison(
         competition_id=payload.competition_id,
         nom=payload.nom,

@@ -57,7 +57,9 @@ async function request(path, { method = "GET", body, auth = false } = {}) {
 
 export const api = {
   competitions: () => request("/competitions?inclure_demo=true"),
+  creerCompetition: (payload) => request("/competitions", { method: "POST", body: payload, auth: true }),
   saisons: (competitionId) => request(`/saisons?competition_id=${competitionId}`),
+  creerSaison: (payload) => request("/saisons", { method: "POST", body: payload, auth: true }),
   clubs: () => request("/clubs?limit=100"),
   club: (id) => request(`/clubs/${id}`),
   joueurs: (clubId) => request(`/joueurs?limit=100${clubId ? `&club_id=${clubId}` : ""}`),

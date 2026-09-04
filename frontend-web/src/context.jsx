@@ -2,17 +2,43 @@ import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { api } from "./api.js";
 
 const Ctx = createContext(null);
+const COMP_KEY = "kivufoot_competition_id";
 
 export function useKivu() {
   return useContext(Ctx);
 }
 
+function lireId() {
+  try {
+    const n = Number(localStorage.getItem(COMP_KEY));
+    return Number.isFinite(n) && n > 0 ? n : 0;
+  } catch {
+    return 0;
+  }
+}
+
+function choisirDans(list) {
+  if (!list?.length) return null;
+  const saved = lireId();
+  return list.find((c) => c.id === saved) || list.find((c) => !c.est_demo) || list[0];
+}
+
 export function KivuProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [competitions, setCompetitions] = useState([]);
   const [competition, setCompetition] = useState(null);
   const [saison, setSaison] = useState(null);
   const [clubs, setClubs] = useState([]);
+
+  async function chargerSaison(comp) {
+    if (!comp) {
+      setSaison(null);
+      return;
+    }
+    const saisons = await api.saisons(comp.id);
+    setSaison(saisons?.[0] || null);
+  }
 
   useEffect(() => {
     let stop = false;
@@ -20,7 +46,9 @@ export function KivuProvider({ children }) {
       try {
         const [comps, clubList] = await Promise.all([api.competitions(), api.clubs()]);
         if (stop) return;
-        const comp = comps?.[0] || null;
+        const list = comps || [];
+        const comp = choisirDans(list);
+        setCompetitions(list);
         setCompetition(comp);
         setClubs(clubList || []);
         if (comp) {
@@ -38,10 +66,44 @@ export function KivuProvider({ children }) {
     };
   }, []);
 
+  async function choisirCompetition(id, list = competitions) {
+    const comp = list.find((c) => c.id === Number(id)) || null;
+    setCompetition(comp);
+    try {
+      if (comp) localStorage.setItem(COMP_KEY, String(comp.id));
+    } catch {
+      /* ignore */
+    }
+    try {
+      await chargerSaison(comp);
+    } catch (e) {
+      setError(e.message || "Saison indisponible");
+    }
+  }
+
+  async function rechargerCompetitions() {
+    const list = (await api.competitions()) || [];
+    setCompetitions(list);
+    return list;
+  }
+
   const clubsById = useMemo(() => Object.fromEntries(clubs.map((c) => [c.id, c])), [clubs]);
 
   return (
-    <Ctx.Provider value={{ loading, error, competition, saison, clubs, clubsById }}>
+    <Ctx.Provider
+      value={{
+        loading,
+        error,
+        competitions,
+        competition,
+        saison,
+        clubs,
+        clubsById,
+        choisirCompetition,
+        rechargerCompetitions,
+        setClubs,
+      }}
+    >
       {children}
     </Ctx.Provider>
   );

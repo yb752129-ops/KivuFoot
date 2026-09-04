@@ -14,13 +14,17 @@ const STATUT = {
 
 export default function Orga() {
   const nav = useNavigate();
-  const { saison, clubs, clubsById } = useKivu();
+  const { saison, clubs, clubsById, competition, choisirCompetition, rechargerCompetitions } = useKivu();
   const [me, setMe] = useState(null);
   const [file, setFile] = useState([]);
   const [matchs, setMatchs] = useState([]);
   const [err, setErr] = useState("");
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
+  const [nomComp, setNomComp] = useState("");
+  const [typeComp, setTypeComp] = useState("tournoi");
+  const [nomSaison, setNomSaison] = useState("");
+  const [dateDebut, setDateDebut] = useState("");
   const [rejetId, setRejetId] = useState(null);
   const [rejetCom, setRejetCom] = useState("");
 
@@ -51,6 +55,37 @@ export default function Orga() {
 
   function nom(id) {
     return stripDemo(clubName(clubsById, id));
+  }
+
+  async function creerCompetitionTerrain(e) {
+    e.preventDefault();
+    setBusy(true);
+    setErr("");
+    setMsg("");
+    try {
+      const nom = nomComp.trim();
+      if (!nom) throw new Error("Indiquez le nom de la compétition.");
+      const comp = await api.creerCompetition({
+        nom,
+        type: typeComp,
+        saison_label: nomSaison.trim() || null,
+        est_demo: false,
+      });
+      await api.creerSaison({
+        competition_id: comp.id,
+        nom: nomSaison.trim() || null,
+        date_debut: dateDebut || null,
+        club_ids: [],
+      });
+      const list = await rechargerCompetitions();
+      await choisirCompetition(comp.id, list || []);
+      setMsg("Compétition créée. Elle n’est pas une DEMO.");
+      setNomComp("");
+    } catch (ex) {
+      setErr(ex.message);
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function preparerTest() {
@@ -121,11 +156,43 @@ export default function Orga() {
       {err && <p className="erreur">{err}</p>}
       {msg && <p className="empty">{msg}</p>}
 
-      <p>
-        <button className="btn btn-primary" type="button" disabled={busy} onClick={preparerTest}>
-          {busy ? "…" : "Match test · Kadutu — Ibanda"}
+      <div className="section-head">
+        <h2>Nouvelle compétition</h2>
+      </div>
+      <p className="lead">Pas une DEMO. Le nom n’est pas figé dans le produit.</p>
+      <form className="compte-form" onSubmit={creerCompetitionTerrain}>
+        <label className="field">
+          Nom
+          <input value={nomComp} onChange={(e) => setNomComp(e.target.value)} required />
+        </label>
+        <label className="field">
+          Type
+          <select value={typeComp} onChange={(e) => setTypeComp(e.target.value)}>
+            <option value="tournoi">Tournoi</option>
+            <option value="championnat">Championnat</option>
+            <option value="coupe">Coupe</option>
+          </select>
+        </label>
+        <label className="field">
+          Saison / édition
+          <input value={nomSaison} onChange={(e) => setNomSaison(e.target.value)} placeholder="ex. 2e semestre 2026" />
+        </label>
+        <label className="field">
+          Date de début
+          <input type="date" value={dateDebut} onChange={(e) => setDateDebut(e.target.value)} />
+        </label>
+        <button className="btn btn-primary" type="submit" disabled={busy}>
+          {busy ? "…" : "Créer la compétition"}
         </button>
-      </p>
+      </form>
+
+      {competition?.est_demo && (
+        <p>
+          <button className="btn" type="button" disabled={busy} onClick={preparerTest}>
+            {busy ? "…" : "Match test · Kadutu — Ibanda"}
+          </button>
+        </p>
+      )}
 
       <div className="section-head">
         <h2>File d’événements ({file.length})</h2>

@@ -891,6 +891,30 @@ footer.site a.orga-entry {
   padding: 0 0.28rem;
 }
 
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+}
+.comp-switch {
+  display: block;
+  width: 100%;
+  margin: 0;
+}
+.comp-switch select {
+  width: 100%;
+  background: var(--paper);
+  color: var(--ink);
+  border: 1px solid var(--rule-strong);
+  border-radius: 0;
+  padding: 0.4rem 0.55rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color-scheme: inherit;
+}
+
 .apparence { margin-top: 1.6rem; }
 .theme-picks {
   display: grid;
