@@ -124,6 +124,8 @@ export default function Compte() {
     const statut = ROLE_LIBELLE[role] || "Lecteur";
     const club = user.club_id ? stripDemo(clubName(clubsById, user.club_id)) : "";
     const staff = role === "organisateur" || role === "admin" || role === "collecteur";
+    const orga = role === "organisateur" || role === "admin";
+    const collecte = role === "collecteur" || role === "admin";
     return (
       <section className="hero">
         <p className="kicker"><Link to="/">← Accueil</Link></p>
@@ -163,10 +165,16 @@ export default function Compte() {
           <Link to="/matchs">Matchs</Link>
           {" · "}
           <Link to="/classement">Classement</Link>
-          {staff && (
+          {orga && (
             <>
               {" · "}
               <Link to="/orga">Organisation</Link>
+            </>
+          )}
+          {collecte && (
+            <>
+              {" · "}
+              <Link to="/collecteur">Collecte</Link>
             </>
           )}
         </p>

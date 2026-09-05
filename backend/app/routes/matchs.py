@@ -113,15 +113,28 @@ async def changer_statut_match(
     match_id: int,
     nouveau_statut: StatutMatch,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles(RoleUtilisateur.ADMIN, RoleUtilisateur.ORGANISATEUR)),
+    current_user: User = Depends(
+        require_roles(RoleUtilisateur.ADMIN, RoleUtilisateur.ORGANISATEUR, RoleUtilisateur.COLLECTEUR)
+    ),
 ):
     """
     Cycle de vie (Phase 1) : programme -> en_cours -> termine -> valide,
     ou conteste à tout moment. La transition vers 'valide' passe
     obligatoirement par la route dédiée /matchs/{id}/valider (elle seule
     vérifie qu'aucun événement n'est en attente et verrouille le match).
+    Collecteur : démarre et termine seulement (CDC Accueil).
     """
-    match_ = await verifier_organisateur_du_match(match_id, current_user, db)
+    if current_user.role == RoleUtilisateur.COLLECTEUR:
+        match_ = await db.get(Match, match_id)
+        if match_ is None:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Match introuvable.")
+        if nouveau_statut not in (StatutMatch.EN_COURS, StatutMatch.TERMINE):
+            raise HTTPException(
+                status.HTTP_403_FORBIDDEN,
+                "Le collecteur démarre ou termine. Valider et contester restent à l'organisateur.",
+            )
+    else:
+        match_ = await verifier_organisateur_du_match(match_id, current_user, db)
     if match_.locked:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Ce match est verrouillé.")
     if nouveau_statut == StatutMatch.VALIDE:
@@ -156,10 +169,17 @@ async def changer_periode_match(
     match_id: int,
     periode: PeriodeMatch,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles(RoleUtilisateur.ADMIN, RoleUtilisateur.ORGANISATEUR)),
+    current_user: User = Depends(
+        require_roles(RoleUtilisateur.ADMIN, RoleUtilisateur.ORGANISATEUR, RoleUtilisateur.COLLECTEUR)
+    ),
 ):
     """Mi-temps / reprise : le match reste EN COURS (C5). Ce n'est pas un statut."""
-    match_ = await verifier_organisateur_du_match(match_id, current_user, db)
+    if current_user.role == RoleUtilisateur.COLLECTEUR:
+        match_ = await db.get(Match, match_id)
+        if match_ is None:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Match introuvable.")
+    else:
+        match_ = await verifier_organisateur_du_match(match_id, current_user, db)
     if match_.locked:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Ce match est verrouillé.")
     actuel_statut = match_.statut.value if hasattr(match_.statut, "value") else match_.statut

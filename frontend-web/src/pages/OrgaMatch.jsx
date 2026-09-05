@@ -25,10 +25,11 @@ const TYPES = [
   { value: "remplacement", label: "Changement" },
 ];
 
-export default function OrgaMatch() {
+export default function OrgaMatch({ backTo = "/orga/matchs", mode = "orga" } = {}) {
   const { id } = useParams();
   const nav = useNavigate();
   const { clubsById } = useKivu();
+  const collecteur = mode === "collecteur";
   const [match, setMatch] = useState(null);
   const [evts, setEvts] = useState([]);
   const [joueursDom, setJoueursDom] = useState([]);
@@ -61,7 +62,7 @@ export default function OrgaMatch() {
   async function load() {
     try {
       const [m, e, p] = await Promise.all([
-        api.matchGestion(id),
+        collecteur ? api.match(id) : api.matchGestion(id),
         api.evenementsStaff(id),
         api.participations(id).catch(() => []),
       ]);
@@ -228,8 +229,12 @@ export default function OrgaMatch() {
       if (type === "but" && secondaireId) payload.joueur_secondaire_id = Number(secondaireId);
       if (type === "remplacement") payload.joueur_secondaire_id = Number(secondaireId);
       if (type === "penalty") payload.resultat = resultat;
-      await api.saisirEvenement(id, payload);
-      setMsg(`${LABELS[type] || type} enregistré.`);
+      const cree = await api.saisirEvenement(id, payload);
+      if (cree?.statut_validation === "en_attente") {
+        setMsg(`${LABELS[type] || type} enregistré — en attente de validation.`);
+      } else {
+        setMsg(`${LABELS[type] || type} enregistré.`);
+      }
       setSecondaireId("");
       await load();
     } catch (ex) {
@@ -254,7 +259,8 @@ export default function OrgaMatch() {
 
   function peutRefuser(e) {
     return (
-      !match.locked
+      !collecteur
+      && !match.locked
       && e.statut_validation === "valide"
       && !e.refuse
       && ["but", "but_contre_son_camp", "penalty"].includes(e.type)
@@ -283,7 +289,7 @@ export default function OrgaMatch() {
   return (
     <>
       <p className="kicker" style={{ paddingTop: "0.4rem" }}>
-        <Link to="/orga/matchs">← Matchs</Link>
+        <Link to={backTo}>← Matchs</Link>
       </p>
       <section className="hero">
         <p className="kicker">
@@ -325,10 +331,13 @@ export default function OrgaMatch() {
             Terminer le match
           </button>
         )}
-        {match.statut === "termine" && !match.locked && (
+        {match.statut === "termine" && !match.locked && !collecteur && (
           <button className="btn btn-primary" type="button" disabled={busy} onClick={publier}>
             Valider le match
           </button>
+        )}
+        {collecteur && match.statut === "termine" && !match.locked && (
+          <p className="empty">Match sifflé. L’organisateur valide pour le classement.</p>
         )}
         {match.locked && <p className="empty">Match verrouillé — plus aucune modification.</p>}
       </div>
@@ -475,7 +484,7 @@ export default function OrgaMatch() {
         ))}
       </ul>
 
-      {!match.locked && match.statut !== "valide" && (
+      {!collecteur && !match.locked && match.statut !== "valide" && (
         <>
           <div className="section-head">
             <h2>Compositions</h2>
@@ -507,7 +516,7 @@ export default function OrgaMatch() {
         </>
       )}
 
-      {!match.locked && match.statut !== "valide" && (
+      {!collecteur && !match.locked && match.statut !== "valide" && (
         <>
           <p className="kicker" style={{ marginTop: "1.6rem" }}>
             <button className="linkish" type="button" onClick={() => setAutre((v) => !v)}>

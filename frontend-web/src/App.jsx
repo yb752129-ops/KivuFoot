@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import { KivuProvider } from "./context.jsx";
 import Layout from "./components/Layout.jsx";
 import OrgaLayout from "./components/OrgaLayout.jsx";
+import CollecteurLayout from "./components/CollecteurLayout.jsx";
 import Home from "./pages/Home.jsx";
 import Classement from "./pages/Classement.jsx";
 import Matchs from "./pages/Matchs.jsx";
@@ -19,13 +20,19 @@ import OrgaEquipe from "./pages/orga/Equipe.jsx";
 import OrgaCalendrier from "./pages/orga/Calendrier.jsx";
 import OrgaMatchsListe from "./pages/orga/MatchsListe.jsx";
 import OrgaMatch from "./pages/OrgaMatch.jsx";
+import CollecteurMatchs from "./pages/collecteur/Matchs.jsx";
+import CollecteurMatch from "./pages/collecteur/Match.jsx";
 import { AuthProvider, useAuth } from "./auth.jsx";
 import { isAuthenticated } from "./api.js";
 
-function Protegee({ children }) {
+function Porte({ roles, children }) {
   const { user } = useAuth();
   if (!isAuthenticated()) return <Navigate to="/login" replace />;
-  if (user?.role === "supporter") return <Navigate to="/" replace />;
+  if (user && !roles.includes(user.role)) {
+    if (user.role === "collecteur") return <Navigate to="/collecteur" replace />;
+    if (user.role === "organisateur") return <Navigate to="/orga" replace />;
+    return <Navigate to="/" replace />;
+  }
   return children;
 }
 
@@ -50,9 +57,9 @@ export default function App() {
           <Route
             path="/orga"
             element={
-              <Protegee>
+              <Porte roles={["organisateur", "admin"]}>
                 <OrgaLayout />
-              </Protegee>
+              </Porte>
             }
           >
             <Route index element={<OrgaVue />} />
@@ -61,6 +68,17 @@ export default function App() {
             <Route path="calendrier" element={<OrgaCalendrier />} />
             <Route path="matchs" element={<OrgaMatchsListe />} />
             <Route path="matchs/:id" element={<OrgaMatch />} />
+          </Route>
+          <Route
+            path="/collecteur"
+            element={
+              <Porte roles={["collecteur", "admin"]}>
+                <CollecteurLayout />
+              </Porte>
+            }
+          >
+            <Route index element={<CollecteurMatchs />} />
+            <Route path="matchs/:id" element={<CollecteurMatch />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
