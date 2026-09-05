@@ -30,14 +30,39 @@ export function KivuProvider({ children }) {
   const [competition, setCompetition] = useState(null);
   const [saison, setSaison] = useState(null);
   const [clubs, setClubs] = useState([]);
+  const [saisonClubs, setSaisonClubs] = useState(null);
+
+  async function chargerClubsSaison(saisonId) {
+    if (!saisonId) {
+      setSaisonClubs([]);
+      return [];
+    }
+    try {
+      const sc = await api.clubsSaison(saisonId);
+      setSaisonClubs(sc || []);
+      return sc || [];
+    } catch {
+      setSaisonClubs(null);
+      return null;
+    }
+  }
 
   async function chargerSaison(comp) {
     if (!comp) {
       setSaison(null);
+      setSaisonClubs([]);
       return;
     }
     const saisons = await api.saisons(comp.id);
-    setSaison(saisons?.[0] || null);
+    const s = saisons?.[0] || null;
+    setSaison(s);
+    await chargerClubsSaison(s?.id);
+  }
+
+  async function rechargerClubs() {
+    const clubList = (await api.clubs()) || [];
+    setClubs(clubList);
+    return clubList;
   }
 
   useEffect(() => {
@@ -53,7 +78,20 @@ export function KivuProvider({ children }) {
         setClubs(clubList || []);
         if (comp) {
           const saisons = await api.saisons(comp.id);
-          if (!stop) setSaison(saisons?.[0] || null);
+          const s = saisons?.[0] || null;
+          if (!stop) {
+            setSaison(s);
+            if (s) {
+              try {
+                const sc = await api.clubsSaison(s.id);
+                if (!stop) setSaisonClubs(sc || []);
+              } catch {
+                if (!stop) setSaisonClubs(null);
+              }
+            } else if (!stop) {
+              setSaisonClubs([]);
+            }
+          }
         }
       } catch (e) {
         if (!stop) setError(e.message || "API indisponible");
@@ -98,9 +136,12 @@ export function KivuProvider({ children }) {
         competition,
         saison,
         clubs,
+        saisonClubs,
         clubsById,
         choisirCompetition,
         rechargerCompetitions,
+        rechargerClubs,
+        chargerClubsSaison,
         setClubs,
       }}
     >

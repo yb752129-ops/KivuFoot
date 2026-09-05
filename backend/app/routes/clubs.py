@@ -31,7 +31,7 @@ async def detail_club(club_id: int, db: AsyncSession = Depends(get_db)):
 async def creer_club(
     payload: ClubCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles(RoleUtilisateur.ADMIN)),
+    current_user: User = Depends(require_roles(RoleUtilisateur.ADMIN, RoleUtilisateur.ORGANISATEUR)),
 ):
     club = Club(**payload.model_dump())
     db.add(club)

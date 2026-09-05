@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth.dependencies import get_current_user
 from app.auth.rbac import require_roles, verifier_organisateur_de_competition, verifier_organisateur_du_match
 from app.database import get_db
-from app.models.competition import Saison
+from app.models.competition import Saison, SaisonClub
 from app.models.enums import ActionAudit, EquipeConcernee, PeriodeMatch, RoleUtilisateur, StatutMatch
 from app.models.match import Match, MatchParticipation
 from app.models.user import User
@@ -88,6 +88,16 @@ async def creer_match(
     if saison is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Saison introuvable.")
     await verifier_organisateur_de_competition(saison.competition_id, current_user, db)
+
+    inscrits = await db.execute(
+        select(SaisonClub.club_id).where(SaisonClub.saison_id == payload.saison_id)
+    )
+    club_ids = {row[0] for row in inscrits.all()}
+    if payload.equipe_domicile_id not in club_ids or payload.equipe_exterieur_id not in club_ids:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "Les deux équipes doivent être inscrites à cette saison.",
+        )
 
     match_ = Match(**payload.model_dump())
     db.add(match_)

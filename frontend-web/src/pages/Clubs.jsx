@@ -3,14 +3,15 @@ import { useKivu } from "../context.jsx";
 import { stripDemo } from "../display.js";
 
 export default function Clubs() {
-  const { clubs } = useKivu();
+  const { clubs, saisonClubs } = useKivu();
+  const list = saisonClubs ?? clubs;
   return (
     <section className="hero">
-      <h1>Clubs</h1>
-      {clubs.length === 0 && <p className="empty">Aucun club public pour le moment.</p>}
-      {clubs.length > 0 && (
+      <h1>Équipes</h1>
+      {list.length === 0 && <p className="empty">Aucune équipe inscrite pour le moment.</p>}
+      {list.length > 0 && (
         <div className="sheet">
-          {clubs.map((c) => (
+          {list.map((c) => (
             <Link key={c.id} to={`/clubs/${c.id}`} className="club-tile">
               <strong>{stripDemo(c.nom)}</strong>
               <span className="meta">

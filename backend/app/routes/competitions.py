@@ -5,10 +5,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth.dependencies import get_current_user
 from app.auth.rbac import require_roles, verifier_organisateur_de_competition
 from app.database import get_db
+from app.models.club import Club
 from app.models.competition import Competition, OrganisateurCompetition, Saison, SaisonClub
 from app.models.enums import ActionAudit, RoleUtilisateur
 from app.models.user import User
-from app.schemas.competition import CompetitionCreate, CompetitionOut, SaisonCreate, SaisonOut
+from app.schemas.competition import ClubOut, CompetitionCreate, CompetitionOut, SaisonClubCreate, SaisonCreate, SaisonOut
 from app.services.audit import log_audit
 
 router = APIRouter(tags=["Compétitions"])
@@ -80,3 +81,51 @@ async def creer_saison(
 async def lister_saisons(competition_id: int, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(Saison).where(Saison.competition_id == competition_id))
     return result.scalars().all()
+
+
+@router.get("/saisons/{saison_id}/clubs", response_model=list[ClubOut])
+async def lister_clubs_saison(saison_id: int, db: AsyncSession = Depends(get_db)):
+    saison = await db.get(Saison, saison_id)
+    if saison is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Saison introuvable.")
+    result = await db.execute(
+        select(Club)
+        .join(SaisonClub, SaisonClub.club_id == Club.id)
+        .where(SaisonClub.saison_id == saison_id)
+        .order_by(Club.nom)
+    )
+    return result.scalars().all()
+
+
+@router.post("/saisons/{saison_id}/clubs", response_model=ClubOut, status_code=status.HTTP_201_CREATED)
+async def inscrire_club_saison(
+    saison_id: int,
+    payload: SaisonClubCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles(RoleUtilisateur.ADMIN, RoleUtilisateur.ORGANISATEUR)),
+):
+    saison = await db.get(Saison, saison_id)
+    if saison is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Saison introuvable.")
+    await verifier_organisateur_de_competition(saison.competition_id, current_user, db)
+    club = await db.get(Club, payload.club_id)
+    if club is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Équipe introuvable.")
+    deja = await db.execute(
+        select(SaisonClub).where(SaisonClub.saison_id == saison_id, SaisonClub.club_id == payload.club_id)
+    )
+    if deja.scalar_one_or_none() is not None:
+        raise HTTPException(status.HTTP_409_CONFLICT, "Cette équipe est déjà inscrite à cette saison.")
+    db.add(SaisonClub(saison_id=saison_id, club_id=payload.club_id))
+    await log_audit(
+        db,
+        "saison_clubs",
+        saison_id,
+        ActionAudit.INSERT,
+        current_user.id,
+        None,
+        {"saison_id": saison_id, "club_id": payload.club_id},
+    )
+    await db.commit()
+    await db.refresh(club)
+    return club
