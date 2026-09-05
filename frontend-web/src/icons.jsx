@@ -97,3 +97,21 @@ export function FlecheOut({ className }) {
     </svg>
   );
 }
+
+export function Botte({ className }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.55"
+      strokeLinejoin="round"
+      strokeLinecap="round"
+    >
+      <path d="M5 16h10.4c1.45 0 3.35-.55 4.35-2.35.55-1 .5-2.15 0-3.1L18.4 8.7c-.4-1-1.3-1.65-2.35-1.65h-3.5L8.3 5.2H5.2V16z" />
+      <path d="M6.2 16v2.15M10.5 16v2.15M14.6 16v1.95" />
+    </svg>
+  );
+}
