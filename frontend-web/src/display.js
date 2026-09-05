@@ -62,10 +62,10 @@ export function labelEvenement(e) {
   const labels = {
     but: "But",
     but_contre_son_camp: "CSC",
-    passe_decisive: "Passe",
+    passe_decisive: "Passe décisive",
     carton_jaune: "Jaune",
     carton_rouge: "Rouge",
-    remplacement: "Changement",
+    remplacement: "Remplacement",
     penalty: "Penalty",
   };
   return labels[e?.type] || e?.type || "";

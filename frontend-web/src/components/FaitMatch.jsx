@@ -20,19 +20,7 @@ export default function FaitMatch({ e, nom, children }) {
   const penaltyRate = e.type === "penalty" && (e.resultat === "rate" || e.resultat === "raté");
   const sub = e.type === "remplacement";
   const assist = !refuse && e.type === "but" && second;
-  const deuxJaune = e.type === "carton_rouge" && e.source === "deuxieme_jaune";
-
-  const libelle = penaltyRate
-    ? "Penalty raté"
-    : e.type === "penalty"
-      ? "Penalty"
-      : e.type === "but_contre_son_camp"
-        ? "CSC"
-        : deuxJaune
-          ? "Rouge (2e jaune)"
-          : sub
-            ? null
-            : labelEvenement(e);
+  const libelle = sub ? null : labelEvenement(e);
 
   return (
     <li className={`fait${refuse ? " is-refuse" : ""}${e.equipe_concernee === "exterieur" ? " is-away" : ""}`}>
@@ -41,16 +29,17 @@ export default function FaitMatch({ e, nom, children }) {
       <div className="fait-corps">
         {sub ? (
           <p className="fait-sub">
-            <span className="fait-in">
-              <FlecheIn className="fait-fleche" /> {second || "Entrant"}
-            </span>
             <span className="fait-out">
-              <FlecheOut className="fait-fleche" /> {joueur || "Sortant"}
+              <FlecheOut className="fait-fleche" /> Sort : {joueur || "à compléter"}
+            </span>
+            <span className="fait-in">
+              <FlecheIn className="fait-fleche" /> Entre : {second || "à compléter"}
             </span>
           </p>
         ) : (
           <p className="fait-ligne">
             {libelle && libelle !== "But" && <span className="fait-tag">{libelle}</span>}
+            {penaltyRate && <span className="fait-rate" aria-hidden="true">×</span>}
             <span className="fait-nom">{joueur}</span>
           </p>
         )}

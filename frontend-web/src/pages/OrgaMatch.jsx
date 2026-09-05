@@ -3,7 +3,6 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { api, clearTokens } from "../api.js";
 import Chrono from "../components/Chrono.jsx";
 import { clubName, useKivu } from "../context.jsx";
-import FaitMatch from "../components/FaitMatch.jsx";
 import { clockFromMatch, formatMinute, grouperFaits, labelEvenement, MOTIF_REFUS, periodeLabel, splitMinute, stripDemo } from "../display.js";
 import { STATUT_MATCH } from "./orga/saison.js";
 
@@ -13,8 +12,8 @@ const LABELS = {
   carton_rouge: "Rouge",
   but_contre_son_camp: "CSC",
   penalty: "Penalty",
-  remplacement: "Changement",
-  passe_decisive: "Passe",
+  remplacement: "Remplacement",
+  passe_decisive: "Passe décisive",
 };
 
 const STATUT_FAIT = {
@@ -29,8 +28,17 @@ const TYPES = [
   { value: "penalty", label: "Penalty" },
   { value: "carton_jaune", label: "Jaune" },
   { value: "carton_rouge", label: "Rouge" },
-  { value: "remplacement", label: "Changement" },
+  { value: "remplacement", label: "Remplacement" },
 ];
+
+const TYPE_SENS = {
+  but: "But de jeu. Tête ou coup franc : encore un but. Passeur optionnel. 47 = 45+2, 94 = 90+4.",
+  but_contre_son_camp: "CSC. Crédité à l’adversaire. Pas au joueur.",
+  penalty: "Penalty de jeu. Marqué = un but, pas un second fait « but ». Raté = à côté, arrêté ou poteau. Si le tir est à retirer, n’enregistre pas encore. Ce n’est pas une séance de tirs au but.",
+  carton_jaune: "Jaune. Un 2e jaune validé crée le rouge tout seul. Ne saisis pas le rouge à part.",
+  carton_rouge: "Rouge direct. Le rouge du 2e jaune est créé tout seul.",
+  remplacement: "Un sortant, un entrant. Un double = deux enregistrements à la même minute.",
+};
 
 export default function OrgaMatch({ backTo = "/orga/matchs", mode = "orga" } = {}) {
   const { id } = useParams();
@@ -393,6 +401,9 @@ export default function OrgaMatch({ backTo = "/orga/matchs", mode = "orga" } = {
               </button>
             ))}
           </div>
+          {TYPE_SENS[type] && (
+            <p className="empty" style={{ paddingTop: 0 }}>{TYPE_SENS[type]}</p>
+          )}
           <label className="field">
             Équipe
             <select value={cote} onChange={(e) => { setCote(e.target.value); setJoueurId(""); setSecondaireId(""); }}>
@@ -446,9 +457,6 @@ export default function OrgaMatch({ backTo = "/orga/matchs", mode = "orga" } = {
               </select>
             </label>
           )}
-          {type === "but_contre_son_camp" && (
-            <p className="empty" style={{ paddingTop: 0 }}>Le but est crédité à l’adversaire. Pas au joueur.</p>
-          )}
           <label className="field">
             Minute
             <input
@@ -481,13 +489,12 @@ export default function OrgaMatch({ backTo = "/orga/matchs", mode = "orga" } = {
         {feuille.map((e) => (
           <li key={e.id}>
             {formatMinute(e.minute, e.minute_additionnelle)} · {labelEvenement(e)}
-            {e.type === "penalty" && e.resultat ? ` ${e.resultat}` : ""}
             {e.type === "remplacement"
-              ? ` · OUT ${nomJoueur(e.joueur_id)} · IN ${nomJoueur(e.joueur_secondaire_id)}`
+              ? ` · Sort : ${nomJoueur(e.joueur_id)} → Entre : ${nomJoueur(e.joueur_secondaire_id)}`
               : e.type === "passe_decisive"
                 ? ` · ${nomJoueur(e.joueur_secondaire_id)} pour ${nomJoueur(e.joueur_id)}`
                 : ` · ${nomJoueur(e.joueur_id)}`}
-            {e.joueur_secondaire_id && e.type === "but" ? ` · passe ${nomJoueur(e.joueur_secondaire_id)}` : ""}
+            {e.joueur_secondaire_id && e.type === "but" ? ` · Passe décisive ${nomJoueur(e.joueur_secondaire_id)}` : ""}
             {e.refuse ? ` · refusé (${MOTIF_REFUS[e.motif_refus] || e.motif_refus})` : ` · ${STATUT_FAIT[e.statut_validation] || e.statut_validation}`}
             {peutValiderFait(e) && (
               <div className="file-actions">
