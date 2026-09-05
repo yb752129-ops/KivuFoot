@@ -12,15 +12,31 @@ const base = {
 
 export function Ballon({ className }) {
   return (
-    <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
-      <circle cx="12" cy="12" r="9.2" fill="none" stroke="currentColor" strokeWidth="1.5" />
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.45"
+      strokeLinejoin="round"
+      strokeLinecap="round"
+    >
+      <circle cx="12" cy="12" r="9" />
       <polygon
-        points="12 8.2 15.4 10.7 14.1 14.7 9.9 14.7 8.6 10.7"
-        fill="var(--stamp)"
+        points="12,7.55 14.7,9.5 13.65,12.7 10.35,12.7 9.3,9.5"
+        fill="currentColor"
         stroke="currentColor"
-        strokeWidth="1.1"
-        strokeLinejoin="round"
+        strokeWidth="1.15"
       />
+      <path d="M12 7.55V3.05" />
+      <path d="M14.7 9.5 19.15 7.15" />
+      <path d="M13.65 12.7 18.15 16.85" />
+      <path d="M10.35 12.7 5.85 16.85" />
+      <path d="M9.3 9.5 4.85 7.15" />
+      <path d="M5.85 16.85 12 21 18.15 16.85" />
+      <path d="M4.85 7.15 3.05 12.15 5.85 16.85" />
+      <path d="M19.15 7.15 20.95 12.15 18.15 16.85" />
     </svg>
   );
 }
