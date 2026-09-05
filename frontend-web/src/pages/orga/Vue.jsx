@@ -3,7 +3,7 @@ import { Link, Navigate } from "react-router-dom";
 import { api } from "../../api.js";
 import { useAuth } from "../../auth.jsx";
 import { useKivu } from "../../context.jsx";
-import { formatMinute, stripDemo } from "../../display.js";
+import { formatMinute, labelEvenement, stripDemo } from "../../display.js";
 
 export default function OrgaVue() {
   const { user } = useAuth();
@@ -104,7 +104,7 @@ export default function OrgaVue() {
       {nAttente === 0 && <p className="empty">Rien en attente.</p>}
       {file.slice(0, 8).map((e) => (
         <p key={e.id} className="orga-alerte">
-          {formatMinute(e.minute, e.minute_additionnelle)} · {e.type}
+          {formatMinute(e.minute, e.minute_additionnelle)} · {labelEvenement(e)}
           {" · "}
           <Link to={`/orga/matchs/${e.match_id}`}>Ouvrir le match</Link>
         </p>

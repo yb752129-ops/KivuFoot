@@ -5,6 +5,7 @@ import Chrono from "../components/Chrono.jsx";
 import { clubName, useKivu } from "../context.jsx";
 import FaitMatch from "../components/FaitMatch.jsx";
 import { clockFromMatch, formatMinute, grouperFaits, labelEvenement, MOTIF_REFUS, periodeLabel, splitMinute, stripDemo } from "../display.js";
+import { STATUT_MATCH } from "./orga/saison.js";
 
 const LABELS = {
   but: "But",
@@ -14,6 +15,12 @@ const LABELS = {
   penalty: "Penalty",
   remplacement: "Changement",
   passe_decisive: "Passe",
+};
+
+const STATUT_FAIT = {
+  en_attente: "En attente",
+  valide: "Validé",
+  rejete: "Rejeté",
 };
 
 const TYPES = [
@@ -49,6 +56,8 @@ export default function OrgaMatch({ backTo = "/orga/matchs", mode = "orga" } = {
   const [autre, setAutre] = useState(false);
   const [refusId, setRefusId] = useState(null);
   const [refusMotif, setRefusMotif] = useState("hors_jeu");
+  const [rejetId, setRejetId] = useState(null);
+  const [rejetCommentaire, setRejetCommentaire] = useState("");
   const busyRef = useRef(false);
 
   const home = stripDemo(clubName(clubsById, match?.equipe_domicile_id));
@@ -257,6 +266,24 @@ export default function OrgaMatch({ backTo = "/orga/matchs", mode = "orga" } = {
     });
   }
 
+  function peutValiderFait(e) {
+    return !collecteur && !match.locked && e.statut_validation === "en_attente";
+  }
+
+  function validerFait(e) {
+    return act(() => api.validerEvenement(e.id), "Fait validé.");
+  }
+
+  function rejeterFait(e) {
+    const c = rejetCommentaire.trim();
+    if (!c) {
+      setErr("Indiquez un motif de rejet.");
+      return;
+    }
+    setRejetId(null);
+    return act(() => api.rejeterEvenement(e.id, c), "Fait rejeté. Pas au public.");
+  }
+
   function peutRefuser(e) {
     return (
       !collecteur
@@ -285,6 +312,7 @@ export default function OrgaMatch({ backTo = "/orga/matchs", mode = "orga" } = {
 
   const formOk = enCours && !ht && !match.locked;
   const feuille = grouperFaits(evts);
+  const nAttente = evts.filter((e) => e.statut_validation === "en_attente").length;
 
   return (
     <>
@@ -293,7 +321,7 @@ export default function OrgaMatch({ backTo = "/orga/matchs", mode = "orga" } = {
       </p>
       <section className="hero">
         <p className="kicker">
-          {match.journee} · {match.statut}
+          {match.journee} · {STATUT_MATCH[match.statut] || match.statut}
           {periodeLabel(periode) ? ` · ${periodeLabel(periode)}` : ""}
         </p>
         <h1>{home} {match.score_domicile}–{match.score_exterieur} {away}</h1>
@@ -332,9 +360,14 @@ export default function OrgaMatch({ backTo = "/orga/matchs", mode = "orga" } = {
           </button>
         )}
         {match.statut === "termine" && !match.locked && !collecteur && (
-          <button className="btn btn-primary" type="button" disabled={busy} onClick={publier}>
-            Valider le match
-          </button>
+          <>
+            <button className="btn btn-primary" type="button" disabled={busy || nAttente > 0} onClick={publier}>
+              Valider le match
+            </button>
+            {nAttente > 0 && (
+              <p className="empty">D’abord valider ou rejeter les faits en attente ({nAttente}).</p>
+            )}
+          </>
         )}
         {collecteur && match.statut === "termine" && !match.locked && (
           <p className="empty">Match sifflé. L’organisateur valide pour le classement.</p>
@@ -455,7 +488,36 @@ export default function OrgaMatch({ backTo = "/orga/matchs", mode = "orga" } = {
                 ? ` · ${nomJoueur(e.joueur_secondaire_id)} pour ${nomJoueur(e.joueur_id)}`
                 : ` · ${nomJoueur(e.joueur_id)}`}
             {e.joueur_secondaire_id && e.type === "but" ? ` · passe ${nomJoueur(e.joueur_secondaire_id)}` : ""}
-            {e.refuse ? ` · refusé (${MOTIF_REFUS[e.motif_refus] || e.motif_refus})` : ` · ${e.statut_validation}`}
+            {e.refuse ? ` · refusé (${MOTIF_REFUS[e.motif_refus] || e.motif_refus})` : ` · ${STATUT_FAIT[e.statut_validation] || e.statut_validation}`}
+            {peutValiderFait(e) && (
+              <div className="file-actions">
+                <button className="btn btn-primary" type="button" disabled={busy} onClick={() => validerFait(e)}>
+                  Valider
+                </button>
+                {rejetId === e.id ? (
+                  <>
+                    <input
+                      className="field-inline"
+                      value={rejetCommentaire}
+                      onChange={(ev) => setRejetCommentaire(ev.target.value)}
+                      placeholder="Motif du rejet"
+                    />
+                    <button className="btn btn-danger" type="button" disabled={busy} onClick={() => rejeterFait(e)}>
+                      Confirmer le rejet
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    className="btn btn-danger"
+                    type="button"
+                    disabled={busy}
+                    onClick={() => { setRejetId(e.id); setRejetCommentaire(""); }}
+                  >
+                    Rejeter
+                  </button>
+                )}
+              </div>
+            )}
             {peutRefuser(e) && (
               <div className="file-actions">
                 {refusId === e.id ? (
