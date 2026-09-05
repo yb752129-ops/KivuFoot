@@ -281,9 +281,9 @@ export default function OrgaMatch() {
   const feuille = grouperFaits(evts);
 
   return (
-    <div className="shell">
-      <p className="kicker" style={{ paddingTop: "1rem" }}>
-        <Link to="/orga">← Organisateur</Link>
+    <>
+      <p className="kicker" style={{ paddingTop: "0.4rem" }}>
+        <Link to="/orga/matchs">← Matchs</Link>
       </p>
       <section className="hero">
         <p className="kicker">
@@ -533,6 +533,6 @@ export default function OrgaMatch() {
           )}
         </>
       )}
-    </div>
+    </>
   );
 }

@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { api, setTokens } from "../api.js";
+import { api } from "../api.js";
+import { useAuth } from "../auth.jsx";
 
 export default function Login() {
   const nav = useNavigate();
+  const { applySession } = useAuth();
   const [email, setEmail] = useState("");
   const [motDePasse, setMotDePasse] = useState("");
   const [err, setErr] = useState("");
@@ -15,8 +17,8 @@ export default function Login() {
     setBusy(true);
     try {
       const tokens = await api.login(email.trim(), motDePasse);
-      setTokens(tokens.access_token, tokens.refresh_token);
-      nav("/orga", { replace: true });
+      await applySession(tokens);
+      nav("/", { replace: true });
     } catch (ex) {
       setErr(ex.message || "Connexion impossible");
     } finally {
@@ -32,7 +34,7 @@ export default function Login() {
           KivuFoot
         </div>
         <h1>Bon retour</h1>
-        <p className="sub">Espace organisateur — valider, publier, garder la trace.</p>
+        <p className="sub">Connexion. L’Accueil ensuite.</p>
         <label className="field">
           Adresse e-mail
           <input

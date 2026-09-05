@@ -63,9 +63,13 @@ export const api = {
   clubs: () => request("/clubs?limit=100"),
   club: (id) => request(`/clubs/${id}`),
   creerClub: (payload) => request("/clubs", { method: "POST", body: payload, auth: true }),
+  modifierClub: (id, payload) => request(`/clubs/${id}`, { method: "PUT", body: payload, auth: true }),
+  supprimerClub: (id) => request(`/clubs/${id}`, { method: "DELETE", auth: true }),
   clubsSaison: (saisonId) => request(`/saisons/${saisonId}/clubs`),
   inscrireClub: (saisonId, clubId) =>
     request(`/saisons/${saisonId}/clubs`, { method: "POST", body: { club_id: clubId }, auth: true }),
+  desinscrireClub: (saisonId, clubId) =>
+    request(`/saisons/${saisonId}/clubs/${clubId}`, { method: "DELETE", auth: true }),
   joueurs: (clubId) => request(`/joueurs?limit=100${clubId ? `&club_id=${clubId}` : ""}`),
   creerJoueur: (payload) => request("/joueurs", { method: "POST", body: payload, auth: true }),
   joueur: (id) => request(`/joueurs/${id}`),

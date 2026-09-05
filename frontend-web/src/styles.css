@@ -922,6 +922,14 @@ footer.site a.orga-entry {
   line-height: 1.2;
   min-width: 0;
 }
+.termine-score {
+  margin-left: auto;
+  font-family: var(--score);
+  font-weight: 700;
+  font-size: 1.15rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
 .meta-line {
   font-weight: 400;
   font-size: 0.78rem;
@@ -1250,3 +1258,99 @@ ul.faits { list-style: none; padding: 0; margin: 0; }
   opacity: 0.75;
 }
 .pitch-vide { margin-top: 0.55rem; font-style: italic; }
+
+/* —— Espace organisateur —— */
+body:has(.orga-app) {
+  padding-bottom: 0.8rem;
+}
+.orga-app {
+  min-height: 100dvh;
+  background: var(--paper);
+}
+.orga-top {
+  border-bottom: 1px solid var(--rule);
+}
+.orga-top-inner {
+  max-width: 40rem;
+  margin: 0 auto;
+  padding: 0.7rem 1rem;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+.orga-comp {
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+.orga-nav {
+  display: flex;
+  gap: 0.15rem;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--rule);
+  padding: 0 1rem;
+  max-width: 40rem;
+  margin: 0 auto;
+}
+.orga-nav a {
+  flex: 0 0 auto;
+  padding: 0.7rem 0.65rem 0.55rem;
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  border-bottom: 2px solid transparent;
+}
+.orga-nav a.active {
+  color: var(--stamp);
+  border-bottom-color: var(--stamp);
+}
+.orga-chiffres {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.55rem;
+  margin: 1rem 0 1.2rem;
+}
+.orga-chiffre {
+  border: 1.5px solid var(--ink);
+  border-radius: 14px;
+  padding: 0.85rem 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
+  color: inherit;
+}
+.orga-chiffre strong {
+  font-family: var(--score);
+  font-size: 1.8rem;
+  font-weight: 700;
+  line-height: 1;
+}
+.orga-chiffre span {
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+}
+.orga-alerte {
+  margin: 0;
+  padding: 0.65rem 0;
+  border-bottom: 1px solid var(--rule);
+  font-size: 0.92rem;
+}
+.orga-alerte:last-of-type { border-bottom: 0; }
+.field-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  margin: 0.2rem 0 1rem;
+  color: var(--ink);
+  font-size: 0.92rem;
+}
+.field-check input { margin-top: 0.2rem; }

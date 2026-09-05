@@ -37,6 +37,30 @@ class ClubCreate(BaseModel):
         return s or None
 
 
+class ClubUpdate(BaseModel):
+    nom: str | None = None
+    stade: str | None = None
+    ville: str | None = None
+    logo_url: str | None = None
+
+    @field_validator("nom", "ville")
+    @classmethod
+    def champ_non_vide(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        if not str(v).strip():
+            raise ValueError("Ce champ est obligatoire.")
+        return str(v).strip()
+
+    @field_validator("stade", "logo_url")
+    @classmethod
+    def champ_optionnel(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        s = str(v).strip()
+        return s or None
+
+
 class SaisonClubCreate(BaseModel):
     club_id: int
 

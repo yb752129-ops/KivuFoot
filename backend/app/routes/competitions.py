@@ -129,3 +129,43 @@ async def inscrire_club_saison(
     await db.commit()
     await db.refresh(club)
     return club
+
+
+@router.delete("/saisons/{saison_id}/clubs/{club_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def desinscrire_club_saison(
+    saison_id: int,
+    club_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles(RoleUtilisateur.ADMIN, RoleUtilisateur.ORGANISATEUR)),
+):
+    saison = await db.get(Saison, saison_id)
+    if saison is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Saison introuvable.")
+    await verifier_organisateur_de_competition(saison.competition_id, current_user, db)
+    from sqlalchemy import or_
+    from app.models.match import Match
+
+    joue = await db.execute(
+        select(Match.id).where(
+            Match.saison_id == saison_id,
+            or_(Match.equipe_domicile_id == club_id, Match.equipe_exterieur_id == club_id),
+        ).limit(1)
+    )
+    if joue.scalar_one_or_none() is not None:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "Cette équipe a des matchs dans cette saison. Désinscription bloquée.",
+        )
+    lien = await db.execute(
+        select(SaisonClub).where(SaisonClub.saison_id == saison_id, SaisonClub.club_id == club_id)
+    )
+    row = lien.scalar_one_or_none()
+    if row is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Équipe non inscrite.")
+    await db.delete(row)
+    await log_audit(
+        db, "saison_clubs", saison_id, ActionAudit.DELETE, current_user.id,
+        {"club_id": club_id}, None,
+    )
+    await db.commit()
+    return None
