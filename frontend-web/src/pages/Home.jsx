@@ -4,7 +4,6 @@ import { api } from "../api.js";
 import { useAuth } from "../auth.jsx";
 import { clubName, useKivu } from "../context.jsx";
 import Chrono from "../components/Chrono.jsx";
-import Scoreboard from "../components/Scoreboard.jsx";
 import {
   addCivilDays,
   civilDate,
@@ -25,52 +24,33 @@ function LiveUne({ match, clubsById, evt }) {
   const away = nomClub(clubsById, match.equipe_exterieur_id);
   const sd = match.score_domicile;
   const se = match.score_exterieur;
-  const minute = evt?.minute;
   const cote =
     evt?.equipe_concernee === "exterieur" ? away : evt ? home : "";
   return (
-    <>
-    <style>{`
-      .live-dot{position:relative;width:12px;height:12px;flex:0 0 auto}
-      .live-dot b{display:block;width:12px;height:12px;border-radius:50%;background:#e31c1c;animation:live-beat .9s ease-in-out infinite}
-      .live-dot::after{content:"";position:absolute;inset:-4px;border-radius:50%;border:2px solid #e31c1c;animation:live-ping .9s ease-out infinite}
-      @keyframes live-beat{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(.72);opacity:.55}}
-      @keyframes live-ping{0%{transform:scale(.6);opacity:.9}100%{transform:scale(1.8);opacity:0}}
-      .live-band .sb-score,.live-band .sb-name{color:#f3efe4}
-    `}</style>
-    <Link
-      to={`/matchs/${match.id}`}
-      className="live-band"
-      style={{
-        display: "block",
-        background: "#1f4d36",
-        color: "#f3efe4",
-        margin: "0 -1rem 0.4rem",
-        padding: "1rem 1rem 1.2rem",
-      }}
-    >
+    <Link to={`/matchs/${match.id}`} className="live-band">
       <p className="live-now">
         <span className="live-dot" aria-hidden="true"><b /></span>
         {match.periode === "mi_temps" ? "Mi-temps" : "En cours"}
       </p>
-      <Chrono match={match} running={match.periode !== "mi_temps"} />
-      <div className="sb-line">
-        <span className="sb-name">{home}</span>
-        <span className="sb-score">
-          {sd}
-          <span className="sb-dash">–</span>
-          {se}
-        </span>
-        <span className="sb-name away">{away}</span>
+      <div className="live-body">
+        <Chrono match={match} running={match.periode !== "mi_temps"} />
+        <div className="live-center">
+          <p className="live-team">{home || "Équipe à nommer"}</p>
+          <p className="live-score">
+            {sd}
+            <span className="sb-dash">–</span>
+            {se}
+          </p>
+          <p className="live-team">{away || "Équipe à nommer"}</p>
+        </div>
       </div>
-        {evt && (
+      {evt && (
         <p className="live-evt">
-          {formatMinute(minute, evt.minute_additionnelle)} · {labelEvenement(evt)}
+          {formatMinute(evt.minute, evt.minute_additionnelle)} · {labelEvenement(evt)}
           {cote ? ` · ${cote}` : ""}
         </p>
       )}
     </Link>
-    </>
   );
 }
 
@@ -90,6 +70,23 @@ function AVenirLigne({ match, clubsById, to }) {
       <span className="avenir-noms">
         <span>{home || "Équipe à nommer"}</span>
         <span>{away || "Équipe à nommer"}</span>
+      </span>
+    </Link>
+  );
+}
+
+function TermineLigne({ match, clubsById, to }) {
+  const home = nomClub(clubsById, match.equipe_domicile_id);
+  const away = nomClub(clubsById, match.equipe_exterieur_id);
+  return (
+    <Link to={to} className="avenir-row termine-row">
+      <span className="avenir-heure">{formatHeure(match.date_heure)}</span>
+      <span className="avenir-noms">
+        <span>{home || "Équipe à nommer"}</span>
+        <span>{away || "Équipe à nommer"}</span>
+      </span>
+      <span className="termine-score">
+        {match.score_domicile}–{match.score_exterieur}
       </span>
     </Link>
   );
@@ -182,18 +179,14 @@ export default function Home() {
           </div>
         </div>
         {aVenir.length === 0 && <p className="empty">Pas de match prévu ce jour.</p>}
-        {aVenir.length > 0 && (
-          <div className="sheet">
-            {aVenir.map((m) => (
-              <AVenirLigne
-                key={m.id}
-                match={m}
-                clubsById={clubsById}
-                to={staff ? `/orga/matchs/${m.id}` : `/matchs/${m.id}`}
-              />
-            ))}
-          </div>
-        )}
+        {aVenir.map((m) => (
+          <AVenirLigne
+            key={m.id}
+            match={m}
+            clubsById={clubsById}
+            to={staff ? `/orga/matchs/${m.id}` : `/matchs/${m.id}`}
+          />
+        ))}
       </section>
 
       <section>
@@ -201,13 +194,9 @@ export default function Home() {
           <h2>Terminés</h2>
         </div>
         {termines.length === 0 && <p className="empty">Pas encore de match terminé ce jour.</p>}
-        {termines.length > 0 && (
-          <div className="sheet">
-            {termines.map((m) => (
-              <Scoreboard key={m.id} match={m} clubsById={clubsById} to={`/matchs/${m.id}`} />
-            ))}
-          </div>
-        )}
+        {termines.map((m) => (
+          <TermineLigne key={m.id} match={m} clubsById={clubsById} to={`/matchs/${m.id}`} />
+        ))}
       </section>
 
       <section>
@@ -219,7 +208,7 @@ export default function Home() {
           <p className="empty">Le classement se calcule sur les matchs validés.</p>
         )}
         {apercu.length > 0 && (
-          <table className="table">
+          <table className="table table-accueil">
             <thead>
               <tr>
                 <th>#</th>

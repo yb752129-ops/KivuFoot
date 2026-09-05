@@ -1,7 +1,7 @@
 :root,
 html[data-theme="light"] {
-  --paper: #f3efe4;
-  --paper-2: #e8e0d0;
+  --paper: #f4f1ea;
+  --paper-2: #e8e2d4;
   --ink: #1c1914;
   --ink-soft: #5e584f;
   --rule: rgba(28, 25, 20, 0.18);
@@ -69,17 +69,16 @@ button, input, select, textarea { font: inherit; }
 /* —— Masthead (gazette) —— */
 .masthead {
   background: var(--paper);
-  border-bottom: 2px solid var(--rule-strong);
+  border-bottom: 1px solid var(--rule);
 }
 .masthead-inner {
   max-width: 40rem;
   margin: 0 auto;
-  padding: 0.7rem 1rem 0.65rem;
-  border-top: 3px solid var(--stamp);
+  padding: 0.75rem 1rem 0.7rem;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 0.5rem;
+  gap: 0.45rem;
 }
 .masthead-row {
   width: 100%;
@@ -95,17 +94,17 @@ button, input, select, textarea { font: inherit; }
 .mast-search input {
   width: 100%;
   background: var(--paper);
-  border: 1px solid var(--rule-strong);
+  border: 1.5px solid var(--ink);
   color: var(--ink);
-  border-radius: 0;
-  padding: 0.42rem 0.55rem;
+  border-radius: 999px;
+  padding: 0.42rem 0.85rem;
   font-size: 0.78rem;
   outline: none;
   color-scheme: inherit;
 }
 .mast-search input:focus {
   border-width: 2px;
-  padding: 0.37rem 0.5rem;
+  padding: 0.39rem 0.82rem;
 }
 .compte-personne {
   flex: 0 0 auto;
@@ -192,16 +191,27 @@ button, input, select, textarea { font: inherit; }
 .wordmark-name {
   font-family: var(--serif);
   font-weight: 650;
-  font-size: 1.45rem;
+  font-size: 1.28rem;
   line-height: 1;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.03em;
 }
 .wordmark-place {
-  font-size: 0.68rem;
+  display: flex;
+  align-items: center;
+  gap: 0.32rem;
+  font-size: 0.58rem;
   font-weight: 600;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--ink-soft);
+}
+.wordmark-place::before,
+.wordmark-place::after {
+  content: "";
+  width: 0.7rem;
+  height: 1px;
+  background: currentColor;
+  opacity: 0.55;
 }
 
 .demo-line {
@@ -229,7 +239,7 @@ button, input, select, textarea { font: inherit; }
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   background: var(--paper);
-  border-top: 2px solid var(--rule-strong);
+  border-top: 1px solid var(--rule);
   padding: 0 0.15rem calc(0.2rem + env(safe-area-inset-bottom));
 }
 .bottom-nav a {
@@ -500,8 +510,9 @@ h1 {
 }
 .live-band .chrono {
   color: #f3efe4;
-  font-size: 1.4rem;
-  margin: 0 0 0.75rem;
+  font-size: 1.15rem;
+  margin: 0;
+  text-align: left;
 }
 .orga-actions {
   display: flex;
@@ -745,13 +756,14 @@ footer.site a.orga-entry {
   .bottom-nav a { font-size: 0.62rem; letter-spacing: 0.06em; }
 }
 
-/* —— Match en cours (doit gagner sur .sb-score encre) —— */
+/* —— Match en cours —— */
 .live-band {
   display: block;
   background: #1f4d36;
   color: #f3efe4;
-  margin: 0 -1rem 0.4rem;
-  padding: 1rem 1rem 1.2rem;
+  margin: 0.85rem 0 1.15rem;
+  padding: 0.95rem 1rem 1.05rem;
+  border-radius: 16px;
 }
 .live-now {
   margin: 0 0 0.15rem;
@@ -765,7 +777,33 @@ footer.site a.orga-entry {
   color: var(--ink);
 }
 .live-now.on-paper { color: var(--ink); }
-.live-band .live-now { color: #f3efe4; }
+.live-band .live-now {
+  color: #f3efe4;
+  justify-content: center;
+  margin-bottom: 0.35rem;
+}
+.live-body {
+  display: grid;
+  grid-template-columns: 4.4rem 1fr;
+  align-items: center;
+  gap: 0.35rem;
+}
+.live-center { text-align: center; }
+.live-team {
+  margin: 0;
+  font-weight: 700;
+  font-size: 0.98rem;
+  line-height: 1.2;
+}
+.live-score {
+  margin: 0.12rem 0;
+  font-family: var(--score);
+  font-size: clamp(2.2rem, 9vw, 3rem);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 0.95;
+  font-variant-numeric: tabular-nums;
+}
 .live-dot {
   position: relative;
   width: 12px;
@@ -804,18 +842,12 @@ footer.site a.orga-entry {
   letter-spacing: 0.04em;
   color: #f3efe4;
 }
-.live-band .sb-name,
-.live-band .sb-score {
-  color: #f3efe4;
-}
-.live-band .sb-score {
-  font-size: clamp(2.4rem, 10vw, 3.3rem);
-}
 .live-evt {
-  margin: 0.85rem 0 0;
-  font-size: 0.9rem;
+  margin: 0.7rem 0 0;
+  font-size: 0.88rem;
   color: #f3efe4;
-  opacity: 0.85;
+  opacity: 0.88;
+  text-align: center;
 }
 
 .jour-barre {
@@ -823,15 +855,15 @@ footer.site a.orga-entry {
   align-items: baseline;
   justify-content: space-between;
   gap: 0.75rem;
-  margin: 0.85rem 0 0.35rem;
-  padding-bottom: 0.35rem;
-  border-bottom: 2px solid var(--rule-strong);
+  margin: 0.35rem 0 0.75rem;
+  padding-bottom: 0;
+  border-bottom: 0;
 }
 .jour-barre h2 {
   margin: 0;
-  font-family: var(--serif);
-  font-size: 1.2rem;
-  font-weight: 650;
+  font-family: var(--sans);
+  font-size: 1.08rem;
+  font-weight: 700;
 }
 .jour-nav {
   display: flex;
