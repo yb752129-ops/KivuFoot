@@ -287,13 +287,34 @@ export default function Compte() {
               : "Se connecter"}
         </button>
       </form>
-      {mode === "connexion" && (
-        <p style={{ marginTop: "1.1rem" }}>
-          <button className="linkish" type="button" onClick={() => setMode("creer")}>
-            Pas encore de compte ? Créer un compte
-          </button>
+      {mode === "creer" && (
+        <p className="lead" style={{ marginTop: "0.8rem" }}>
+          Un compte créé ici est lecteur. Collecteur et club : comptes de test ci-dessous.
         </p>
       )}
+      <div className="section-head">
+        <h2>Comptes de test</h2>
+      </div>
+      {COMPTES_TEST.map((c) => (
+        <button
+          key={c.email}
+          type="button"
+          className="avenir-row"
+          style={{ width: "100%", background: "transparent", border: 0, borderBottom: "1px solid var(--rule)", textAlign: "left", cursor: "pointer" }}
+          onClick={() => {
+            setMode("connexion");
+            setEmail(c.email);
+            setMdp(MDP_DEMO);
+            setErr("");
+            setFieldErr({});
+          }}
+        >
+          <span className="avenir-noms">
+            <span>{c.label}</span>
+            <span className="meta-line">{c.email} → {c.porte}</span>
+          </span>
+        </button>
+      ))}
       <Apparence />
     </section>
   );
