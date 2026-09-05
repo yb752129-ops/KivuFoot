@@ -23,13 +23,19 @@ export const COMPTES_TEST = [
     email: "orga.demo@example.com",
     porte: "/orga",
   },
+  {
+    label: "Admin",
+    email: "admin.demo@example.com",
+    porte: "/admin",
+  },
 ];
 
 export function porteDuRole(role) {
   if (role === "collecteur") return "/collecteur";
   if (role === "club_manager") return "/club";
   if (role === "coach") return "/coach";
-  if (role === "organisateur" || role === "admin") return "/orga";
+  if (role === "organisateur") return "/orga";
+  if (role === "admin") return "/admin";
   return "/";
 }
 

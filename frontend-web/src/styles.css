@@ -1377,6 +1377,12 @@ body:has(.orga-app) {
   font-size: 0.78rem;
   color: var(--ink-soft);
 }
+.orga-chiffre.stamp {
+  border-color: var(--stamp);
+}
+.orga-chiffre.stamp strong {
+  color: var(--stamp);
+}
 .orga-alerte {
   margin: 0;
   padding: 0.65rem 0;

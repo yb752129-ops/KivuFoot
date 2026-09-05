@@ -90,7 +90,7 @@ async def ensure_demo_comptes(db) -> None:
     print("  Collecteur    collecteur.demo@example.com  → /collecteur")
     print("  Club          manager.demo@example.com     → /club")
     print("  Coach         coach.demo@example.com       → /coach")
-    print("  Admin         admin.demo@example.com       → /orga")
+    print("  Admin         admin.demo@example.com       → /admin")
 
 
 async def seed() -> None:

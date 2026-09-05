@@ -83,6 +83,9 @@ export const api = {
     }),
   propositions: (joueurId) =>
     request(`/joueurs/propositions${joueurId ? `?joueur_id=${joueurId}` : ""}`, { auth: true }),
+  approuverProposition: (id) =>
+    request(`/joueurs/propositions/${id}/approuver`, { method: "PUT", auth: true }),
+  audit: () => request("/audit", { auth: true }),
   matchs: (saisonId) => request(`/matchs?limit=100${saisonId ? `&saison_id=${saisonId}` : ""}`),
   match: (id) => request(`/matchs/${id}`),
   evenementsPublics: (id) => request(`/matchs/${id}/evenements-publics`),

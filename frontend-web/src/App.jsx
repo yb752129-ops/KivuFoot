@@ -31,6 +31,10 @@ import CoachLayout from "./components/CoachLayout.jsx";
 import CoachVue from "./pages/coach/Vue.jsx";
 import CoachMatchs from "./pages/coach/Matchs.jsx";
 import CoachMatch from "./pages/coach/Match.jsx";
+import AdminLayout from "./components/AdminLayout.jsx";
+import AdminVue from "./pages/admin/Vue.jsx";
+import AdminAudit from "./pages/admin/Audit.jsx";
+import AdminPropositions from "./pages/admin/Propositions.jsx";
 import { AuthProvider, useAuth } from "./auth.jsx";
 import { isAuthenticated } from "./api.js";
 
@@ -42,6 +46,7 @@ function Porte({ roles, children }) {
     if (user.role === "organisateur") return <Navigate to="/orga" replace />;
     if (user.role === "club_manager") return <Navigate to="/club" replace />;
     if (user.role === "coach") return <Navigate to="/coach" replace />;
+    if (user.role === "admin") return <Navigate to="/admin" replace />;
     return <Navigate to="/" replace />;
   }
   return children;
@@ -115,6 +120,18 @@ export default function App() {
             <Route index element={<CoachVue />} />
             <Route path="matchs" element={<CoachMatchs />} />
             <Route path="matchs/:id" element={<CoachMatch />} />
+          </Route>
+          <Route
+            path="/admin"
+            element={
+              <Porte roles={["admin"]}>
+                <AdminLayout />
+              </Porte>
+            }
+          >
+            <Route index element={<AdminVue />} />
+            <Route path="audit" element={<AdminAudit />} />
+            <Route path="propositions" element={<AdminPropositions />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
