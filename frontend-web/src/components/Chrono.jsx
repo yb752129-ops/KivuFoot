@@ -19,6 +19,11 @@ export default function Chrono({ match, startedAt, endedAt, running, periode, pe
     paused_at: pausedAt,
   };
   if (!source.started_at) return null;
-  const clock = clockFromMatch(source, running ? now : endedAt ? new Date(endedAt).getTime() : now);
+  if (source.periode === "mi_temps") return null;
+  const freezeAt = source.ended_at || endedAt;
+  const clock = clockFromMatch(
+    source,
+    running ? now : freezeAt ? new Date(freezeAt).getTime() : now,
+  );
   return <p className="chrono">{formatClock(clock.min, clock.sec, clock.periode)}</p>;
 }
