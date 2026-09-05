@@ -879,7 +879,6 @@ footer.site a.orga-entry {
   opacity: 0.72;
   text-align: center;
   letter-spacing: 0.01em;
-  overflow-wrap: break-word;
 }
 @media (max-width: 360px) {
   .live-body {
@@ -1106,7 +1105,8 @@ ul.faits { list-style: none; padding: 0; margin: 0; }
   color: var(--stamp);
 }
 .fait-nom { font-weight: 650; }
-.fait.is-refuse .fait-nom { text-decoration: line-through; color: var(--ink-soft); font-weight: 400; }
+.fait.is-refuse .fait-nom,
+.feuille-txt.is-refuse .fait-nom { text-decoration: line-through; color: var(--ink-soft); font-weight: 400; }
 .fait-assist {
   margin: 0.18rem 0 0;
   font-size: 0.82rem;
@@ -1169,49 +1169,44 @@ ul.faits { list-style: none; padding: 0; margin: 0; }
 }
 
 .feuille-apercu { list-style: none; padding: 0; margin: 0; }
-.feuille-ligne {
+.feuille-row {
   display: grid;
-  grid-template-columns: 3.2rem 1.45rem 1fr;
-  gap: 0.45rem;
+  grid-template-columns: 1fr 2.6rem 1fr;
+  gap: 0.35rem;
   align-items: start;
-  padding: 0.65rem 0.05rem;
+  padding: 0.55rem 0;
   border-bottom: 1px solid var(--rule);
 }
-.feuille-ligne:last-child { border-bottom: 0; }
-.feuille-ligne.is-cycle {
-  grid-template-columns: 3.2rem 1fr;
-  align-items: baseline;
-}
-.feuille-cycle {
-  margin: 0;
-  font-family: var(--serif);
-  font-weight: 650;
-  font-size: 0.95rem;
-}
+.feuille-row:last-child { border-bottom: 0; }
 .feuille-min {
   font-family: var(--score);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
-  text-align: left;
-  padding-top: 0.08rem;
+  text-align: center;
+  padding-top: 0.12rem;
 }
-.feuille-ico {
+.feuille-dom, .feuille-ext { min-width: 0; }
+.feuille-ext { text-align: right; }
+.feuille-ext .fait-ligne,
+.feuille-ext .fait-sub,
+.feuille-ext .fait-assist { justify-content: flex-end; }
+.feuille-txt {
   display: flex;
+  gap: 0.35rem;
   align-items: flex-start;
-  gap: 0.12rem;
-  padding-top: 0.18rem;
-  min-height: 1.15rem;
 }
-.feuille-cartons,
-.feuille-ballon-wrap {
-  display: flex;
-  align-items: center;
-  gap: 0.15rem;
+.feuille-ext .feuille-txt { flex-direction: row-reverse; }
+.feuille-ico { flex: 0 0 auto; padding-top: 0.15rem; }
+.feuille-break {
+  list-style: none;
+  text-align: center;
+  padding: 0.55rem 0;
+  border-top: 1px solid var(--rule-strong);
+  border-bottom: 1px solid var(--rule-strong);
+  font-family: var(--serif);
+  font-weight: 650;
+  font-size: 0.92rem;
 }
-.feuille-txt { min-width: 0; }
-.feuille-txt .fait-ligne { display: block; }
-.feuille-txt .fait-nom { font-weight: 650; }
-.feuille-ligne.is-refuse .fait-nom { font-weight: 400; color: var(--ink-soft); }
 .fait-rate {
   display: inline-grid;
   place-items: center;
@@ -1222,7 +1217,6 @@ ul.faits { list-style: none; padding: 0; margin: 0; }
   font-size: 0.72rem;
   font-weight: 700;
   line-height: 1;
-  flex: 0 0 auto;
 }
 
 .stats-feuille td:nth-child(2) {

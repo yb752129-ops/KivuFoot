@@ -71,26 +71,6 @@ export function labelEvenement(e) {
   return labels[e?.type] || e?.type || "";
 }
 
-/** Feuille Aperçu — libellés du format reco (spec §6). */
-export function libelleFeuille(e) {
-  if (e?.refuse && (e.type === "but" || e.type === "but_contre_son_camp" || e.type === "penalty")) {
-    return "But refusé";
-  }
-  if (e?.type === "carton_rouge" && e.source === "deuxieme_jaune") return "Second jaune";
-  if (e?.type === "penalty" && (e.resultat === "rate" || e.resultat === "raté")) return "Penalty raté";
-  if (e?.type === "penalty") return "Penalty";
-  const labels = {
-    but: "But",
-    but_contre_son_camp: "CSC",
-    passe_decisive: "Passe décisive",
-    carton_jaune: "Carton jaune",
-    carton_rouge: "Carton rouge",
-    remplacement: "Remplacement",
-    penalty: "Penalty",
-  };
-  return labels[e?.type] || e?.type || "";
-}
-
 /** Affichage : la passe est attachée au but. Deux lignes en base, un seul fait visuel. */
 export function grouperFaits(evts) {
   const list = feuilleAffichee(evts);
