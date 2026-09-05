@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import delete as sql_delete, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user
@@ -9,6 +10,7 @@ from app.models.club import Club
 from app.models.competition import Competition, OrganisateurCompetition, Saison, SaisonClub
 from app.models.enums import ActionAudit, RoleUtilisateur
 from app.models.match import Match
+from app.models.stats import StatistiqueJoueur
 from app.models.user import User
 from app.schemas.competition import ClubOut, CompetitionCreate, CompetitionOut, SaisonClubCreate, SaisonCreate, SaisonOut
 from app.services.audit import log_audit
@@ -62,17 +64,16 @@ async def supprimer_competition(
     comp = await db.get(Competition, competition_id)
     if comp is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Compétition introuvable.")
-    joue = await db.execute(
-        select(Match.id)
-        .join(Saison, Saison.id == Match.saison_id)
-        .where(Saison.competition_id == competition_id)
-        .limit(1)
+    saison_ids = list(
+        (await db.execute(select(Saison.id).where(Saison.competition_id == competition_id))).scalars().all()
     )
-    if joue.scalar_one_or_none() is not None:
-        raise HTTPException(
-            status.HTTP_409_CONFLICT,
-            "Cette compétition a des matchs. Suppression bloquée.",
-        )
+    if saison_ids:
+        joue = await db.execute(select(Match.id).where(Match.saison_id.in_(saison_ids)).limit(1))
+        if joue.scalar_one_or_none() is not None:
+            raise HTTPException(
+                status.HTTP_409_CONFLICT,
+                "Cette compétition a des matchs. Suppression bloquée.",
+            )
     await log_audit(
         db,
         "competitions",
@@ -82,8 +83,22 @@ async def supprimer_competition(
         {"nom": comp.nom, "est_demo": comp.est_demo},
         None,
     )
-    await db.delete(comp)
-    await db.commit()
+    try:
+        await db.execute(
+            sql_delete(OrganisateurCompetition).where(OrganisateurCompetition.competition_id == competition_id)
+        )
+        await db.execute(sql_delete(StatistiqueJoueur).where(StatistiqueJoueur.competition_id == competition_id))
+        if saison_ids:
+            await db.execute(sql_delete(SaisonClub).where(SaisonClub.saison_id.in_(saison_ids)))
+            await db.execute(sql_delete(Saison).where(Saison.competition_id == competition_id))
+        await db.execute(sql_delete(Competition).where(Competition.id == competition_id))
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "Cette compétition a des matchs. Suppression bloquée.",
+        )
     return None
 
 

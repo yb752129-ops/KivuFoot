@@ -51,12 +51,11 @@ class Settings(BaseSettings):
     @property
     def cors_origins_list(self) -> list[str]:
         env = [o.strip() for o in self.cors_allow_origins.split(",") if o.strip()]
-        # Les deux sites Render déjà en ligne. Sans ça, foot-web → Failed to fetch.
         prod = (
             "https://kivufoot-web.onrender.com",
             "https://foot-web.onrender.com",
         )
-        out = []
+        out: list[str] = []
         seen: set[str] = set()
         for o in [*env, *prod]:
             if o and o not in seen:
