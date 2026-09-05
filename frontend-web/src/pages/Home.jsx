@@ -2,94 +2,21 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api.js";
 import { useAuth } from "../auth.jsx";
-import { clubName, useKivu } from "../context.jsx";
-import Chrono from "../components/Chrono.jsx";
+import { useKivu } from "../context.jsx";
+import { AVenirLigne, LiveUne, TermineLigne } from "../components/LignesMatch.jsx";
 import {
   addCivilDays,
   civilDate,
   dernierFaitLive,
-  formatHeure,
-  formatMinute,
-  labelEvenement,
   stripDemo,
   todayCivil,
 } from "../display.js";
-
-function nomClub(clubsById, id) {
-  return stripDemo(clubName(clubsById, id));
-}
-
-function LiveUne({ match, clubsById, evt }) {
-  const home = nomClub(clubsById, match.equipe_domicile_id);
-  const away = nomClub(clubsById, match.equipe_exterieur_id);
-  const sd = match.score_domicile;
-  const se = match.score_exterieur;
-  const cote =
-    evt?.equipe_concernee === "exterieur" ? away : evt ? home : "";
-  return (
-    <Link to={`/matchs/${match.id}`} className="live-band">
-      <p className="live-now">
-        <span className="live-dot" aria-hidden="true"><b /></span>
-        {match.periode === "mi_temps" ? "Mi-temps" : "En cours"}
-      </p>
-      <div className="live-body">
-        <Chrono match={match} running={match.periode !== "mi_temps"} />
-        <div className="live-center">
-          <p className="live-team">{home || "Équipe à nommer"}</p>
-          <p className="live-score">
-            {sd}
-            <span className="sb-dash">–</span>
-            {se}
-          </p>
-          <p className="live-team">{away || "Équipe à nommer"}</p>
-        </div>
-      </div>
-      {evt && (
-        <p className="live-evt">
-          {formatMinute(evt.minute, evt.minute_additionnelle)} · {labelEvenement(evt)}
-          {cote ? ` · ${cote}` : ""}
-        </p>
-      )}
-    </Link>
-  );
-}
 
 function fusionner(a, b) {
   const map = new Map();
   for (const m of a || []) map.set(m.id, m);
   for (const m of b || []) map.set(m.id, m);
   return [...map.values()];
-}
-
-function AVenirLigne({ match, clubsById, to }) {
-  const home = nomClub(clubsById, match.equipe_domicile_id);
-  const away = nomClub(clubsById, match.equipe_exterieur_id);
-  return (
-    <Link to={to} className="avenir-row">
-      <span className="avenir-heure">{formatHeure(match.date_heure)}</span>
-      <span className="avenir-noms">
-        <span>{home || "Équipe à nommer"}</span>
-        <span>{away || "Équipe à nommer"}</span>
-      </span>
-    </Link>
-  );
-}
-
-function TermineLigne({ match, clubsById, to }) {
-  const home = nomClub(clubsById, match.equipe_domicile_id);
-  const away = nomClub(clubsById, match.equipe_exterieur_id);
-  return (
-    <Link to={to} className="avenir-row termine-row">
-      <span className="avenir-heure">{formatHeure(match.date_heure)}</span>
-      <span className="avenir-noms">
-        <span>{home || "Équipe à nommer"}</span>
-        <span>{away || "Équipe à nommer"}</span>
-      </span>
-      <span className="termine-score">
-        {match.score_domicile}–{match.score_exterieur}
-      </span>
-    </Link>
-  );
 }
 
 export default function Home() {
@@ -180,12 +107,7 @@ export default function Home() {
         </div>
         {aVenir.length === 0 && <p className="empty">Pas de match prévu ce jour.</p>}
         {aVenir.map((m) => (
-          <AVenirLigne
-            key={m.id}
-            match={m}
-            clubsById={clubsById}
-            to={staff ? `/orga/matchs/${m.id}` : `/matchs/${m.id}`}
-          />
+          <AVenirLigne key={m.id} match={m} clubsById={clubsById} />
         ))}
       </section>
 
@@ -195,7 +117,7 @@ export default function Home() {
         </div>
         {termines.length === 0 && <p className="empty">Pas encore de match terminé ce jour.</p>}
         {termines.map((m) => (
-          <TermineLigne key={m.id} match={m} clubsById={clubsById} to={`/matchs/${m.id}`} />
+          <TermineLigne key={m.id} match={m} clubsById={clubsById} />
         ))}
       </section>
 

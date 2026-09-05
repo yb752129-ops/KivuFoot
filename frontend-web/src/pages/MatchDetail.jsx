@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { api } from "../api.js";
-import Chrono from "../components/Chrono.jsx";
 import { useKivu } from "../context.jsx";
 import Scoreboard from "../components/Scoreboard.jsx";
 import FeuilleApercu from "../components/FeuilleApercu.jsx";
 import Terrain from "../components/Terrain.jsx";
-import { formatJour, grouperFaits, journeeTitre, periodeLabel, statsDesFaits, stripDemo } from "../display.js";
+import { LiveUne } from "../components/LignesMatch.jsx";
+import { dernierFaitLive, formatJour, grouperFaits, journeeTitre, statsDesFaits, stripDemo } from "../display.js";
 
 const ONGLETS = [
   { id: "apercu", label: "Aperçu" },
@@ -75,32 +75,26 @@ export default function MatchDetail() {
   const nom = (jid) => joueurs[jid]?.nom_complet || "à compléter";
   const faits = grouperFaits(evts);
   const stats = statsDesFaits(evts);
+  const dernier = faits[faits.length - 1] || null;
 
   return (
     <section className="hero">
       <p className="kicker"><Link to={live ? "/" : "/matchs"}>{live ? "← Accueil" : "← Matchs"}</Link></p>
       {competition?.nom && <p className="kicker">{stripDemo(competition.nom)}</p>}
-      {live && (
+
+      {live ? (
+        <LiveUne match={match} clubsById={clubsById} evt={dernier} />
+      ) : (
         <>
-          <p className="live-now on-paper">
-            <span className="live-dot" aria-hidden="true"><b /></span>
-            {match.periode === "mi_temps" ? "Mi-temps" : "En cours"}
+          <p className="kicker">
+            {journeeTitre(match.journee)}
+            {match.date_heure ? ` · ${formatJour(match.date_heure, true)}` : ""}
           </p>
-          {periodeLabel(match.periode) && match.periode !== "mi_temps" && (
-            <p className="kicker">{periodeLabel(match.periode)}</p>
-          )}
-          <Chrono match={match} running={match.periode !== "mi_temps"} endedAt={match.ended_at} />
+          <div className="sheet mc-score" style={{ marginTop: "0.85rem" }}>
+            <Scoreboard match={match} clubsById={clubsById} />
+          </div>
         </>
       )}
-      {!live && (
-        <p className="kicker">
-          {journeeTitre(match.journee)}
-          {match.date_heure ? ` · ${formatJour(match.date_heure, true)}` : ""}
-        </p>
-      )}
-      <div className="sheet mc-score" style={{ marginTop: "0.85rem" }}>
-        <Scoreboard match={match} clubsById={clubsById} />
-      </div>
       {match.statut === "valide" && <p className="stamp">Validé</p>}
       {match.forfait && <p className="lead">Forfait</p>}
 
@@ -124,7 +118,7 @@ export default function MatchDetail() {
       )}
 
       {onglet === "stats" && (
-        <table className="table stats-feuille">
+        <table className="table stats-feuille table-accueil">
           <thead>
             <tr>
               <th>{stripDemo(home?.nom) || "Domicile"}</th>
@@ -152,11 +146,6 @@ export default function MatchDetail() {
               <td>{stats.domicile.penalties_rates}</td>
               <td>Penalties ratés</td>
               <td>{stats.exterieur.penalties_rates}</td>
-            </tr>
-            <tr>
-              <td>—</td>
-              <td>Possession</td>
-              <td>—</td>
             </tr>
           </tbody>
         </table>

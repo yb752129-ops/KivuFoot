@@ -57,47 +57,46 @@ export default function Recherche() {
 
       {clubsTrouves.length > 0 && (
         <>
-          <div className="section-head"><h2>Clubs</h2></div>
-          <div className="sheet">
-            {clubsTrouves.map((c) => (
-              <Link key={c.id} to={`/clubs/${c.id}`} className="club-tile">
-                <strong>{stripDemo(c.nom)}</strong>
-                <span className="meta">{[c.ville, c.stade].filter(Boolean).join(" — ")}</span>
-              </Link>
-            ))}
-          </div>
+          <div className="section-head"><h2>Équipes</h2></div>
+          {clubsTrouves.map((c) => (
+            <Link key={c.id} to={`/clubs/${c.id}`} className="avenir-row">
+              <span className="avenir-noms">
+                <span>{stripDemo(c.nom)}</span>
+                <span className="meta-line">{[c.ville, c.stade].filter(Boolean).join(" — ")}</span>
+              </span>
+            </Link>
+          ))}
         </>
       )}
 
       {joueursTrouves.length > 0 && (
         <>
           <div className="section-head"><h2>Joueurs</h2></div>
-          <div className="sheet">
-            {joueursTrouves.map((j) => (
-              <Link key={j.id} to={`/joueurs/${j.id}`} className="club-tile">
-                <strong>{j.nom_complet}</strong>
-                <span className="meta">{stripDemo(clubName(clubsById, j.club_actuel_id))}</span>
-              </Link>
-            ))}
-          </div>
+          {joueursTrouves.map((j) => (
+            <Link key={j.id} to={`/joueurs/${j.id}`} className="avenir-row">
+              <span className="avenir-noms">
+                <span>{j.nom_complet}</span>
+                <span className="meta-line">{stripDemo(clubName(clubsById, j.club_actuel_id))}</span>
+              </span>
+            </Link>
+          ))}
         </>
       )}
 
       {matchsTrouves.length > 0 && (
         <>
           <div className="section-head"><h2>Matchs</h2></div>
-          <div className="sheet">
-            {matchsTrouves.map((m) => (
-              <Link key={m.id} to={`/matchs/${m.id}`} className="club-tile">
-                <strong>
+          {matchsTrouves.map((m) => (
+            <Link key={m.id} to={`/matchs/${m.id}`} className="avenir-row">
+              <span className="avenir-noms">
+                <span>
                   {stripDemo(clubName(clubsById, m.equipe_domicile_id))}
                   {" · "}
                   {stripDemo(clubName(clubsById, m.equipe_exterieur_id))}
-                </strong>
-                <span className="meta">{m.statut}</span>
-              </Link>
-            ))}
-          </div>
+                </span>
+              </span>
+            </Link>
+          ))}
         </>
       )}
     </section>

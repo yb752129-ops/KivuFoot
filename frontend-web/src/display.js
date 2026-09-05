@@ -2,6 +2,16 @@ export function stripDemo(name) {
   return (name || "").replace(/^DEMO\s*[-–]?\s*/i, "").trim();
 }
 
+export function labelPoste(poste) {
+  const labels = {
+    gardien: "Gardien",
+    defenseur: "Défenseur",
+    milieu: "Milieu",
+    attaquant: "Attaquant",
+  };
+  return labels[poste] || "";
+}
+
 /** Feuille : 1er jaune + rouge (2e jaune). Les jaunes extra restent en base. */
 export function feuilleAffichee(evts) {
   const list = [...(evts || [])].sort(

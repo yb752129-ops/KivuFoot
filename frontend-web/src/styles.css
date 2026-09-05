@@ -922,6 +922,23 @@ footer.site a.orga-entry {
   line-height: 1.2;
   min-width: 0;
 }
+.meta-line {
+  font-weight: 400;
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+}
+.club-initiale {
+  flex: 0 0 auto;
+  width: 2rem;
+  height: 2rem;
+  display: grid;
+  place-items: center;
+  border: 1.5px solid var(--ink);
+  border-radius: 50%;
+  font-family: var(--serif);
+  font-weight: 650;
+  font-size: 0.88rem;
+}
 
 .orga-autre {
   margin: 2.2rem 0 1rem;

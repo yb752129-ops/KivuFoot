@@ -19,7 +19,8 @@ async def evenements_publics(match_id: int, db: AsyncSession = Depends(get_db)):
     brutes/en_attente/rejetées ne sont JAMAIS exposées ici.
     """
     match_ = await db.get(Match, match_id)
-    if match_ is None or match_.statut not in (StatutMatch.VALIDE, StatutMatch.EN_COURS):
+    statut = match_.statut.value if match_ and hasattr(match_.statut, "value") else match_.statut
+    if match_ is None or statut not in ("valide", "en_cours", "termine"):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Match introuvable ou non publié.")
     result = await db.execute(
         select(EvenementMatch).where(

@@ -22,9 +22,9 @@ export default function Classement() {
       </div>
       {err && <p className="erreur">{err}</p>}
       <div className="table-wrap">
-        {lignes.length === 0 && <p className="empty">Pas encore de match publié.</p>}
+        {lignes.length === 0 && <p className="empty">Le classement se calcule sur les matchs validés.</p>}
         {lignes.length > 0 && (
-          <table className="table">
+          <table className="table table-accueil">
             <thead>
               <tr>
                 <th>#</th><th>Club</th><th>Pts</th><th>J</th><th>G</th><th>N</th><th>P</th><th>BP</th><th>BC</th><th>Diff</th>
