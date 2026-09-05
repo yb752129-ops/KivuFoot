@@ -5,6 +5,7 @@ import { useAuth } from "../auth.jsx";
 import { clubName, useKivu } from "../context.jsx";
 import { stripDemo } from "../display.js";
 import { useTheme } from "../theme.jsx";
+import { COMPTES_TEST, MDP_DEMO, porteDuRole } from "../portes.js";
 
 const ROLE_LIBELLE = {
   supporter: "Lecteur",
@@ -106,8 +107,8 @@ export default function Compte() {
         mode === "creer"
           ? await api.register(nom.trim(), email.trim(), mdp)
           : await api.login(email.trim(), mdp);
-      await applySession(tokens);
-      nav("/", { replace: true });
+      const me = await applySession(tokens);
+      nav(porteDuRole(me?.role), { replace: true });
     } catch (ex) {
       setErr(ex.message || "Impossible de continuer.");
     } finally {
@@ -138,9 +139,11 @@ export default function Compte() {
           </div>
         </div>
         <p className="lead">
-          {staff
-            ? "Ce compte ouvre la saisie des matchs. Le public lit sans se connecter."
-            : "Les matchs, le classement et les clubs restent lisibles sans compte. Celui-ci sert à vous reconnaître."}
+          {clubPorte
+            ? "Ce compte tient l’effectif du club. Le public lit sans se connecter."
+            : staff
+              ? "Ce compte ouvre la saisie des matchs. Le public lit sans se connecter."
+              : "Les matchs, le classement et les clubs restent lisibles sans compte. Celui-ci sert à vous reconnaître."}
         </p>
         <div className="sheet id-sheet">
           <div className="id-row">
@@ -162,28 +165,38 @@ export default function Compte() {
             </div>
           )}
         </div>
+        {(orga || collecte || clubPorte) && (
+          <div className="sheet" style={{ marginTop: "1.1rem" }}>
+            {orga && (
+              <Link to="/orga" className="avenir-row">
+                <span className="avenir-noms">
+                  <span>Organisation</span>
+                  <span className="meta-line">/orga</span>
+                </span>
+              </Link>
+            )}
+            {collecte && (
+              <Link to="/collecteur" className="avenir-row">
+                <span className="avenir-noms">
+                  <span>Collecte</span>
+                  <span className="meta-line">/collecteur</span>
+                </span>
+              </Link>
+            )}
+            {clubPorte && (
+              <Link to="/club" className="avenir-row">
+                <span className="avenir-noms">
+                  <span>Club</span>
+                  <span className="meta-line">/club</span>
+                </span>
+              </Link>
+            )}
+          </div>
+        )}
         <p className="id-out">
           <Link to="/matchs">Matchs</Link>
           {" · "}
           <Link to="/classement">Classement</Link>
-          {orga && (
-            <>
-              {" · "}
-              <Link to="/orga">Organisation</Link>
-            </>
-          )}
-          {collecte && (
-            <>
-              {" · "}
-              <Link to="/collecteur">Collecte</Link>
-            </>
-          )}
-          {clubPorte && (
-            <>
-              {" · "}
-              <Link to="/club">Club</Link>
-            </>
-          )}
         </p>
         <p className="id-out" style={{ borderTop: 0, marginTop: 0, paddingTop: "0.2rem" }}>
           <button className="linkish" type="button" onClick={onLogout}>

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api } from "../api.js";
 import { useAuth } from "../auth.jsx";
+import { porteDuRole } from "../portes.js";
 
 export default function Login() {
   const nav = useNavigate();
@@ -17,8 +18,8 @@ export default function Login() {
     setBusy(true);
     try {
       const tokens = await api.login(email.trim(), motDePasse);
-      await applySession(tokens);
-      nav("/", { replace: true });
+      const me = await applySession(tokens);
+      nav(porteDuRole(me?.role), { replace: true });
     } catch (ex) {
       setErr(ex.message || "Connexion impossible");
     } finally {
@@ -34,7 +35,7 @@ export default function Login() {
           KivuFoot
         </div>
         <h1>Bon retour</h1>
-        <p className="sub">Connexion. L’Accueil ensuite.</p>
+        <p className="sub">Connexion. Lecteur → Accueil. Collecteur, club, orga → leur porte.</p>
         <label className="field">
           Adresse e-mail
           <input

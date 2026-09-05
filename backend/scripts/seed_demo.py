@@ -1,6 +1,7 @@
 """
 Données de DÉMONSTRATION, clairement identifiées (est_demo=True).
-Idempotent : relancer ne duplique rien.
+Idempotent : relancer ne duplique pas la compétition.
+Relancer répare les comptes démo (collecteur, club, orga, admin).
 
 Usage :
     python -m scripts.seed_demo
@@ -31,34 +32,72 @@ from app.models.user import User
 DEMO_COMPETITION_NOM = "DEMO - Championnat de test"
 DEMO_PASSWORD = "ChangeMoiEnDemo123!"
 
+DEMO_COMPTES = (
+    ("admin.demo@example.com", RoleUtilisateur.ADMIN, "Admin Démo"),
+    ("orga.demo@example.com", RoleUtilisateur.ORGANISATEUR, "Organisateur Démo"),
+    ("collecteur.demo@example.com", RoleUtilisateur.COLLECTEUR, "Collecteur Démo"),
+    ("manager.demo@example.com", RoleUtilisateur.CLUB_MANAGER, "Manager Démo"),
+)
+
+
+async def ensure_demo_comptes(db) -> None:
+    """Crée ou répare les 4 comptes démo. Ne touche pas aux autres utilisateurs."""
+    kadutu = (
+        await db.execute(select(Club).where(Club.nom == "DEMO FC Kadutu"))
+    ).scalar_one_or_none()
+    hash_demo = hash_password(DEMO_PASSWORD)
+    users = {}
+    for email, role, nom in DEMO_COMPTES:
+        row = (await db.execute(select(User).where(User.email == email))).scalar_one_or_none()
+        if row is None:
+            row = User(
+                email=email,
+                mot_de_passe_hash=hash_demo,
+                role=role,
+                nom_complet=nom,
+                est_actif=True,
+            )
+            db.add(row)
+            await db.flush()
+        else:
+            row.role = role
+            row.nom_complet = nom
+            row.est_actif = True
+            row.mot_de_passe_hash = hash_demo
+        if role == RoleUtilisateur.CLUB_MANAGER and kadutu is not None:
+            row.club_id = kadutu.id
+        users[email] = row
+    await db.flush()
+    orga = users["orga.demo@example.com"]
+    competition = (
+        await db.execute(select(Competition).where(Competition.nom == DEMO_COMPETITION_NOM))
+    ).scalar_one_or_none()
+    if competition is not None:
+        lien = (
+            await db.execute(
+                select(OrganisateurCompetition).where(
+                    OrganisateurCompetition.user_id == orga.id,
+                    OrganisateurCompetition.competition_id == competition.id,
+                )
+            )
+        ).scalar_one_or_none()
+        if lien is None:
+            db.add(OrganisateurCompetition(user_id=orga.id, competition_id=competition.id))
+    await db.commit()
+    print(f"Comptes démo (mot de passe : {DEMO_PASSWORD}) :")
+    print("  Organisateur  orga.demo@example.com        → /orga")
+    print("  Collecteur    collecteur.demo@example.com  → /collecteur")
+    print("  Club          manager.demo@example.com     → /club")
+    print("  Admin         admin.demo@example.com       → /orga")
+
 
 async def seed() -> None:
     async with AsyncSessionLocal() as db:
         existing = await db.execute(select(Competition).where(Competition.nom == DEMO_COMPETITION_NOM))
         if existing.scalar_one_or_none() is not None:
-            print("Les données DEMO existent déjà - rien à faire (script idempotent).")
+            print("Les données DEMO existent déjà — on répare seulement les comptes.")
+            await ensure_demo_comptes(db)
             return
-
-        admin = User(
-            email="admin.demo@example.com",
-            mot_de_passe_hash=hash_password(DEMO_PASSWORD),
-            role=RoleUtilisateur.ADMIN,
-            nom_complet="Admin Démo",
-        )
-        organisateur = User(
-            email="orga.demo@example.com",
-            mot_de_passe_hash=hash_password(DEMO_PASSWORD),
-            role=RoleUtilisateur.ORGANISATEUR,
-            nom_complet="Organisateur Démo",
-        )
-        collecteur = User(
-            email="collecteur.demo@example.com",
-            mot_de_passe_hash=hash_password(DEMO_PASSWORD),
-            role=RoleUtilisateur.COLLECTEUR,
-            nom_complet="Collecteur Démo",
-        )
-        db.add_all([admin, organisateur, collecteur])
-        await db.flush()
 
         competition = Competition(
             nom=DEMO_COMPETITION_NOM,
@@ -68,7 +107,6 @@ async def seed() -> None:
         )
         db.add(competition)
         await db.flush()
-        db.add(OrganisateurCompetition(user_id=organisateur.id, competition_id=competition.id))
 
         saison = Saison(
             competition_id=competition.id,
@@ -91,15 +129,6 @@ async def seed() -> None:
         kadutu, ibanda, bagira, uvira = clubs
 
         db.add_all([SaisonClub(saison_id=saison.id, club_id=c.id) for c in clubs])
-
-        club_manager = User(
-            email="manager.demo@example.com",
-            mot_de_passe_hash=hash_password(DEMO_PASSWORD),
-            role=RoleUtilisateur.CLUB_MANAGER,
-            nom_complet="Manager Démo",
-            club_id=kadutu.id,
-        )
-        db.add(club_manager)
 
         postes = [PosteJoueur.GARDIEN, PosteJoueur.DEFENSEUR, PosteJoueur.MILIEU, PosteJoueur.ATTAQUANT]
         joueurs_par_club: dict[int, list[Joueur]] = {}
@@ -137,7 +166,6 @@ async def seed() -> None:
                 score_exterieur=se,
                 statut=StatutMatch.VALIDE,
                 locked=True,
-                valide_par=organisateur.id,
                 date_validation=now - timedelta(days=jours_ago - 1),
             )
 
@@ -150,7 +178,6 @@ async def seed() -> None:
         db.add_all([m1, m2, m3, m4, m5, m6])
         await db.flush()
 
-        # Match terminé, événements encore en attente → file de validation organisateur
         match_attente = Match(
             saison_id=saison.id,
             journee="J4",
@@ -166,7 +193,7 @@ async def seed() -> None:
         db.add(match_attente)
         await db.flush()
 
-        buteur = joueurs_par_club[bagira.id][3]  # attaquant
+        buteur = joueurs_par_club[bagira.id][3]
         db.add(
             EvenementMatch(
                 match_id=match_attente.id,
@@ -177,11 +204,9 @@ async def seed() -> None:
                 statut_validation=StatutValidationEvenement.EN_ATTENTE,
                 source="collecteur_mobile",
                 temp_id=uuid.uuid4(),
-                cree_par_id=collecteur.id,
             )
         )
 
-        # Match à venir → collecteur
         db.add(
             Match(
                 saison_id=saison.id,
@@ -197,11 +222,7 @@ async def seed() -> None:
         await db.commit()
         print(f"Données DEMO créées : compétition '{DEMO_COMPETITION_NOM}' (id={competition.id}).")
         print(f"Saison id={saison.id} — 6 matchs publiés + 1 en attente de validation + 1 programmé.")
-        print(f"Comptes (mot de passe : {DEMO_PASSWORD}) :")
-        print("  admin@demo.kivufoot.local")
-        print("  organisateur@demo.kivufoot.local")
-        print("  club-manager@demo.kivufoot.local")
-        print("  collecteur@demo.kivufoot.local")
+        await ensure_demo_comptes(db)
 
 
 if __name__ == "__main__":
