@@ -84,7 +84,12 @@ async def creer_joueur(
     payload: JoueurCreate,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(
-        require_roles(RoleUtilisateur.ADMIN, RoleUtilisateur.CLUB_MANAGER, RoleUtilisateur.COLLECTEUR)
+        require_roles(
+            RoleUtilisateur.ADMIN,
+            RoleUtilisateur.ORGANISATEUR,
+            RoleUtilisateur.CLUB_MANAGER,
+            RoleUtilisateur.COLLECTEUR,
+        )
     ),
 ):
     if current_user.role == RoleUtilisateur.CLUB_MANAGER and payload.club_actuel_id:

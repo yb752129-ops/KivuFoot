@@ -51,7 +51,7 @@ function LiveUne({ match, clubsById, evt }) {
     >
       <p className="live-now">
         <span className="live-dot" aria-hidden="true"><b /></span>
-        {match.periode === "mi_temps" ? "Mi-temps" : "En direct"}
+        {match.periode === "mi_temps" ? "Mi-temps" : "En cours"}
       </p>
       <Chrono match={match} running={match.periode !== "mi_temps"} />
       <div className="sb-line">
@@ -88,9 +88,8 @@ function AVenirLigne({ match, clubsById, to }) {
     <Link to={to} className="avenir-row">
       <span className="avenir-heure">{formatHeure(match.date_heure)}</span>
       <span className="avenir-noms">
-        {home}
-        <span className="avenir-sep">·</span>
-        {away}
+        <span>{home || "Équipe à nommer"}</span>
+        <span>{away || "Équipe à nommer"}</span>
       </span>
     </Link>
   );
@@ -197,18 +196,19 @@ export default function Home() {
         )}
       </section>
 
-      {termines.length > 0 && (
-        <section>
-          <div className="section-head">
-            <h2>Terminés</h2>
-          </div>
+      <section>
+        <div className="section-head">
+          <h2>Terminés</h2>
+        </div>
+        {termines.length === 0 && <p className="empty">Pas encore de match terminé ce jour.</p>}
+        {termines.length > 0 && (
           <div className="sheet">
             {termines.map((m) => (
               <Scoreboard key={m.id} match={m} clubsById={clubsById} to={`/matchs/${m.id}`} />
             ))}
           </div>
-        </section>
-      )}
+        )}
+      </section>
 
       <section>
         <div className="section-head">

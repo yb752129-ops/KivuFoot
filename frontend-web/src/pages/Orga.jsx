@@ -61,18 +61,25 @@ export default function Orga() {
   const [journee, setJournee] = useState("");
   const [rejetId, setRejetId] = useState(null);
   const [rejetCom, setRejetCom] = useState("");
+  const [clubJoueur, setClubJoueur] = useState("");
+  const [nomJoueur, setNomJoueur] = useState("");
+  const [dateJoueur, setDateJoueur] = useState("");
+  const [posteJoueur, setPosteJoueur] = useState("");
+  const [joueurs, setJoueurs] = useState([]);
 
   async function load() {
     setErr("");
     try {
       const user = await api.me();
       setMe(user);
-      const [ev, ms] = await Promise.all([
+      const [ev, ms, js] = await Promise.all([
         api.fileValidation(),
         saison ? api.matchsGestion(saison.id) : Promise.resolve([]),
+        api.joueurs().catch(() => []),
       ]);
       setFile(ev);
       setMatchs(ms);
+      setJoueurs(js || []);
     } catch (e) {
       setErr(e.message);
       if (e.status === 401) {
@@ -91,16 +98,34 @@ export default function Orga() {
     return stripDemo(clubName(clubsById, id));
   }
 
+  async function assurerSaison() {
+    if (saison) return saison;
+    if (!competition) throw new Error("Choisissez d’abord une compétition (menu en haut).");
+    const existing = await api.saisons(competition.id);
+    if (existing?.[0]) {
+      await chargerClubsSaison(existing[0].id);
+      return existing[0];
+    }
+    const created = await api.creerSaison({
+      competition_id: competition.id,
+      nom: competition.saison_label || null,
+      club_ids: [],
+    });
+    const list = await rechargerCompetitions();
+    await choisirCompetition(competition.id, list || []);
+    return created;
+  }
+
   async function creerCompetitionTerrain(e) {
     e.preventDefault();
     setBusy(true);
     setErr("");
     setMsg("");
     try {
-      const nom = nomComp.trim();
-      if (!nom) throw new Error("Indiquez le nom de la compétition.");
+      const nomC = nomComp.trim();
+      if (!nomC) throw new Error("Indiquez le nom de la compétition.");
       const comp = await api.creerCompetition({
-        nom,
+        nom: nomC,
         type: typeComp,
         saison_label: nomSaison.trim() || null,
         est_demo: false,
@@ -128,19 +153,19 @@ export default function Orga() {
     setErr("");
     setMsg("");
     try {
-      if (!saison) throw new Error("Choisissez d’abord une compétition avec une saison.");
-      const nom = nomEquipe.trim();
+      const s = await assurerSaison();
+      const nomE = nomEquipe.trim();
       const ville = villeEquipe.trim();
-      if (!nom) throw new Error("Indiquez le nom de l’équipe.");
+      if (!nomE) throw new Error("Indiquez le nom de l’équipe.");
       if (!ville) throw new Error("Indiquez la ville ou le département.");
       const club = await api.creerClub({
-        nom,
+        nom: nomE,
         ville,
         stade: stadeEquipe.trim() || null,
       });
-      await api.inscrireClub(saison.id, club.id);
+      await api.inscrireClub(s.id, club.id);
       await rechargerClubs();
-      await chargerClubsSaison(saison.id);
+      await chargerClubsSaison(s.id);
       setMsg("Équipe inscrite.");
       setNomEquipe("");
       setVilleEquipe("");
@@ -158,14 +183,14 @@ export default function Orga() {
     setErr("");
     setMsg("");
     try {
-      if (!saison) throw new Error("Choisissez d’abord une compétition avec une saison.");
+      const s = await assurerSaison();
       const d = Number(domId);
       const x = Number(extId);
       if (!d || !x) throw new Error("Choisissez les deux équipes.");
       if (d === x) throw new Error("Une équipe ne peut pas jouer contre elle-même.");
       const domicile = equipes.find((c) => c.id === d) || clubsById[d];
       await api.creerMatch({
-        saison_id: saison.id,
+        saison_id: s.id,
         journee: journee.trim().slice(0, 20) || null,
         date_heure: isoDepuisDateHeure(dateMatch, heureMatch),
         stade: stadeMatch.trim() || domicile?.stade || null,
@@ -177,6 +202,37 @@ export default function Orga() {
       setExtId("");
       setStadeMatch("");
       setJournee("");
+      await load();
+    } catch (ex) {
+      setErr(ex.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function ajouterJoueur(e) {
+    e.preventDefault();
+    setBusy(true);
+    setErr("");
+    setMsg("");
+    try {
+      const nomJ = nomJoueur.trim();
+      const clubId = Number(clubJoueur);
+      if (!clubId) throw new Error("Choisissez l’équipe.");
+      if (!nomJ) throw new Error("Le nom reste vide jusqu’au championnat — remplissez-le quand vous l’avez.");
+      if (!dateJoueur) {
+        throw new Error("Date de naissance : le champ reste vide. Sans date, le joueur n’est pas encore enregistré.");
+      }
+      await api.creerJoueur({
+        nom_complet: nomJ,
+        date_naissance: dateJoueur,
+        poste: posteJoueur || null,
+        club_actuel_id: clubId,
+      });
+      setMsg("Joueur ajouté.");
+      setNomJoueur("");
+      setDateJoueur("");
+      setPosteJoueur("");
       await load();
     } catch (ex) {
       setErr(ex.message);
@@ -247,6 +303,8 @@ export default function Orga() {
     nav("/", { replace: true });
   }
 
+  const nomCompetition = competition ? stripDemo(competition.nom) : "Aucune compétition";
+
   return (
     <div className="shell">
       <p className="kicker" style={{ paddingTop: "1rem" }}>
@@ -255,48 +313,24 @@ export default function Orga() {
       </p>
       <section className="hero">
         <h1>Organisateur</h1>
-        <p className="lead">Démarrer, saisir, terminer, valider. Rien n’est officiel avant validation.</p>
+        <p className="lead">{nomCompetition}. Inscrire, programmer, valider. Rien n’est officiel avant validation.</p>
       </section>
       {err && <p className="erreur">{err}</p>}
       {msg && <p className="empty">{msg}</p>}
 
-      <div className="section-head">
-        <h2>Nouvelle compétition</h2>
-      </div>
-      <p className="lead">Pas une DEMO. Le nom n’est pas figé dans le produit.</p>
-      <form className="compte-form" onSubmit={creerCompetitionTerrain}>
-        <label className="field">
-          Nom
-          <input value={nomComp} onChange={(e) => setNomComp(e.target.value)} required />
-        </label>
-        <label className="field">
-          Type
-          <select value={typeComp} onChange={(e) => setTypeComp(e.target.value)}>
-            <option value="tournoi">Tournoi</option>
-            <option value="championnat">Championnat</option>
-            <option value="coupe">Coupe</option>
-          </select>
-        </label>
-        <label className="field">
-          Saison / édition
-          <input value={nomSaison} onChange={(e) => setNomSaison(e.target.value)} placeholder="ex. 2e semestre 2026" />
-        </label>
-        <label className="field">
-          Date de début
-          <input type="date" value={dateDebut} onChange={(e) => setDateDebut(e.target.value)} />
-        </label>
-        <button className="btn btn-primary" type="submit" disabled={busy}>
-          {busy ? "…" : "Créer la compétition"}
-        </button>
-      </form>
+      {!competition && (
+        <p className="empty">Créez d’abord une compétition (en bas de page).</p>
+      )}
 
-      {saison && (
+      {competition && (
         <>
           <div className="section-head">
             <h2>Équipes ({equipes.length})</h2>
           </div>
           <p className="lead">Nom = identité. Ville = département. Une ville peut avoir plusieurs équipes.</p>
-          {equipes.length === 0 && <p className="empty">Aucune équipe inscrite.</p>}
+          {equipes.length === 0 && (
+            <p className="empty">Aucune équipe inscrite. Les noms se complètent ici.</p>
+          )}
           {equipes.length > 0 && (
             <div className="sheet">
               {equipes.map((c) => (
@@ -310,18 +344,68 @@ export default function Orga() {
           <form className="compte-form" onSubmit={creerEquipe}>
             <label className="field">
               Nom de l’équipe
-              <input value={nomEquipe} onChange={(e) => setNomEquipe(e.target.value)} required />
+              <input value={nomEquipe} onChange={(e) => setNomEquipe(e.target.value)} placeholder="à compléter" required />
             </label>
             <label className="field">
               Ville / département
-              <input value={villeEquipe} onChange={(e) => setVilleEquipe(e.target.value)} required />
+              <input value={villeEquipe} onChange={(e) => setVilleEquipe(e.target.value)} placeholder="à compléter" required />
             </label>
             <label className="field">
               Stade
-              <input value={stadeEquipe} onChange={(e) => setStadeEquipe(e.target.value)} />
+              <input value={stadeEquipe} onChange={(e) => setStadeEquipe(e.target.value)} placeholder="à compléter" />
             </label>
             <button className="btn btn-primary" type="submit" disabled={busy}>
               {busy ? "…" : "Inscrire l’équipe"}
+            </button>
+          </form>
+
+          <div className="section-head">
+            <h2>Joueurs</h2>
+          </div>
+          <p className="lead">Champs vides jusqu’au championnat. On n’enregistre pas une ligne sans nom.</p>
+          {equipes.length > 0 && (
+            <div className="sheet">
+              {equipes.map((c) => {
+                const js = joueurs.filter((j) => j.club_actuel_id === c.id);
+                return (
+                  <div key={c.id} className="club-tile">
+                    <strong>{stripDemo(c.nom)}</strong>
+                    <span className="meta">{js.length ? js.map((j) => j.nom_complet).join(" · ") : "noms à compléter"}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          <form className="compte-form" onSubmit={ajouterJoueur}>
+            <label className="field">
+              Équipe
+              <select value={clubJoueur} onChange={(e) => setClubJoueur(e.target.value)}>
+                <option value="">—</option>
+                {equipes.map((c) => (
+                  <option key={c.id} value={c.id}>{stripDemo(c.nom)}</option>
+                ))}
+              </select>
+            </label>
+            <label className="field">
+              Nom du joueur
+              <input value={nomJoueur} onChange={(e) => setNomJoueur(e.target.value)} placeholder="à compléter" />
+            </label>
+            <label className="field">
+              Date de naissance
+              <input type="date" value={dateJoueur} onChange={(e) => setDateJoueur(e.target.value)} />
+            </label>
+            <label className="field">
+              Poste
+              <select value={posteJoueur} onChange={(e) => setPosteJoueur(e.target.value)}>
+                <option value="">à compléter</option>
+                <option value="gardien">Gardien</option>
+                <option value="defenseur">Défenseur</option>
+                <option value="milieu">Milieu</option>
+                <option value="attaquant">Attaquant</option>
+              </select>
+            </label>
+            <button className="btn btn-primary" type="submit" disabled={busy || !equipes.length}>
+              {busy ? "…" : "Ajouter le joueur"}
             </button>
           </form>
 
@@ -365,7 +449,7 @@ export default function Orga() {
                 <input
                   value={stadeMatch}
                   onChange={(e) => setStadeMatch(e.target.value)}
-                  placeholder={equipes.find((c) => String(c.id) === String(domId))?.stade || ""}
+                  placeholder={equipes.find((c) => String(c.id) === String(domId))?.stade || "à compléter"}
                 />
               </label>
               <label className="field">
@@ -444,23 +528,56 @@ export default function Orga() {
       <div className="section-head">
         <h2>Matchs</h2>
       </div>
-      <div className="sheet">
-        {matchs.map((m) => (
-          <Link key={m.id} to={`/orga/matchs/${m.id}`} className="scoreboard">
-            <div className="sb-line">
-              <span className="sb-name">{nom(m.equipe_domicile_id)}</span>
-              <span className="sb-score">
-                {m.score_domicile}<span className="sb-dash">–</span>{m.score_exterieur}
-              </span>
-              <span className="sb-name away">{nom(m.equipe_exterieur_id)}</span>
-            </div>
-            <div className="sb-meta">
-              <span className="sb-meta-journee">{STATUT[m.statut] || m.statut}</span>
-              <span className="sb-meta-lieu">{[m.journee, fmtQuand(m.date_heure)].filter(Boolean).join(" · ")}</span>
-            </div>
-          </Link>
-        ))}
-      </div>
+      {matchs.length === 0 && <p className="empty">Aucun match programmé.</p>}
+      {matchs.length > 0 && (
+        <div className="sheet">
+          {matchs.map((m) => (
+            <Link key={m.id} to={`/orga/matchs/${m.id}`} className="scoreboard">
+              <div className="sb-line">
+                <span className="sb-name">{nom(m.equipe_domicile_id)}</span>
+                <span className="sb-score">
+                  {m.score_domicile}<span className="sb-dash">–</span>{m.score_exterieur}
+                </span>
+                <span className="sb-name away">{nom(m.equipe_exterieur_id)}</span>
+              </div>
+              <div className="sb-meta">
+                <span className="sb-meta-journee">{STATUT[m.statut] || m.statut}</span>
+                <span className="sb-meta-lieu">{[m.journee, fmtQuand(m.date_heure)].filter(Boolean).join(" · ")}</span>
+              </div>
+            </Link>
+          ))}
+        </div>
+      )}
+
+      <details className="orga-autre">
+        <summary>Autre compétition</summary>
+        <p className="lead">Pas une DEMO. Le nom n’est pas figé dans le produit.</p>
+        <form className="compte-form" onSubmit={creerCompetitionTerrain}>
+          <label className="field">
+            Nom
+            <input value={nomComp} onChange={(e) => setNomComp(e.target.value)} required />
+          </label>
+          <label className="field">
+            Type
+            <select value={typeComp} onChange={(e) => setTypeComp(e.target.value)}>
+              <option value="tournoi">Tournoi</option>
+              <option value="championnat">Championnat</option>
+              <option value="coupe">Coupe</option>
+            </select>
+          </label>
+          <label className="field">
+            Saison / édition
+            <input value={nomSaison} onChange={(e) => setNomSaison(e.target.value)} placeholder="ex. 2e semestre 2026" />
+          </label>
+          <label className="field">
+            Date de début
+            <input type="date" value={dateDebut} onChange={(e) => setDateDebut(e.target.value)} />
+          </label>
+          <button className="btn btn-primary" type="submit" disabled={busy}>
+            {busy ? "…" : "Créer la compétition"}
+          </button>
+        </form>
+      </details>
     </div>
   );
 }

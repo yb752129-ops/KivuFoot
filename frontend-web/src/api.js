@@ -67,6 +67,7 @@ export const api = {
   inscrireClub: (saisonId, clubId) =>
     request(`/saisons/${saisonId}/clubs`, { method: "POST", body: { club_id: clubId }, auth: true }),
   joueurs: (clubId) => request(`/joueurs?limit=100${clubId ? `&club_id=${clubId}` : ""}`),
+  creerJoueur: (payload) => request("/joueurs", { method: "POST", body: payload, auth: true }),
   joueur: (id) => request(`/joueurs/${id}`),
   matchs: (saisonId) => request(`/matchs?limit=100${saisonId ? `&saison_id=${saisonId}` : ""}`),
   match: (id) => request(`/matchs/${id}`),

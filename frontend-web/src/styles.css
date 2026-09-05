@@ -880,15 +880,25 @@ footer.site a.orga-entry {
   min-width: 3.5rem;
 }
 .avenir-noms {
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
   font-weight: 600;
   font-size: 0.95rem;
-  line-height: 1.25;
+  line-height: 1.2;
   min-width: 0;
 }
-.avenir-sep {
-  color: var(--ink-soft);
-  font-weight: 400;
-  padding: 0 0.28rem;
+
+.orga-autre {
+  margin: 2.2rem 0 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--rule);
+}
+.orga-autre summary {
+  cursor: pointer;
+  font-weight: 650;
+  font-size: 0.92rem;
+  margin-bottom: 0.6rem;
 }
 
 .visually-hidden {
