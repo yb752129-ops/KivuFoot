@@ -126,6 +126,7 @@ export default function Compte() {
     const staff = role === "organisateur" || role === "admin" || role === "collecteur";
     const orga = role === "organisateur" || role === "admin";
     const collecte = role === "collecteur" || role === "admin";
+    const clubPorte = role === "club_manager";
     return (
       <section className="hero">
         <p className="kicker"><Link to="/">← Accueil</Link></p>
@@ -175,6 +176,12 @@ export default function Compte() {
             <>
               {" · "}
               <Link to="/collecteur">Collecte</Link>
+            </>
+          )}
+          {clubPorte && (
+            <>
+              {" · "}
+              <Link to="/club">Club</Link>
             </>
           )}
         </p>

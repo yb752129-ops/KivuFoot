@@ -73,6 +73,16 @@ export const api = {
   joueurs: (clubId) => request(`/joueurs?limit=100${clubId ? `&club_id=${clubId}` : ""}`),
   creerJoueur: (payload) => request("/joueurs", { method: "POST", body: payload, auth: true }),
   joueur: (id) => request(`/joueurs/${id}`),
+  joueurDetail: (id) => request(`/joueurs/${id}/detail`, { auth: true }),
+  modifierJoueur: (id, payload) => request(`/joueurs/${id}`, { method: "PUT", body: payload, auth: true }),
+  proposerJoueur: (id, champ, valeur) =>
+    request(`/joueurs/${id}/proposer-modification`, {
+      method: "POST",
+      body: { champ, nouvelle_valeur: String(valeur) },
+      auth: true,
+    }),
+  propositions: (joueurId) =>
+    request(`/joueurs/propositions${joueurId ? `?joueur_id=${joueurId}` : ""}`, { auth: true }),
   matchs: (saisonId) => request(`/matchs?limit=100${saisonId ? `&saison_id=${saisonId}` : ""}`),
   match: (id) => request(`/matchs/${id}`),
   evenementsPublics: (id) => request(`/matchs/${id}/evenements-publics`),

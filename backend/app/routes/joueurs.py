@@ -13,6 +13,7 @@ from app.schemas.joueur import (
     JoueurDetailOut,
     JoueurMergeRequest,
     JoueurPublicOut,
+    JoueurUpdate,
     ModificationProposeeCreate,
     ModificationProposeeOut,
 )
@@ -48,6 +49,30 @@ async def lister_joueurs(
     return result.scalars().all()
 
 
+@router.get("/propositions", response_model=list[ModificationProposeeOut])
+async def lister_propositions(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(
+        require_roles(RoleUtilisateur.ADMIN, RoleUtilisateur.ORGANISATEUR, RoleUtilisateur.CLUB_MANAGER)
+    ),
+    joueur_id: int | None = None,
+    statut: str | None = "en_attente",
+):
+    query = select(JoueurModificationProposee)
+    if joueur_id:
+        query = query.where(JoueurModificationProposee.joueur_id == joueur_id)
+    if statut:
+        query = query.where(JoueurModificationProposee.statut == statut)
+    if current_user.role == RoleUtilisateur.CLUB_MANAGER:
+        if not current_user.club_id:
+            return []
+        query = query.join(Joueur, Joueur.id == JoueurModificationProposee.joueur_id).where(
+            Joueur.club_actuel_id == current_user.club_id
+        )
+    result = await db.execute(query.order_by(JoueurModificationProposee.id.desc()).limit(100))
+    return result.scalars().all()
+
+
 @router.get("/{joueur_id}", response_model=JoueurPublicOut)
 async def profil_public_joueur(joueur_id: int, db: AsyncSession = Depends(get_db)):
     """
@@ -79,6 +104,30 @@ async def detail_prive_joueur(
     return joueur
 
 
+@router.put("/{joueur_id}", response_model=JoueurDetailOut)
+async def modifier_joueur_direct(
+    joueur_id: int,
+    payload: JoueurUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(
+        require_roles(RoleUtilisateur.ADMIN, RoleUtilisateur.ORGANISATEUR, RoleUtilisateur.CLUB_MANAGER)
+    ),
+):
+    joueur = await db.get(Joueur, joueur_id)
+    if joueur is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Joueur introuvable.")
+    if current_user.role == RoleUtilisateur.CLUB_MANAGER:
+        verifier_scope_club(current_user, joueur.club_actuel_id or -1)
+    data = payload.model_dump(exclude_unset=True)
+    avant = {k: getattr(joueur, k) for k in data}
+    for k, v in data.items():
+        setattr(joueur, k, v)
+    await log_audit(db, "joueurs", joueur.id, ActionAudit.UPDATE, current_user.id, avant, data)
+    await db.commit()
+    await db.refresh(joueur)
+    return joueur
+
+
 @router.post("", response_model=JoueurDetailOut, status_code=status.HTTP_201_CREATED)
 async def creer_joueur(
     payload: JoueurCreate,
@@ -92,7 +141,10 @@ async def creer_joueur(
         )
     ),
 ):
-    if current_user.role == RoleUtilisateur.CLUB_MANAGER and payload.club_actuel_id:
+    if current_user.role == RoleUtilisateur.CLUB_MANAGER:
+        if not current_user.club_id:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "Aucun club rattaché à ce compte.")
+        payload = payload.model_copy(update={"club_actuel_id": current_user.club_id})
         verifier_scope_club(current_user, payload.club_actuel_id)
 
     # §7.4 : mineur -> autorisation parentale requise avant toute création publique.

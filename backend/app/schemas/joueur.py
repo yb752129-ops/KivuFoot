@@ -61,6 +61,21 @@ class JoueurMergeRequest(BaseModel):
         return v
 
 
+class JoueurUpdate(BaseModel):
+    """C1 : téléphone / e-mail seulement. Le reste passe par une proposition."""
+
+    telephone: str | None = None
+    email: str | None = None
+
+    @field_validator("telephone", "email")
+    @classmethod
+    def champ_optionnel(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        s = str(v).strip()
+        return s or None
+
+
 class ModificationProposeeCreate(BaseModel):
     champ: str
     nouvelle_valeur: str
