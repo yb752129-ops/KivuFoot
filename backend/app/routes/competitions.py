@@ -8,6 +8,7 @@ from app.database import get_db
 from app.models.club import Club
 from app.models.competition import Competition, OrganisateurCompetition, Saison, SaisonClub
 from app.models.enums import ActionAudit, RoleUtilisateur
+from app.models.match import Match
 from app.models.user import User
 from app.schemas.competition import ClubOut, CompetitionCreate, CompetitionOut, SaisonClubCreate, SaisonCreate, SaisonOut
 from app.services.audit import log_audit
@@ -49,6 +50,41 @@ async def creer_competition(
     await db.commit()
     await db.refresh(comp)
     return comp
+
+
+@router.delete("/competitions/{competition_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def supprimer_competition(
+    competition_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles(RoleUtilisateur.ADMIN)),
+):
+    """Admin seulement. Les matchs (faits) bloquent. Les clubs restent."""
+    comp = await db.get(Competition, competition_id)
+    if comp is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Compétition introuvable.")
+    joue = await db.execute(
+        select(Match.id)
+        .join(Saison, Saison.id == Match.saison_id)
+        .where(Saison.competition_id == competition_id)
+        .limit(1)
+    )
+    if joue.scalar_one_or_none() is not None:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "Cette compétition a des matchs. Suppression bloquée.",
+        )
+    await log_audit(
+        db,
+        "competitions",
+        comp.id,
+        ActionAudit.DELETE,
+        current_user.id,
+        {"nom": comp.nom, "est_demo": comp.est_demo},
+        None,
+    )
+    await db.delete(comp)
+    await db.commit()
+    return None
 
 
 @router.post("/saisons", response_model=SaisonOut, status_code=status.HTTP_201_CREATED)

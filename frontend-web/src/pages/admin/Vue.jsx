@@ -1,12 +1,22 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../../api.js";
-import { formatMinute, labelEvenement } from "../../display.js";
+import { useKivu } from "../../context.jsx";
+import { formatMinute, labelEvenement, stripDemo } from "../../display.js";
+
+const TYPE_LIBELLE = {
+  championnat: "Championnat",
+  coupe: "Coupe",
+  tournoi: "Tournoi",
+};
 
 export default function AdminVue() {
+  const { competitions, competition, choisirCompetition, rechargerCompetitions } = useKivu();
   const [file, setFile] = useState([]);
   const [props, setProps] = useState([]);
   const [err, setErr] = useState("");
+  const [msg, setMsg] = useState("");
+  const [busy, setBusy] = useState(0);
 
   useEffect(() => {
     api.fileValidation().then(setFile).catch((e) => setErr(e.message));
@@ -16,12 +26,36 @@ export default function AdminVue() {
   const nAttente = file.length;
   const nProps = (props || []).filter((p) => p.statut === "en_attente").length;
 
+  async function supprimer(c) {
+    const nom = c.est_demo ? `Démo — ${stripDemo(c.nom)}` : stripDemo(c.nom);
+    if (!window.confirm(`Supprimer « ${nom} » (#${c.id}) ? Les matchs déjà joués bloquent la suppression. Les clubs restent.`)) {
+      return;
+    }
+    setBusy(c.id);
+    setErr("");
+    setMsg("");
+    try {
+      await api.supprimerCompetition(c.id);
+      const list = await rechargerCompetitions();
+      if (competition?.id === c.id) {
+        const next = (list || []).find((x) => x.id !== c.id);
+        await choisirCompetition(next?.id, list || []);
+      }
+      setMsg("Compétition supprimée.");
+    } catch (ex) {
+      setErr(ex.message);
+    } finally {
+      setBusy(0);
+    }
+  }
+
   return (
     <section className="hero">
       <p className="kicker">Administration</p>
       <h1>Plateforme</h1>
       <p className="lead">L’audit et les propositions. Le public ne voit pas ça. L’organisateur tient la compétition.</p>
       {err && <p className="erreur">{err}</p>}
+      {msg && <p className="empty">{msg}</p>}
 
       <div className="orga-chiffres">
         <div className="orga-chiffre stamp">
@@ -44,6 +78,29 @@ export default function AdminVue() {
           {" · "}
           <Link to={`/orga/matchs/${e.match_id}`}>Ouvrir le match</Link>
         </p>
+      ))}
+
+      <div className="section-head">
+        <h2>Compétitions</h2>
+      </div>
+      {(competitions || []).length === 0 && <p className="empty">Aucune compétition.</p>}
+      {(competitions || []).map((c) => (
+        <div key={c.id} className="avenir-row">
+          <span className="avenir-noms">
+            <span>{c.est_demo ? `Démo — ${stripDemo(c.nom)}` : stripDemo(c.nom)}</span>
+            <span className="meta-line">
+              #{c.id} · {TYPE_LIBELLE[c.type] || c.type}
+            </span>
+          </span>
+          <button
+            className="linkish"
+            type="button"
+            disabled={busy === c.id}
+            onClick={() => supprimer(c)}
+          >
+            {busy === c.id ? "…" : "Supprimer"}
+          </button>
+        </div>
       ))}
 
       <div className="sheet" style={{ marginTop: "1.4rem" }}>
