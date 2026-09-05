@@ -51,7 +51,7 @@ function LiveUne({ match, clubsById, evt }) {
     >
       <p className="live-now">
         <span className="live-dot" aria-hidden="true"><b /></span>
-        {match.periode === "mi_temps" ? "Mi-temps" : "En cours"}
+        {match.periode === "mi_temps" ? "Mi-temps" : "En direct"}
       </p>
       <Chrono match={match} running={match.periode !== "mi_temps"} />
       <div className="sb-line">

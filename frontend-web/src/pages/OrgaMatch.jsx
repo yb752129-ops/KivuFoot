@@ -3,7 +3,8 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { api, clearTokens } from "../api.js";
 import Chrono from "../components/Chrono.jsx";
 import { clubName, useKivu } from "../context.jsx";
-import { clockFromMatch, feuilleAffichee, formatMinute, labelEvenement, MOTIF_REFUS, periodeLabel, splitMinute, stripDemo } from "../display.js";
+import FaitMatch from "../components/FaitMatch.jsx";
+import { clockFromMatch, formatMinute, grouperFaits, MOTIF_REFUS, periodeLabel, splitMinute, stripDemo } from "../display.js";
 
 const LABELS = {
   but: "But",
@@ -277,7 +278,7 @@ export default function OrgaMatch() {
   if (!match) return <p className="empty">Chargement…</p>;
 
   const formOk = enCours && !ht && !match.locked;
-  const feuille = feuilleAffichee(evts);
+  const feuille = grouperFaits(evts);
 
   return (
     <div className="shell">

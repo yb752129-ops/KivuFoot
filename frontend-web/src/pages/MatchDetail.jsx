@@ -4,11 +4,12 @@ import { api } from "../api.js";
 import Chrono from "../components/Chrono.jsx";
 import { useKivu } from "../context.jsx";
 import Scoreboard from "../components/Scoreboard.jsx";
-import { feuilleAffichee, formatJour, formatMinute, journeeTitre, labelEvenement, MOTIF_REFUS, periodeLabel, stripDemo } from "../display.js";
+import FaitMatch from "../components/FaitMatch.jsx";
+import { formatJour, grouperFaits, journeeTitre, periodeLabel, stripDemo } from "../display.js";
 
 export default function MatchDetail() {
   const { id } = useParams();
-  const { clubsById } = useKivu();
+  const { clubsById, competition } = useKivu();
   const [match, setMatch] = useState(null);
   const [evts, setEvts] = useState([]);
   const [joueurs, setJoueurs] = useState({});
@@ -60,15 +61,22 @@ export default function MatchDetail() {
   const home = clubsById[match.equipe_domicile_id];
   const away = clubsById[match.equipe_exterieur_id];
   const live = match.statut === "en_cours";
+  const faits = grouperFaits(evts).sort(
+    (a, b) =>
+      (b.minute || 0) - (a.minute || 0)
+      || (b.minute_additionnelle || 0) - (a.minute_additionnelle || 0)
+      || b.id - a.id,
+  );
 
   return (
     <section className="hero">
       <p className="kicker"><Link to={live ? "/" : "/matchs"}>{live ? "← Accueil" : "← Matchs"}</Link></p>
+      {competition?.nom && <p className="kicker">{stripDemo(competition.nom)}</p>}
       {live && (
         <>
           <p className="live-now">
             <span className="live-dot" aria-hidden="true"><b /></span>
-            {match.periode === "mi_temps" ? "Mi-temps" : "En cours"}
+            {match.periode === "mi_temps" ? "Mi-temps" : "En direct"}
           </p>
           {periodeLabel(match.periode) && match.periode !== "mi_temps" && (
             <p className="kicker">{periodeLabel(match.periode)}</p>
@@ -82,41 +90,21 @@ export default function MatchDetail() {
           {match.date_heure ? ` · ${formatJour(match.date_heure, true)}` : ""}
         </p>
       )}
-      <div className="sheet" style={{ marginTop: "0.85rem" }}>
+      <div className="sheet mc-score" style={{ marginTop: "0.85rem" }}>
         <Scoreboard match={match} clubsById={clubsById} />
       </div>
       {match.statut === "valide" && <p className="stamp">Validé</p>}
       {match.forfait && <p className="lead">Forfait</p>}
 
       <div className="section-head">
-        <h2>Feuille</h2>
+        <h2>Match</h2>
       </div>
-      {evts.length === 0 && (
+      {faits.length === 0 && (
         <p className="empty">Aucun événement rendu public pour ce match.</p>
       )}
-      <ul className="timeline">
-        {[...evts].sort(
-          (a, b) =>
-            (a.minute || 0) - (b.minute || 0)
-            || (a.minute_additionnelle || 0) - (b.minute_additionnelle || 0)
-            || a.id - b.id,
-        ).map((e) => (
-          <li key={e.id}>
-            <strong>{formatMinute(e.minute, e.minute_additionnelle)}</strong>
-            {" · "}
-            {labelEvenement(e)}
-            {e.type === "penalty" && e.resultat ? ` ${e.resultat}` : ""}
-            {" · "}
-            {e.type === "remplacement"
-              ? `OUT ${joueurs[e.joueur_id] || "Joueur"} · IN ${joueurs[e.joueur_secondaire_id] || "Joueur"}`
-              : e.type === "passe_decisive"
-                ? `${joueurs[e.joueur_secondaire_id] || "Passeur"} pour ${joueurs[e.joueur_id] || "Buteur"}`
-                : (joueurs[e.joueur_id] || "Joueur")}
-            {e.type === "but" && e.joueur_secondaire_id
-              ? ` · passe ${joueurs[e.joueur_secondaire_id] || "Passeur"}`
-              : ""}
-            {e.refuse ? ` · refusé (${MOTIF_REFUS[e.motif_refus] || e.motif_refus})` : ""}
-          </li>
+      <ul className="timeline faits">
+        {faits.map((e) => (
+          <FaitMatch key={e.id} e={e} nom={(jid) => joueurs[jid] || "Joueur"} />
         ))}
       </ul>
       <p className="id-out">

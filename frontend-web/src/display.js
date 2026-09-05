@@ -47,6 +47,8 @@ export function dernierFaitLive(evts) {
 
 export function labelEvenement(e) {
   if (e?.type === "carton_rouge" && e.source === "deuxieme_jaune") return "Rouge (2e jaune)";
+  if (e?.type === "penalty" && (e.resultat === "rate" || e.resultat === "raté")) return "Penalty raté";
+  if (e?.type === "penalty") return "Penalty";
   const labels = {
     but: "But",
     but_contre_son_camp: "CSC",
@@ -57,6 +59,31 @@ export function labelEvenement(e) {
     penalty: "Penalty",
   };
   return labels[e?.type] || e?.type || "";
+}
+
+/** Affichage : la passe est attachée au but. Deux lignes en base, un seul fait visuel. */
+export function grouperFaits(evts) {
+  const list = feuilleAffichee(evts);
+  const attached = new Set();
+  const passeurParBut = new Map();
+  const buts = list.filter((e) => e.type === "but" && !e.refuse);
+  for (const p of list) {
+    if (p.type !== "passe_decisive") continue;
+    const but = buts.find(
+      (b) =>
+        b.joueur_id === p.joueur_id
+        && (b.minute || 0) === (p.minute || 0)
+        && (b.minute_additionnelle || 0) === (p.minute_additionnelle || 0),
+    );
+    if (!but) continue;
+    attached.add(p.id);
+    if (p.joueur_secondaire_id && !but.joueur_secondaire_id) {
+      passeurParBut.set(but.id, p.joueur_secondaire_id);
+    }
+  }
+  return list
+    .filter((e) => e.type !== "passe_decisive" || !attached.has(e.id))
+    .map((e) => (passeurParBut.has(e.id) ? { ...e, joueur_secondaire_id: passeurParBut.get(e.id) } : e));
 }
 
 export const MOTIF_REFUS = {
