@@ -1,13 +1,20 @@
-import { Ballon, Carton, FlecheIn, FlecheOut } from "../icons.jsx";
+import { Ballon, Botte, Carton, FlecheIn, FlecheOut } from "../icons.jsx";
 import { estPeriodeUn, formatMinute, labelEvenement, MOTIF_REFUS } from "../display.js";
 
 function Ico({ e }) {
   if (e.type === "carton_jaune") return <Carton couleur="jaune" />;
   if (e.type === "carton_rouge") return <Carton couleur="rouge" />;
-  if (e.type === "but" || e.type === "but_contre_son_camp") return <Ballon className="fait-ballon" />;
-  if (e.type === "penalty" && e.resultat !== "rate" && e.resultat !== "raté") {
-    return <Ballon className="fait-ballon" />;
+  const ballon = e.type === "but" || e.type === "but_contre_son_camp"
+    || (e.type === "penalty" && e.resultat !== "rate" && e.resultat !== "raté");
+  if (ballon) {
+    return (
+      <span className="feuille-ballon-wrap">
+        <Ballon className="fait-ballon" />
+        {e.refuse && <span className="fait-rate" aria-hidden="true">×</span>}
+      </span>
+    );
   }
+  if (e.type === "penalty") return <span className="fait-rate" aria-hidden="true">×</span>;
   return null;
 }
 
@@ -33,15 +40,20 @@ function Texte({ e, nom }) {
         ) : (
           <p className="fait-ligne">
             {tag && <span className="fait-tag">{tag}</span>}
-            {penaltyRate && <span className="fait-rate" aria-hidden="true">×</span>}
+            {penaltyRate && !e.refuse && <span className="fait-rate" aria-hidden="true">×</span>}
             <span className="fait-nom">{joueur}</span>
           </p>
         )}
-        {assist && <p className="fait-assist">Passe décisive · {second}</p>}
+        {assist && (
+          <p className="fait-assist">
+            <Botte className="fait-botte" />
+            {second}
+          </p>
+        )}
         {e.refuse && (
           <p className="fait-refus">
             {e.type === "penalty" ? "Penalty refusé" : "But refusé"}
-            {motif ? ` (${motif})` : ""}
+            {motif ? ` [${motif}]` : ""}
           </p>
         )}
       </div>

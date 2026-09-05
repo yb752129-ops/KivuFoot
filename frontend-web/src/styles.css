@@ -1085,9 +1085,29 @@ ul.faits { list-style: none; padding: 0; margin: 0; }
   min-height: 1.15rem;
 }
 .fait-ballon {
-  width: 1.15rem;
-  height: 1.15rem;
+  width: 1.45rem;
+  height: 1.45rem;
   display: block;
+}
+.fait-botte {
+  width: 0.95rem;
+  height: 0.95rem;
+  flex: 0 0 auto;
+}
+.feuille-ballon-wrap {
+  position: relative;
+  display: inline-block;
+}
+.feuille-ballon-wrap .fait-rate {
+  position: absolute;
+  right: -0.28rem;
+  bottom: -0.2rem;
+  width: 0.85rem;
+  height: 0.85rem;
+  background: var(--paper);
+  color: var(--card-red);
+  border-color: var(--card-red);
+  font-size: 0.62rem;
 }
 .fait-corps { min-width: 0; }
 .fait-ligne {
@@ -1105,8 +1125,7 @@ ul.faits { list-style: none; padding: 0; margin: 0; }
   color: var(--stamp);
 }
 .fait-nom { font-weight: 650; }
-.fait.is-refuse .fait-nom,
-.feuille-txt.is-refuse .fait-nom { text-decoration: line-through; color: var(--ink-soft); font-weight: 400; }
+.fait.is-refuse .fait-nom { text-decoration: line-through; color: var(--ink-soft); font-weight: 400; }
 .fait-assist {
   margin: 0.18rem 0 0;
   font-size: 0.82rem;
