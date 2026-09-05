@@ -95,6 +95,33 @@ export const MOTIF_REFUS = {
   autre: "Autre",
 };
 
+export function statsDesFaits(evts) {
+  const z = () => ({ buts: 0, jaunes: 0, rouges: 0, penalties_rates: 0 });
+  const out = { domicile: z(), exterieur: z() };
+  for (const e of evts || []) {
+    if (e.refuse) continue;
+    const side = e.equipe_concernee === "exterieur" ? "exterieur" : "domicile";
+    if (e.type === "but") out[side].buts += 1;
+    if (e.type === "but_contre_son_camp") {
+      const other = side === "domicile" ? "exterieur" : "domicile";
+      out[other].buts += 1;
+    }
+    if (e.type === "penalty" && e.resultat !== "rate" && e.resultat !== "raté") out[side].buts += 1;
+    if (e.type === "carton_jaune") out[side].jaunes += 1;
+    if (e.type === "carton_rouge") out[side].rouges += 1;
+    if (e.type === "penalty" && (e.resultat === "rate" || e.resultat === "raté")) {
+      out[side].penalties_rates += 1;
+    }
+  }
+  return out;
+}
+
+export function estPeriodeUn(e) {
+  if (e?.periode === "2") return false;
+  if (e?.periode === "1") return true;
+  return (Number(e?.minute) || 0) <= 45;
+}
+
 export function formatMinute(minute, added) {
   const m = Number(minute) || 0;
   const a = Number(added) || 0;

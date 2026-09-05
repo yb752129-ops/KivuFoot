@@ -4,7 +4,7 @@ import { api, clearTokens } from "../api.js";
 import Chrono from "../components/Chrono.jsx";
 import { clubName, useKivu } from "../context.jsx";
 import FaitMatch from "../components/FaitMatch.jsx";
-import { clockFromMatch, formatMinute, grouperFaits, MOTIF_REFUS, periodeLabel, splitMinute, stripDemo } from "../display.js";
+import { clockFromMatch, formatMinute, grouperFaits, labelEvenement, MOTIF_REFUS, periodeLabel, splitMinute, stripDemo } from "../display.js";
 
 const LABELS = {
   but: "But",

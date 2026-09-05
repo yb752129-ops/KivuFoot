@@ -4,8 +4,15 @@ import { api } from "../api.js";
 import Chrono from "../components/Chrono.jsx";
 import { useKivu } from "../context.jsx";
 import Scoreboard from "../components/Scoreboard.jsx";
-import FaitMatch from "../components/FaitMatch.jsx";
-import { formatJour, grouperFaits, journeeTitre, periodeLabel, stripDemo } from "../display.js";
+import FeuilleApercu from "../components/FeuilleApercu.jsx";
+import Terrain from "../components/Terrain.jsx";
+import { formatJour, grouperFaits, journeeTitre, periodeLabel, statsDesFaits, stripDemo } from "../display.js";
+
+const ONGLETS = [
+  { id: "apercu", label: "Aperçu" },
+  { id: "stats", label: "Statistiques" },
+  { id: "compo", label: "Compositions" },
+];
 
 export default function MatchDetail() {
   const { id } = useParams();
@@ -13,18 +20,22 @@ export default function MatchDetail() {
   const [match, setMatch] = useState(null);
   const [evts, setEvts] = useState([]);
   const [joueurs, setJoueurs] = useState({});
+  const [parts, setParts] = useState([]);
+  const [onglet, setOnglet] = useState("apercu");
   const [err, setErr] = useState("");
 
   async function load() {
     const m = await api.match(id);
-    const [e, js] = await Promise.all([
+    const [e, js, p] = await Promise.all([
       api.evenementsPublics(id).catch(() => []),
       api.joueurs().catch(() => []),
+      api.participations(id).catch(() => []),
     ]);
     setErr("");
     setMatch(m);
     setEvts(e || []);
-    setJoueurs(Object.fromEntries((js || []).map((j) => [j.id, j.nom_complet])));
+    setJoueurs(Object.fromEntries((js || []).map((j) => [j.id, j])));
+    setParts(p || []);
   }
 
   useEffect(() => {
@@ -61,12 +72,9 @@ export default function MatchDetail() {
   const home = clubsById[match.equipe_domicile_id];
   const away = clubsById[match.equipe_exterieur_id];
   const live = match.statut === "en_cours";
-  const faits = grouperFaits(evts).sort(
-    (a, b) =>
-      (b.minute || 0) - (a.minute || 0)
-      || (b.minute_additionnelle || 0) - (a.minute_additionnelle || 0)
-      || b.id - a.id,
-  );
+  const nom = (jid) => joueurs[jid]?.nom_complet || "à compléter";
+  const faits = grouperFaits(evts);
+  const stats = statsDesFaits(evts);
 
   return (
     <section className="hero">
@@ -74,9 +82,9 @@ export default function MatchDetail() {
       {competition?.nom && <p className="kicker">{stripDemo(competition.nom)}</p>}
       {live && (
         <>
-          <p className="live-now">
+          <p className="live-now on-paper">
             <span className="live-dot" aria-hidden="true"><b /></span>
-            {match.periode === "mi_temps" ? "Mi-temps" : "En direct"}
+            {match.periode === "mi_temps" ? "Mi-temps" : "En cours"}
           </p>
           {periodeLabel(match.periode) && match.periode !== "mi_temps" && (
             <p className="kicker">{periodeLabel(match.periode)}</p>
@@ -96,22 +104,73 @@ export default function MatchDetail() {
       {match.statut === "valide" && <p className="stamp">Validé</p>}
       {match.forfait && <p className="lead">Forfait</p>}
 
-      <div className="section-head">
-        <h2>Match</h2>
-      </div>
-      {faits.length === 0 && (
-        <p className="empty">Aucun événement rendu public pour ce match.</p>
-      )}
-      <ul className="timeline faits">
-        {faits.map((e) => (
-          <FaitMatch key={e.id} e={e} nom={(jid) => joueurs[jid] || "Joueur"} />
+      <div className="mc-tabs" role="tablist">
+        {ONGLETS.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            role="tab"
+            aria-selected={onglet === t.id}
+            className={onglet === t.id ? "on" : ""}
+            onClick={() => setOnglet(t.id)}
+          >
+            {t.label}
+          </button>
         ))}
-      </ul>
-      <p className="id-out">
-        {home && <Link to={`/clubs/${match.equipe_domicile_id}`}>{stripDemo(home.nom)}</Link>}
-        {home && away && " · "}
-        {away && <Link to={`/clubs/${match.equipe_exterieur_id}`}>{stripDemo(away.nom)}</Link>}
-      </p>
+      </div>
+
+      {onglet === "apercu" && (
+        <FeuilleApercu faits={faits} nom={nom} match={match} />
+      )}
+
+      {onglet === "stats" && (
+        <table className="table stats-feuille">
+          <thead>
+            <tr>
+              <th>{stripDemo(home?.nom) || "Domicile"}</th>
+              <th />
+              <th>{stripDemo(away?.nom) || "Extérieur"}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>{match.score_domicile}</td>
+              <td>Buts</td>
+              <td>{match.score_exterieur}</td>
+            </tr>
+            <tr>
+              <td>{stats.domicile.jaunes}</td>
+              <td>Jaunes</td>
+              <td>{stats.exterieur.jaunes}</td>
+            </tr>
+            <tr>
+              <td>{stats.domicile.rouges}</td>
+              <td>Rouges</td>
+              <td>{stats.exterieur.rouges}</td>
+            </tr>
+            <tr>
+              <td>{stats.domicile.penalties_rates}</td>
+              <td>Penalties ratés</td>
+              <td>{stats.exterieur.penalties_rates}</td>
+            </tr>
+            <tr>
+              <td>—</td>
+              <td>Possession</td>
+              <td>—</td>
+            </tr>
+          </tbody>
+        </table>
+      )}
+
+      {onglet === "compo" && (
+        <Terrain
+          home={stripDemo(home?.nom)}
+          away={stripDemo(away?.nom)}
+          parts={parts}
+          nom={nom}
+          byId={joueurs}
+        />
+      )}
     </section>
   );
 }

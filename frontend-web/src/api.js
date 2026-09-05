@@ -102,7 +102,7 @@ export const api = {
     request(`/matchs/${id}/periode?periode=${encodeURIComponent(periode)}`, { method: "PUT", auth: true }),
   forfait: (id, equipe) =>
     request(`/matchs/${id}/forfait?equipe_forfait=${encodeURIComponent(equipe)}`, { method: "POST", auth: true }),
-  participations: (id) => request(`/matchs/${id}/participations`, { auth: true }),
+  participations: (id) => request(`/matchs/${id}/participations`),
   ajouterParticipation: (id, payload) =>
     request(`/matchs/${id}/participations`, { method: "POST", body: payload, auth: true }),
   saisirEvenement: (matchId, payload) =>
