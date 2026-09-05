@@ -510,9 +510,11 @@ h1 {
 }
 .live-band .chrono {
   color: #f3efe4;
-  font-size: 1.15rem;
+  font-size: 1.45rem;
   margin: 0;
   text-align: left;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
 }
 .orga-actions {
   display: flex;
@@ -756,14 +758,14 @@ footer.site a.orga-entry {
   .bottom-nav a { font-size: 0.62rem; letter-spacing: 0.06em; }
 }
 
-/* —— Match en cours —— */
+/* —— Match en cours (option 2 : tampon, pastille, score maître) —— */
 .live-band {
   display: block;
   background: #1f4d36;
   color: #f3efe4;
   margin: 0.85rem 0 1.15rem;
-  padding: 0.95rem 1rem 1.05rem;
-  border-radius: 16px;
+  padding: 1.15rem 1.1rem 1.2rem;
+  border-radius: 22px;
 }
 .live-now {
   margin: 0 0 0.15rem;
@@ -779,30 +781,46 @@ footer.site a.orga-entry {
 .live-now.on-paper { color: var(--ink); }
 .live-band .live-now {
   color: #f3efe4;
+  width: max-content;
+  margin: 0 auto 0.85rem;
   justify-content: center;
-  margin-bottom: 0.35rem;
+  gap: 0.4rem;
+  border: 1.5px solid rgba(243, 239, 228, 0.42);
+  border-radius: 999px;
+  padding: 0.28rem 0.8rem 0.28rem 0.55rem;
+  font-size: 0.68rem;
+  letter-spacing: 0.2em;
+  font-weight: 700;
 }
 .live-body {
   display: grid;
-  grid-template-columns: 4.4rem 1fr;
+  grid-template-columns: 5.4rem 1fr 5.4rem;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.2rem;
 }
-.live-center { text-align: center; }
+.live-center {
+  grid-column: 2;
+  text-align: center;
+}
 .live-team {
   margin: 0;
-  font-weight: 700;
-  font-size: 0.98rem;
+  font-weight: 650;
+  font-size: 1.05rem;
   line-height: 1.2;
 }
 .live-score {
-  margin: 0.12rem 0;
+  margin: 0.28rem 0 0.22rem;
   font-family: var(--score);
-  font-size: clamp(2.2rem, 9vw, 3rem);
+  font-size: clamp(2.7rem, 12vw, 3.7rem);
   font-weight: 700;
-  letter-spacing: 0.02em;
-  line-height: 0.95;
+  letter-spacing: 0.04em;
+  line-height: 0.9;
   font-variant-numeric: tabular-nums;
+}
+.live-band .sb-dash {
+  padding: 0 0.12em;
+  opacity: 0.85;
+  font-weight: 700;
 }
 .live-dot {
   position: relative;
@@ -826,6 +844,18 @@ footer.site a.orga-entry {
   border: 2px solid #e31c1c;
   animation: live-ping 0.9s ease-out infinite;
 }
+.live-band .live-dot {
+  width: 8px;
+  height: 8px;
+}
+.live-band .live-dot b {
+  width: 8px;
+  height: 8px;
+}
+.live-band .live-dot::after {
+  inset: -3px;
+  border-width: 1.5px;
+}
 @keyframes live-beat {
   0%, 100% { transform: scale(1); opacity: 1; }
   50% { transform: scale(0.72); opacity: 0.55; }
@@ -843,11 +873,20 @@ footer.site a.orga-entry {
   color: #f3efe4;
 }
 .live-evt {
-  margin: 0.7rem 0 0;
+  margin: 0.95rem 0 0;
   font-size: 0.88rem;
   color: #f3efe4;
-  opacity: 0.88;
+  opacity: 0.72;
   text-align: center;
+  letter-spacing: 0.01em;
+}
+@media (max-width: 360px) {
+  .live-body {
+    grid-template-columns: 4.4rem 1fr 4.4rem;
+  }
+  .live-band .chrono {
+    font-size: 1.2rem;
+  }
 }
 
 .jour-barre {
