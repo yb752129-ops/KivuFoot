@@ -5,7 +5,8 @@ import { useAuth } from "../auth.jsx";
 import { clubName, useKivu } from "../context.jsx";
 import { stripDemo } from "../display.js";
 import { useTheme } from "../theme.jsx";
-import { COMPTES_TEST, MDP_DEMO, porteDuRole } from "../portes.js";
+import { porteDuRole } from "../portes.js";
+import ComptesTest from "../components/ComptesTest.jsx";
 
 const ROLE_LIBELLE = {
   supporter: "Lecteur",
@@ -203,6 +204,7 @@ export default function Compte() {
             Se déconnecter
           </button>
         </p>
+        {!(orga || collecte || clubPorte) && <ComptesTest />}
         <Apparence />
       </section>
     );
@@ -289,32 +291,10 @@ export default function Compte() {
       </form>
       {mode === "creer" && (
         <p className="lead" style={{ marginTop: "0.8rem" }}>
-          Un compte créé ici est lecteur. Collecteur et club : comptes de test ci-dessous.
+          Un compte créé ici est lecteur. Collecteur et club : un tap ci-dessous.
         </p>
       )}
-      <div className="section-head">
-        <h2>Comptes de test</h2>
-      </div>
-      {COMPTES_TEST.map((c) => (
-        <button
-          key={c.email}
-          type="button"
-          className="avenir-row"
-          style={{ width: "100%", background: "transparent", border: 0, borderBottom: "1px solid var(--rule)", textAlign: "left", cursor: "pointer" }}
-          onClick={() => {
-            setMode("connexion");
-            setEmail(c.email);
-            setMdp(MDP_DEMO);
-            setErr("");
-            setFieldErr({});
-          }}
-        >
-          <span className="avenir-noms">
-            <span>{c.label}</span>
-            <span className="meta-line">{c.email} → {c.porte}</span>
-          </span>
-        </button>
-      ))}
+      <ComptesTest />
       <Apparence />
     </section>
   );

@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { api } from "../api.js";
 import { useAuth } from "../auth.jsx";
 import { porteDuRole } from "../portes.js";
+import ComptesTest from "../components/ComptesTest.jsx";
 
 export default function Login() {
   const nav = useNavigate();
@@ -66,6 +67,9 @@ export default function Login() {
           <Link to="/">← Retour au site public</Link>
         </p>
       </form>
+      <div className="login-card">
+        <ComptesTest />
+      </div>
     </div>
   );
 }

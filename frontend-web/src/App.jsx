@@ -32,7 +32,7 @@ import { isAuthenticated } from "./api.js";
 
 function Porte({ roles, children }) {
   const { user } = useAuth();
-  if (!isAuthenticated()) return <Navigate to="/login" replace />;
+  if (!isAuthenticated()) return <Navigate to="/compte" replace />;
   if (user && !roles.includes(user.role)) {
     if (user.role === "collecteur") return <Navigate to="/collecteur" replace />;
     if (user.role === "organisateur") return <Navigate to="/orga" replace />;

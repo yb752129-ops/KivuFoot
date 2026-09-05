@@ -1,3 +1,5 @@
+import { api } from "./api.js";
+
 export const MDP_DEMO = "ChangeMoiEnDemo123!";
 
 export const COMPTES_TEST = [
@@ -23,4 +25,10 @@ export function porteDuRole(role) {
   if (role === "club_manager") return "/club";
   if (role === "organisateur" || role === "admin") return "/orga";
   return "/";
+}
+
+export async function connecterCompteTest(email, applySession) {
+  const { api } = await import("./api.js");
+  const tokens = await api.login(email, MDP_DEMO);
+  return applySession(tokens);
 }
