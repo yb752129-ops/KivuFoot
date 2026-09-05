@@ -1,7 +1,7 @@
 """
 Données de DÉMONSTRATION, clairement identifiées (est_demo=True).
 Idempotent : relancer ne duplique pas la compétition.
-Relancer répare les comptes démo (collecteur, club, orga, admin).
+Relancer répare les comptes démo (collecteur, club, coach, orga, admin).
 
 Usage :
     python -m scripts.seed_demo
@@ -37,11 +37,12 @@ DEMO_COMPTES = (
     ("orga.demo@example.com", RoleUtilisateur.ORGANISATEUR, "Organisateur Démo"),
     ("collecteur.demo@example.com", RoleUtilisateur.COLLECTEUR, "Collecteur Démo"),
     ("manager.demo@example.com", RoleUtilisateur.CLUB_MANAGER, "Manager Démo"),
+    ("coach.demo@example.com", RoleUtilisateur.COACH, "Coach Démo"),
 )
 
 
 async def ensure_demo_comptes(db) -> None:
-    """Crée ou répare les 4 comptes démo. Ne touche pas aux autres utilisateurs."""
+    """Crée ou répare les comptes démo. Ne touche pas aux autres utilisateurs."""
     kadutu = (
         await db.execute(select(Club).where(Club.nom == "DEMO FC Kadutu"))
     ).scalar_one_or_none()
@@ -64,7 +65,7 @@ async def ensure_demo_comptes(db) -> None:
             row.nom_complet = nom
             row.est_actif = True
             row.mot_de_passe_hash = hash_demo
-        if role == RoleUtilisateur.CLUB_MANAGER and kadutu is not None:
+        if role in (RoleUtilisateur.CLUB_MANAGER, RoleUtilisateur.COACH) and kadutu is not None:
             row.club_id = kadutu.id
         users[email] = row
     await db.flush()
@@ -88,6 +89,7 @@ async def ensure_demo_comptes(db) -> None:
     print("  Organisateur  orga.demo@example.com        → /orga")
     print("  Collecteur    collecteur.demo@example.com  → /collecteur")
     print("  Club          manager.demo@example.com     → /club")
+    print("  Coach         coach.demo@example.com       → /coach")
     print("  Admin         admin.demo@example.com       → /orga")
 
 

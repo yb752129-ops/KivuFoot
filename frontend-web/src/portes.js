@@ -14,6 +14,11 @@ export const COMPTES_TEST = [
     porte: "/club",
   },
   {
+    label: "Coach",
+    email: "coach.demo@example.com",
+    porte: "/coach",
+  },
+  {
     label: "Organisateur",
     email: "orga.demo@example.com",
     porte: "/orga",
@@ -23,12 +28,12 @@ export const COMPTES_TEST = [
 export function porteDuRole(role) {
   if (role === "collecteur") return "/collecteur";
   if (role === "club_manager") return "/club";
+  if (role === "coach") return "/coach";
   if (role === "organisateur" || role === "admin") return "/orga";
   return "/";
 }
 
 export async function connecterCompteTest(email, applySession) {
-  const { api } = await import("./api.js");
   const tokens = await api.login(email, MDP_DEMO);
   return applySession(tokens);
 }

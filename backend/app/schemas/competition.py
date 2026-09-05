@@ -13,6 +13,7 @@ class ClubOut(BaseModel):
     stade: str | None
     ville: str
     logo_url: str | None
+    coach_nom: str | None = None
 
 
 class ClubCreate(BaseModel):

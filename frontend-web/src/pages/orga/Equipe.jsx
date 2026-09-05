@@ -152,7 +152,7 @@ export default function OrgaEquipe() {
           <div className="sheet id-sheet">
             <div className="id-row"><span>Ville</span><strong>{club.ville || "à compléter"}</strong></div>
             <div className="id-row"><span>Stade</span><strong>{club.stade || "à compléter"}</strong></div>
-            <div className="id-row"><span>Coach</span><strong>à compléter</strong></div>
+            <div className="id-row"><span>Coach</span><strong>{club.coach_nom || "à compléter"}</strong></div>
           </div>
           <p>
             <button className="linkish" type="button" onClick={() => setEdit(true)}>Modifier</button>

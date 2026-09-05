@@ -17,7 +17,7 @@ class User(Base):
     mot_de_passe_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     role: Mapped[RoleUtilisateur] = mapped_column(String(50), nullable=False)
     nom_complet: Mapped[str | None] = mapped_column(String(255))
-    # club_id : uniquement pertinent pour role='club_manager'
+    # club_id : club_manager (effectif) et coach (composition)
     club_id: Mapped[int | None] = mapped_column(ForeignKey("clubs.id", ondelete="SET NULL"))
     est_actif: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

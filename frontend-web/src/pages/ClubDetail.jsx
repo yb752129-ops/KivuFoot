@@ -43,7 +43,7 @@ export default function ClubDetail() {
           <p className="journee-date">{lieu || "Lieu à compléter"}</p>
         </div>
       </div>
-      <p className="lead">Coach · à compléter</p>
+      <p className="lead">Coach · {club.coach_nom || "à compléter"}</p>
 
       <div className="section-head">
         <h2>Effectif</h2>

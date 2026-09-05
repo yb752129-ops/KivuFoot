@@ -11,6 +11,7 @@ class RoleUtilisateur(str, enum.Enum):
     COLLECTEUR = "collecteur"
     ORGANISATEUR = "organisateur"
     CLUB_MANAGER = "club_manager"
+    COACH = "coach"
     ADMIN = "admin"
     SUPPORTER = "supporter"
 

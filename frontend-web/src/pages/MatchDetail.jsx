@@ -158,6 +158,8 @@ export default function MatchDetail() {
           parts={parts}
           nom={nom}
           byId={joueurs}
+          coachHome={home?.coach_nom}
+          coachAway={away?.coach_nom}
         />
       )}
     </section>

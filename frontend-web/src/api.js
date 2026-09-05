@@ -119,6 +119,10 @@ export const api = {
   participations: (id) => request(`/matchs/${id}/participations`),
   ajouterParticipation: (id, payload) =>
     request(`/matchs/${id}/participations`, { method: "POST", body: payload, auth: true }),
+  modifierParticipation: (id, pid, payload) =>
+    request(`/matchs/${id}/participations/${pid}`, { method: "PUT", body: payload, auth: true }),
+  retirerParticipation: (id, pid) =>
+    request(`/matchs/${id}/participations/${pid}`, { method: "DELETE", auth: true }),
   saisirEvenement: (matchId, payload) =>
     request(`/matchs/${matchId}/evenements`, { method: "POST", body: payload, auth: true }),
 };

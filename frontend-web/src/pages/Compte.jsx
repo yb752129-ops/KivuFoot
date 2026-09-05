@@ -14,6 +14,7 @@ const ROLE_LIBELLE = {
   admin: "Administration",
   collecteur: "Collecteur",
   club_manager: "Club",
+  coach: "Coach",
 };
 
 const THEMES = [
@@ -129,6 +130,7 @@ export default function Compte() {
     const orga = role === "organisateur" || role === "admin";
     const collecte = role === "collecteur" || role === "admin";
     const clubPorte = role === "club_manager";
+    const coachPorte = role === "coach";
     return (
       <section className="hero">
         <p className="kicker"><Link to="/">← Accueil</Link></p>
@@ -142,6 +144,8 @@ export default function Compte() {
         <p className="lead">
           {clubPorte
             ? "Ce compte tient l’effectif du club. Le public lit sans se connecter."
+            : coachPorte
+              ? "Ce compte pose la composition. L’effectif reste au club. La saisie reste au collecteur."
             : staff
               ? "Ce compte ouvre la saisie des matchs. Le public lit sans se connecter."
               : "Les matchs, le classement et les clubs restent lisibles sans compte. Celui-ci sert à vous reconnaître."}
@@ -166,7 +170,7 @@ export default function Compte() {
             </div>
           )}
         </div>
-        {(orga || collecte || clubPorte) && (
+        {(orga || collecte || clubPorte || coachPorte) && (
           <div className="sheet" style={{ marginTop: "1.1rem" }}>
             {orga && (
               <Link to="/orga" className="avenir-row">
@@ -192,6 +196,14 @@ export default function Compte() {
                 </span>
               </Link>
             )}
+            {coachPorte && (
+              <Link to="/coach" className="avenir-row">
+                <span className="avenir-noms">
+                  <span>Coach</span>
+                  <span className="meta-line">/coach</span>
+                </span>
+              </Link>
+            )}
           </div>
         )}
         <p className="id-out">
@@ -204,7 +216,7 @@ export default function Compte() {
             Se déconnecter
           </button>
         </p>
-        {!(orga || collecte || clubPorte) && <ComptesTest />}
+        {!(orga || collecte || clubPorte || coachPorte) && <ComptesTest />}
         <Apparence />
       </section>
     );
@@ -291,7 +303,7 @@ export default function Compte() {
       </form>
       {mode === "creer" && (
         <p className="lead" style={{ marginTop: "0.8rem" }}>
-          Un compte créé ici est lecteur. Collecteur et club : un tap ci-dessous.
+          Un compte créé ici est lecteur. Collecteur, club, coach : un tap ci-dessous.
         </p>
       )}
       <ComptesTest />

@@ -44,7 +44,7 @@ function Pion({ p, nom }) {
   );
 }
 
-function Demi({ titre, titulaires, banc, nom, byId, inverse }) {
+function Demi({ titre, titulaires, banc, nom, byId, inverse, coachNom }) {
   const lignes = ranger(titulaires, byId);
   const ordre = inverse ? [...lignes].reverse() : lignes;
   return (
@@ -57,7 +57,7 @@ function Demi({ titre, titulaires, banc, nom, byId, inverse }) {
           ))}
         </div>
       ))}
-      <p className="pitch-coach">Entraîneur · à compléter</p>
+      <p className="pitch-coach">Entraîneur · {coachNom || "à compléter"}</p>
       <p className="pitch-banc">
         Banc · {banc.length ? banc.map((p) => nom(p.joueur_id)).join(" · ") : "à compléter"}
       </p>
@@ -65,7 +65,7 @@ function Demi({ titre, titulaires, banc, nom, byId, inverse }) {
   );
 }
 
-export default function Terrain({ home, away, parts, nom, byId }) {
+export default function Terrain({ home, away, parts, nom, byId, coachHome, coachAway }) {
   const titu = (cote) => (parts || []).filter((p) => p.equipe_concernee === cote && p.statut === "titulaire");
   const banc = (cote) => (parts || []).filter((p) => p.equipe_concernee === cote && p.statut === "remplacant");
   const n = (parts || []).filter((p) => p.statut === "titulaire").length;
@@ -79,6 +79,7 @@ export default function Terrain({ home, away, parts, nom, byId }) {
         nom={nom}
         byId={byId}
         inverse
+        coachNom={coachAway}
       />
       <div className="pitch-milieu" aria-hidden="true" />
       <Demi
@@ -87,6 +88,7 @@ export default function Terrain({ home, away, parts, nom, byId }) {
         banc={banc("domicile")}
         nom={nom}
         byId={byId}
+        coachNom={coachHome}
       />
       {n === 0 && <p className="pitch-vide">Composition à compléter</p>}
     </div>

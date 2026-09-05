@@ -60,6 +60,10 @@ class ParticipationCreate(BaseModel):
     minute_sortie: int | None = None
 
 
+class ParticipationUpdate(BaseModel):
+    statut: StatutParticipation
+
+
 class ParticipationOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

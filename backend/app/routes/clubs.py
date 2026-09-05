@@ -14,10 +14,35 @@ from app.services.audit import log_audit
 router = APIRouter(prefix="/clubs", tags=["Clubs"])
 
 
+async def _coach_noms(db: AsyncSession, club_ids: list[int]) -> dict[int, str]:
+    ids = [i for i in club_ids if i]
+    if not ids:
+        return {}
+    result = await db.execute(
+        select(User.club_id, User.nom_complet).where(
+            User.role == RoleUtilisateur.COACH,
+            User.est_actif.is_(True),
+            User.club_id.in_(ids),
+            User.nom_complet.is_not(None),
+        )
+    )
+    out: dict[int, str] = {}
+    for club_id, nom in result.all():
+        if club_id and nom and club_id not in out:
+            out[club_id] = nom
+    return out
+
+
+def _club_out(club: Club, coach_nom: str | None) -> ClubOut:
+    return ClubOut.model_validate(club).model_copy(update={"coach_nom": coach_nom})
+
+
 @router.get("", response_model=list[ClubOut])
 async def lister_clubs(db: AsyncSession = Depends(get_db), limit: int = 20, offset: int = 0):
     result = await db.execute(select(Club).limit(min(limit, 100)).offset(offset))
-    return result.scalars().all()
+    clubs = result.scalars().all()
+    noms = await _coach_noms(db, [c.id for c in clubs])
+    return [_club_out(c, noms.get(c.id)) for c in clubs]
 
 
 @router.get("/{club_id}", response_model=ClubOut)
@@ -25,7 +50,8 @@ async def detail_club(club_id: int, db: AsyncSession = Depends(get_db)):
     club = await db.get(Club, club_id)
     if club is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Club introuvable.")
-    return club
+    noms = await _coach_noms(db, [club_id])
+    return _club_out(club, noms.get(club_id))
 
 
 @router.post("", response_model=ClubOut, status_code=status.HTTP_201_CREATED)

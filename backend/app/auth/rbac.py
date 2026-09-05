@@ -78,5 +78,5 @@ def verifier_scope_club(current_user: User, club_id: int) -> None:
     """Un club_manager ne peut agir que sur son propre club."""
     if current_user.role == RoleUtilisateur.ADMIN:
         return
-    if current_user.role == RoleUtilisateur.CLUB_MANAGER and current_user.club_id != club_id:
+    if current_user.role in (RoleUtilisateur.CLUB_MANAGER, RoleUtilisateur.COACH) and current_user.club_id != club_id:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Vous ne gérez pas ce club.")

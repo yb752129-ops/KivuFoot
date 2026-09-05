@@ -27,6 +27,10 @@ import ClubVue from "./pages/club/Vue.jsx";
 import ClubEffectif from "./pages/club/Effectif.jsx";
 import ClubJoueur from "./pages/club/Joueur.jsx";
 import ClubMatchs from "./pages/club/Matchs.jsx";
+import CoachLayout from "./components/CoachLayout.jsx";
+import CoachVue from "./pages/coach/Vue.jsx";
+import CoachMatchs from "./pages/coach/Matchs.jsx";
+import CoachMatch from "./pages/coach/Match.jsx";
 import { AuthProvider, useAuth } from "./auth.jsx";
 import { isAuthenticated } from "./api.js";
 
@@ -37,6 +41,7 @@ function Porte({ roles, children }) {
     if (user.role === "collecteur") return <Navigate to="/collecteur" replace />;
     if (user.role === "organisateur") return <Navigate to="/orga" replace />;
     if (user.role === "club_manager") return <Navigate to="/club" replace />;
+    if (user.role === "coach") return <Navigate to="/coach" replace />;
     return <Navigate to="/" replace />;
   }
   return children;
@@ -98,6 +103,18 @@ export default function App() {
             <Route path="effectif" element={<ClubEffectif />} />
             <Route path="effectif/:id" element={<ClubJoueur />} />
             <Route path="matchs" element={<ClubMatchs />} />
+          </Route>
+          <Route
+            path="/coach"
+            element={
+              <Porte roles={["coach"]}>
+                <CoachLayout />
+              </Porte>
+            }
+          >
+            <Route index element={<CoachVue />} />
+            <Route path="matchs" element={<CoachMatchs />} />
+            <Route path="matchs/:id" element={<CoachMatch />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

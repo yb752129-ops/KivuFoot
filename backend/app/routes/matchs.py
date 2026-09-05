@@ -9,9 +9,10 @@ from app.auth.rbac import require_roles, verifier_organisateur_de_competition, v
 from app.database import get_db
 from app.models.competition import Saison, SaisonClub
 from app.models.enums import ActionAudit, EquipeConcernee, PeriodeMatch, RoleUtilisateur, StatutMatch
+from app.models.joueur import Joueur
 from app.models.match import Match, MatchParticipation
 from app.models.user import User
-from app.schemas.match import MatchCreate, MatchOut, ParticipationCreate, ParticipationOut
+from app.schemas.match import MatchCreate, MatchOut, ParticipationCreate, ParticipationOut, ParticipationUpdate
 from app.services.audit import log_audit
 from app.services.validation import valider_match
 
