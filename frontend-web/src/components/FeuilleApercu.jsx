@@ -1,52 +1,78 @@
-import { Ballon, Carton, FlecheIn, FlecheOut } from "../icons.jsx";
-import { estPeriodeUn, formatMinute, labelEvenement, MOTIF_REFUS } from "../display.js";
+import { Ballon, Carton } from "../icons.jsx";
+import { clockFromMatch, estPeriodeUn, formatMinute, libelleFeuille, MOTIF_REFUS } from "../display.js";
 
 function Ico({ e }) {
   if (e.type === "carton_jaune") return <Carton couleur="jaune" />;
-  if (e.type === "carton_rouge") return <Carton couleur="rouge" />;
-  if (e.type === "but" || e.type === "but_contre_son_camp") return <Ballon className="fait-ballon" />;
-  if (e.type === "penalty" && e.resultat !== "rate" && e.resultat !== "raté") {
-    return <Ballon className="fait-ballon" />;
+  if (e.type === "carton_rouge" && e.source === "deuxieme_jaune") {
+    return (
+      <span className="feuille-cartons">
+        <Carton couleur="rouge" />
+        <Carton couleur="jaune" />
+      </span>
+    );
   }
+  if (e.type === "carton_rouge") return <Carton couleur="rouge" />;
+  const ballon = e.type === "but" || e.type === "but_contre_son_camp"
+    || (e.type === "penalty" && e.resultat !== "rate" && e.resultat !== "raté");
+  if (ballon) {
+    return (
+      <span className="feuille-ballon-wrap">
+        <Ballon className="fait-ballon" />
+        {e.refuse && <span className="fait-rate" aria-hidden="true">×</span>}
+      </span>
+    );
+  }
+  if (e.type === "penalty") return <span className="fait-rate" aria-hidden="true">×</span>;
   return null;
 }
 
-function Texte({ e, nom }) {
+function LigneFait({ e, nom }) {
   const joueur = nom(e.joueur_id);
   const second = e.joueur_secondaire_id ? nom(e.joueur_secondaire_id) : "";
-  const penaltyRate = e.type === "penalty" && (e.resultat === "rate" || e.resultat === "raté");
+  const motif = MOTIF_REFUS[e.motif_refus] || e.motif_refus;
+  const libelle = libelleFeuille(e);
   const sub = e.type === "remplacement";
   const assist = !e.refuse && e.type === "but" && second;
-  const motif = MOTIF_REFUS[e.motif_refus] || e.motif_refus;
-  const libelle = labelEvenement(e);
-  const tag = libelle && libelle !== "But" ? libelle : null;
+  const titre = sub
+    ? "Remplacement"
+    : e.refuse
+      ? `${libelle} · ${joueur}${motif ? ` (${motif})` : ""}`
+      : `${libelle} · ${joueur}`;
 
   return (
-    <div className={`feuille-txt${e.refuse ? " is-refuse" : ""}`}>
+    <li className={`feuille-ligne${e.refuse ? " is-refuse" : ""}`}>
+      <span className="feuille-min">{formatMinute(e.minute, e.minute_additionnelle)}</span>
       <span className="feuille-ico" aria-hidden="true"><Ico e={e} /></span>
-      <div>
-        {sub ? (
-          <p className="fait-sub">
-            <span className="fait-out"><FlecheOut className="fait-fleche" /> Sort : {joueur || "à compléter"}</span>
-            <span className="fait-in"><FlecheIn className="fait-fleche" /> Entre : {second || "à compléter"}</span>
-          </p>
-        ) : (
-          <p className="fait-ligne">
-            {tag && <span className="fait-tag">{tag}</span>}
-            {penaltyRate && <span className="fait-rate" aria-hidden="true">×</span>}
-            <span className="fait-nom">{joueur}</span>
+      <div className="feuille-txt">
+        <p className="fait-ligne"><span className="fait-nom">{titre}</span></p>
+        {sub && (
+          <p className="fait-assist">
+            Sort : {joueur || "à compléter"} → Entre : {second || "à compléter"}
           </p>
         )}
         {assist && <p className="fait-assist">Passe décisive · {second}</p>}
-        {e.refuse && (
-          <p className="fait-refus">
-            {e.type === "penalty" ? "Penalty refusé" : "But refusé"}
-            {motif ? ` (${motif})` : ""}
-          </p>
-        )}
       </div>
-    </div>
+    </li>
   );
+}
+
+function LigneCycle({ minute, texte }) {
+  return (
+    <li className="feuille-ligne is-cycle">
+      <span className="feuille-min">{minute}</span>
+      <p className="feuille-cycle">{texte}</p>
+    </li>
+  );
+}
+
+function minuteFin(match) {
+  if (!match) return "";
+  const t = match.ended_at ? new Date(match.ended_at).getTime() : Date.now();
+  const c = clockFromMatch(match, t);
+  if (c.min > 90) return formatMinute(90, c.min - 90);
+  if (c.periode !== "2" && c.min > 45) return formatMinute(45, c.min - 45);
+  if (c.min) return formatMinute(c.min, 0);
+  return "";
 }
 
 export default function FeuilleApercu({ faits, nom, match }) {
@@ -63,35 +89,18 @@ export default function FeuilleApercu({ faits, nom, match }) {
   const montreP2 = match?.periode === "2" || p2.length > 0;
   const montreFin = match?.statut === "termine" || match?.statut === "valide";
 
-  function lignes(list) {
-    return list.map((e) => {
-      const away = e.equipe_concernee === "exterieur";
-      return (
-        <li key={e.id} className="feuille-row">
-          <div className="feuille-dom">{away ? null : <Texte e={e} nom={nom} />}</div>
-          <span className="feuille-min">{formatMinute(e.minute, e.minute_additionnelle)}</span>
-          <div className="feuille-ext">{away ? <Texte e={e} nom={nom} /> : null}</div>
-        </li>
-      );
-    });
-  }
-
   if (!chrono.length && !montreHt && !montreFin && !montreCoup) {
     return <p className="empty">Aucun événement rendu public pour ce match.</p>;
   }
 
   return (
     <ul className="feuille-apercu">
-      {montreCoup && <li className="feuille-break">Coup d’envoi</li>}
-      {lignes(p1)}
-      {montreHt && <li className="feuille-break">Mi-temps</li>}
-      {montreP2 && <li className="feuille-break">2e période</li>}
-      {lignes(p2)}
-      {montreFin && (
-        <li className="feuille-break">
-          Fin {match.score_domicile}–{match.score_exterieur}
-        </li>
-      )}
+      {montreCoup && <LigneCycle minute="1′" texte="Coup d’envoi" />}
+      {p1.map((e) => <LigneFait key={e.id} e={e} nom={nom} />)}
+      {montreHt && <LigneCycle minute="45′" texte="Mi-temps" />}
+      {montreP2 && <LigneCycle minute="" texte="Début de la seconde période" />}
+      {p2.map((e) => <LigneFait key={e.id} e={e} nom={nom} />)}
+      {montreFin && <LigneCycle minute={minuteFin(match)} texte="Fin du match" />}
     </ul>
   );
 }
