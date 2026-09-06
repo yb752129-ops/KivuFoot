@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { api } from "../api.js";
 import { useKivu } from "../context.jsx";
 import { AVenirLigne, LiveUne, TermineLigne } from "../components/LignesMatch.jsx";
-import { dernierFaitLive } from "../display.js";
+import { dernierFaitLive, groupMatchsByJournee, journeeTitre } from "../display.js";
 
 export default function Matchs() {
   const { saison, clubsById } = useKivu();
@@ -40,6 +40,8 @@ export default function Matchs() {
   const termines = matchs
     .filter((m) => m.statut === "termine" || m.statut === "valide")
     .sort((a, b) => new Date(b.date_heure) - new Date(a.date_heure));
+  const groupesAvenir = groupMatchsByJournee(aVenir);
+  const groupesTermines = groupMatchsByJournee(termines);
 
   return (
     <section className="hero">
@@ -53,16 +55,26 @@ export default function Matchs() {
         <h2>À venir</h2>
       </div>
       {aVenir.length === 0 && <p className="empty">Pas de match programmé.</p>}
-      {aVenir.map((m) => (
-        <AVenirLigne key={m.id} match={m} clubsById={clubsById} />
+      {groupesAvenir.map((g) => (
+        <div key={g.code} className="journee-block">
+          <p className="journee-date">{journeeTitre(g.code)}</p>
+          {g.items.map((m) => (
+            <AVenirLigne key={m.id} match={m} clubsById={clubsById} />
+          ))}
+        </div>
       ))}
 
       <div className="section-head">
         <h2>Terminés</h2>
       </div>
       {termines.length === 0 && <p className="empty">Pas encore de résultat public.</p>}
-      {termines.map((m) => (
-        <TermineLigne key={m.id} match={m} clubsById={clubsById} />
+      {groupesTermines.map((g) => (
+        <div key={g.code} className="journee-block">
+          <p className="journee-date">{journeeTitre(g.code)}</p>
+          {g.items.map((m) => (
+            <TermineLigne key={m.id} match={m} clubsById={clubsById} />
+          ))}
+        </div>
       ))}
     </section>
   );

@@ -936,8 +936,7 @@ footer.site a.orga-entry {
 }
 
 .avenir-row {
-  display: grid;
-  grid-template-columns: 3.6rem minmax(0, 1fr) auto;
+  display: flex;
   align-items: baseline;
   gap: 0.9rem;
   padding: 0.85rem 0.05rem;
@@ -951,6 +950,7 @@ footer.site a.orga-entry {
   font-size: 1.2rem;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.02em;
+  min-width: 3.5rem;
 }
 .avenir-noms {
   display: flex;
@@ -962,12 +962,12 @@ footer.site a.orga-entry {
   min-width: 0;
 }
 .termine-score {
+  margin-left: auto;
   font-family: var(--score);
   font-weight: 700;
   font-size: 1.15rem;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.02em;
-  text-align: right;
 }
 .meta-line {
   font-weight: 400;
@@ -1400,7 +1400,94 @@ body:has(.orga-app) {
 }
 .field-check input { margin-top: 0.2rem; }
 
-/* —— Écran de connexion (papier, pas maquette mint) —— */
+/* —— Bulletin Direction 02 (papier, pas mint / pas glass) —— */
+.bulletin-hero {
+  padding: 1.15rem 0 0.25rem;
+}
+.bulletin-hero h1 {
+  margin-bottom: 0.25rem;
+}
+.bulletin-tous {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--stamp);
+  white-space: nowrap;
+}
+.jour-barre-sub {
+  margin-top: 0.85rem;
+}
+.jour-barre-sub h3 {
+  margin: 0;
+  font-family: var(--sans);
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+.bulletin-row {
+  display: grid;
+  grid-template-columns: 4.4rem minmax(0, 1fr) auto;
+  gap: 0.7rem;
+  align-items: center;
+  background: #fffdf8;
+  border: 1px solid var(--rule);
+  border-radius: 18px;
+  padding: 0.85rem 0.9rem;
+  margin: 0 0 0.55rem;
+  color: inherit;
+}
+html[data-theme="dark"] .bulletin-row {
+  background: var(--paper-2);
+}
+.bulletin-quand {
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
+  min-width: 0;
+}
+.bulletin-etat {
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--stamp);
+}
+.bulletin-heure {
+  font-family: var(--score);
+  font-weight: 700;
+  font-size: 1.15rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  line-height: 1;
+}
+.bulletin-noms {
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
+  font-weight: 650;
+  font-size: 0.95rem;
+  line-height: 1.2;
+  min-width: 0;
+}
+.bulletin-lieu {
+  font-weight: 400;
+  font-size: 0.72rem;
+  color: var(--ink-soft);
+}
+.bulletin-score {
+  font-family: var(--score);
+  font-weight: 700;
+  font-size: 1.28rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  text-align: right;
+}
+.bulletin-chevron {
+  width: 1.05rem;
+  height: 1.05rem;
+  color: var(--ink-soft);
+  display: block;
+}
+
+/* —— Écran de connexion —— */
 .charge-app {
   min-height: 100dvh;
   background: var(--paper);

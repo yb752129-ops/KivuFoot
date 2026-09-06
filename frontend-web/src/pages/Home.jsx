@@ -20,7 +20,7 @@ function fusionner(a, b) {
 }
 
 export default function Home() {
-  const { saison, clubsById } = useKivu();
+  const { saison, clubsById, competition } = useKivu();
   const { user } = useAuth();
   const staff = user?.role === "organisateur" || user?.role === "admin";
   const [classement, setClassement] = useState([]);
@@ -73,16 +73,27 @@ export default function Home() {
     .filter((m) => (m.statut === "termine" || m.statut === "valide") && civilDate(m.date_heure) === jour)
     .sort((a, b) => new Date(a.date_heure) - new Date(b.date_heure));
   const apercu = classement.slice(0, 5);
+  const nomComp = competition ? stripDemo(competition.nom) : "";
 
   return (
     <>
+      <header className="bulletin-hero">
+        <p className="kicker">Bulletin de compétition</p>
+        <h1>Le terrain, sans détour.</h1>
+        {nomComp && <p className="lead">{nomComp}</p>}
+      </header>
+
       {lives.map((m) => (
         <LiveUne key={m.id} match={m} clubsById={clubsById} evt={evtsById[m.id] || null} />
       ))}
 
       <section>
         <div className="jour-barre">
-          <h2>À venir</h2>
+          <h2>Le bulletin</h2>
+          <Link className="bulletin-tous" to="/matchs">Tous les matchs</Link>
+        </div>
+        <div className="jour-barre jour-barre-sub">
+          <h3>À venir</h3>
           <div className="jour-nav">
             <button
               type="button"
