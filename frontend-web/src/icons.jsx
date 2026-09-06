@@ -1,4 +1,4 @@
-/** Langage visuel KivuFoot */
+/** Langage visuel KivuFoot — traits, pas Lucide, pas d’emoji. */
 
 const base = {
   viewBox: "0 0 24 24",
@@ -10,16 +10,26 @@ const base = {
   "aria-hidden": "true",
 };
 
+const tailleFaits = {
+  width: "1.15rem",
+  height: "1.15rem",
+  display: "block",
+  flexShrink: 0,
+};
+
 export function Ballon({ className }) {
   return (
     <svg
       className={className}
       viewBox="0 0 24 24"
+      width="18"
+      height="18"
       fill="none"
       stroke="currentColor"
       strokeWidth="1.6"
       strokeLinecap="round"
       strokeLinejoin="round"
+      style={tailleFaits}
       aria-hidden="true"
     >
       <circle cx="12" cy="12" r="9.5" />
@@ -28,6 +38,33 @@ export function Ballon({ className }) {
       <path d="M2.5 12h19" />
       <path d="M7 5.5l5 3 5-3" />
       <path d="M7 18.5l5-3 5 3" />
+    </svg>
+  );
+}
+
+export function Botte({ className }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      width="16"
+      height="16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.55"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      style={{
+        width: "1rem",
+        height: "1rem",
+        verticalAlign: "middle",
+        marginRight: "0.35rem",
+        flexShrink: 0,
+      }}
+      aria-hidden="true"
+    >
+      <path d="M5 16h10.4c1.45 0 3.35-.55 4.35-2.35.55-1 .5-2.15 0-3.1L18.4 8.7c-.4-1-1.3-1.65-2.35-1.65h-3.5L8.3 5.2H5.2V16z" />
+      <path d="M6.2 16v2.15M10.5 16v2.15M14.6 16v1.9" />
     </svg>
   );
 }
@@ -65,10 +102,28 @@ export function IcoBouclier({ className }) {
   );
 }
 
+export function IcoPersonne({ className }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <circle cx="12" cy="8.2" r="3.1" />
+      <path d="M5.6 19.2c.8-3.3 3.3-5.1 6.4-5.1s5.6 1.8 6.4 5.1" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+export function Carton({ couleur = "jaune", className }) {
+  return (
+    <span
+      className={`kf-carton kf-carton-${couleur}${className ? ` ${className}` : ""}`}
+      aria-hidden="true"
+    />
+  );
+}
+
 export function FlecheIn({ className }) {
   return (
     <svg {...base} className={className}>
-      <path d="M12 19V5M5.5 11.5 12 5l6.5 6.5" />
+      <path d="M12 19V5M6.5 10.5 12 5l5.5 5.5" />
     </svg>
   );
 }
@@ -76,34 +131,7 @@ export function FlecheIn({ className }) {
 export function FlecheOut({ className }) {
   return (
     <svg {...base} className={className}>
-      <path d="M12 5v14M5.5 12.5 12 19l6.5-6.5" />
-    </svg>
-  );
-}
-
-export function Botte({ className }) {
-  return (
-    <svg
-      className={className}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.55"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M5 16h10.4c1.45 0 3.35-.55 4.35-2.35" />
-      <path d="M6.2 16v2.15M10.5 16v2.15M14.6 16v1.9" />
-    </svg>
-  );
-}
-
-export function Carton({ couleur = "jaune", className }) {
-  const fill = couleur === "rouge" ? "#dc2626" : "#eab308";
-  return (
-    <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
-      <rect x="7" y="4" width="10" height="16" rx="1.5" fill={fill} />
+      <path d="M12 5v14M6.5 13.5 12 19l5.5-5.5" />
     </svg>
   );
 }
