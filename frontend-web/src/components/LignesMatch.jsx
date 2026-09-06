@@ -64,6 +64,7 @@ export function TermineLigne({ match, clubsById, to }) {
       <span className="avenir-noms">
         <span>{home || "Équipe à nommer"}</span>
         <span>{away || "Équipe à nommer"}</span>
+        {match.statut === "valide" && <span className="meta-line">Validé</span>}
       </span>
       <span className="termine-score">
         {match.score_domicile}–{match.score_exterieur}

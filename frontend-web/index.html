@@ -24,9 +24,45 @@
         document.documentElement.style.colorScheme = d ? "dark" : "light";
       })();
     </script>
+    <style>
+      html, body, #root { margin: 0; min-height: 100%; background: #F4F1EA; color: #1C1914; }
+      html[data-theme="dark"], html[data-theme="dark"] body, html[data-theme="dark"] #root { background: #14120e; color: #ede8dc; }
+      .boot { min-height: 100dvh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 2rem 1.2rem; font-family: Georgia, "Noto Serif", serif; }
+      .boot-k { margin: 0 0 1.5rem; font-size: 1.35rem; font-weight: 650; letter-spacing: -0.03em; }
+      .boot-orb { position: relative; width: 7.4rem; height: 7.4rem; }
+      .boot-ring { position: absolute; inset: 0; border: 1.5px solid #1F4D36; opacity: 0.28; border-radius: 50%; }
+      .boot-spin { position: absolute; inset: 0; border-radius: 50%; animation: kf-spin 1.15s linear infinite; }
+      .boot-spin::before { content: ""; position: absolute; inset: 0; border: 2px solid transparent; border-top-color: #1F4D36; border-radius: 50%; }
+      .boot-dot { position: absolute; top: -2px; left: 50%; width: 8px; height: 8px; margin-left: -4px; background: #c62828; border-radius: 50%; }
+      .boot-ball { position: absolute; inset: 2rem; animation: kf-spin 2.4s linear infinite; }
+      .boot-kicker { margin: 1.3rem 0 0; font-family: "Source Sans 3", sans-serif; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.22em; text-transform: uppercase; color: #1F4D36; }
+      .boot-titre { margin: 0.35rem 0 0.4rem; font-size: 1.7rem; font-weight: 650; }
+      .boot-txt { margin: 0; max-width: 22rem; font-family: "Source Sans 3", sans-serif; font-size: 0.95rem; color: #5e584f; }
+      @keyframes kf-spin { to { transform: rotate(360deg); } }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div class="boot" role="status" aria-live="polite" aria-busy="true">
+        <p class="boot-k">KivuFoot</p>
+        <div class="boot-orb" aria-hidden="true">
+          <span class="boot-ring"></span>
+          <span class="boot-spin"><span class="boot-dot"></span></span>
+          <svg class="boot-ball" viewBox="0 0 64 64">
+            <circle cx="32" cy="32" r="27" fill="#f4f1ea" stroke="#1c1914" stroke-width="2.2"/>
+            <polygon points="32,18.2 40.2,24.2 37.1,34.2 26.9,34.2 23.8,24.2" fill="#1f4d36"/>
+            <path fill="#1f4d36" d="M32 5.4 41.2 9.2 38.2 15.4 32 12.8 25.8 15.4 22.8 9.2Z"/>
+            <path fill="#1f4d36" d="M53.2 20.4 56.6 29.2 50.2 33.4 45.6 25.6 49.4 18.8Z"/>
+            <path fill="#1f4d36" d="M46.4 47.2 39.6 56.4 32 53.2 35.4 44.2 42.8 42.6Z"/>
+            <path fill="#1f4d36" d="M17.6 47.2 21.2 42.6 28.6 44.2 32 53.2 24.4 56.4Z"/>
+            <path fill="#1f4d36" d="M10.8 20.4 14.6 18.8 18.4 25.6 13.8 33.4 7.4 29.2Z"/>
+          </svg>
+        </div>
+        <p class="boot-kicker">Connexion en cours</p>
+        <p class="boot-titre">Le terrain se prépare.</p>
+        <p class="boot-txt">Nous synchronisons les scores et les feuilles officielles du championnat.</p>
+      </div>
+    </div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

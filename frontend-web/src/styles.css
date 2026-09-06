@@ -936,7 +936,8 @@ footer.site a.orga-entry {
 }
 
 .avenir-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: 3.6rem minmax(0, 1fr) auto;
   align-items: baseline;
   gap: 0.9rem;
   padding: 0.85rem 0.05rem;
@@ -950,7 +951,6 @@ footer.site a.orga-entry {
   font-size: 1.2rem;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.02em;
-  min-width: 3.5rem;
 }
 .avenir-noms {
   display: flex;
@@ -962,12 +962,12 @@ footer.site a.orga-entry {
   min-width: 0;
 }
 .termine-score {
-  margin-left: auto;
   font-family: var(--score);
   font-weight: 700;
   font-size: 1.15rem;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.02em;
+  text-align: right;
 }
 .meta-line {
   font-weight: 400;
@@ -1085,29 +1085,9 @@ ul.faits { list-style: none; padding: 0; margin: 0; }
   min-height: 1.15rem;
 }
 .fait-ballon {
-  width: 1.45rem;
-  height: 1.45rem;
+  width: 1.15rem;
+  height: 1.15rem;
   display: block;
-}
-.fait-botte {
-  width: 0.95rem;
-  height: 0.95rem;
-  flex: 0 0 auto;
-}
-.feuille-ballon-wrap {
-  position: relative;
-  display: inline-block;
-}
-.feuille-ballon-wrap .fait-rate {
-  position: absolute;
-  right: -0.28rem;
-  bottom: -0.2rem;
-  width: 0.85rem;
-  height: 0.85rem;
-  background: var(--paper);
-  color: var(--card-red);
-  border-color: var(--card-red);
-  font-size: 0.62rem;
 }
 .fait-corps { min-width: 0; }
 .fait-ligne {
@@ -1419,3 +1399,121 @@ body:has(.orga-app) {
   font-size: 0.92rem;
 }
 .field-check input { margin-top: 0.2rem; }
+
+/* —— Écran de connexion (papier, pas maquette mint) —— */
+.charge-app {
+  min-height: 100dvh;
+  background: var(--paper);
+  color: var(--ink);
+}
+.charge-ecran {
+  max-width: 40rem;
+  margin: 0 auto;
+  min-height: calc(100dvh - 8.2rem);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 2.2rem 1.25rem 6.2rem;
+}
+.charge-kicker {
+  margin: 1.35rem 0 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--stamp);
+}
+.charge-titre {
+  font-family: var(--serif);
+  font-size: clamp(1.7rem, 6.5vw, 2.15rem);
+  font-weight: 650;
+  margin: 0.35rem 0 0.45rem;
+  letter-spacing: -0.02em;
+}
+.charge-texte {
+  margin: 0;
+  max-width: 22rem;
+  color: var(--ink-soft);
+  font-size: 0.95rem;
+}
+.charge-retry {
+  margin-top: 1.2rem;
+  width: auto;
+  min-width: 10rem;
+  padding: 0.7rem 1.3rem;
+}
+.charge-orbite {
+  position: relative;
+  width: 7.6rem;
+  height: 7.6rem;
+  display: grid;
+  place-items: center;
+}
+.charge-anneau {
+  position: absolute;
+  inset: 0;
+  border: 1.5px solid var(--stamp);
+  opacity: 0.28;
+  border-radius: 50%;
+  pointer-events: none;
+}
+.charge-anneau-2 {
+  inset: 0.55rem;
+  opacity: 0.16;
+}
+.charge-anneau-spin {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  animation: kf-spin 1.15s linear infinite;
+}
+.charge-anneau-spin::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 2px solid transparent;
+  border-top-color: var(--stamp);
+  border-radius: 50%;
+}
+.charge-point {
+  position: absolute;
+  top: -2px;
+  left: 50%;
+  width: 8px;
+  height: 8px;
+  margin-left: -4px;
+  background: var(--live);
+  border-radius: 50%;
+}
+.charge-ballon-spin {
+  width: 3.35rem;
+  height: 3.35rem;
+  display: block;
+  animation: kf-spin 2.4s linear infinite;
+}
+@keyframes kf-spin {
+  to { transform: rotate(360deg); }
+}
+.charge-dots {
+  display: flex;
+  gap: 0.4rem;
+  margin: 1.1rem 0 0;
+  padding: 0;
+}
+.charge-dots i {
+  display: block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ink);
+  opacity: 0.22;
+  animation: kf-dots 1.2s ease-in-out infinite;
+}
+.charge-dots i:nth-child(2) { animation-delay: 0.15s; }
+.charge-dots i:nth-child(3) { animation-delay: 0.3s; }
+@keyframes kf-dots {
+  0%, 80%, 100% { opacity: 0.22; }
+  40% { opacity: 1; }
+}

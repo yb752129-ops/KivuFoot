@@ -65,43 +65,43 @@ export function KivuProvider({ children }) {
     return clubList;
   }
 
-  useEffect(() => {
-    let stop = false;
-    (async () => {
-      try {
-        const [comps, clubList] = await Promise.all([api.competitions(), api.clubs()]);
-        if (stop) return;
-        const list = comps || [];
-        const comp = choisirDans(list);
-        setCompetitions(list);
-        setCompetition(comp);
-        setClubs(clubList || []);
-        if (comp) {
-          const saisons = await api.saisons(comp.id);
-          const s = saisons?.[0] || null;
-          if (!stop) {
-            setSaison(s);
-            if (s) {
-              try {
-                const sc = await api.clubsSaison(s.id);
-                if (!stop) setSaisonClubs(sc || []);
-              } catch {
-                if (!stop) setSaisonClubs(null);
-              }
-            } else if (!stop) {
-              setSaisonClubs([]);
-            }
+  async function chargerTout() {
+    setError("");
+    setLoading(true);
+    try {
+      const [comps, clubList] = await Promise.all([api.competitions(), api.clubs()]);
+      const list = comps || [];
+      const comp = choisirDans(list);
+      setCompetitions(list);
+      setCompetition(comp);
+      setClubs(clubList || []);
+      if (comp) {
+        const saisons = await api.saisons(comp.id);
+        const s = saisons?.[0] || null;
+        setSaison(s);
+        if (s) {
+          try {
+            const sc = await api.clubsSaison(s.id);
+            setSaisonClubs(sc || []);
+          } catch {
+            setSaisonClubs(null);
           }
+        } else {
+          setSaisonClubs([]);
         }
-      } catch (e) {
-        if (!stop) setError(e.message || "API indisponible");
-      } finally {
-        if (!stop) setLoading(false);
+      } else {
+        setSaison(null);
+        setSaisonClubs([]);
       }
-    })();
-    return () => {
-      stop = true;
-    };
+    } catch (e) {
+      setError(e.message || "API indisponible");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    chargerTout();
   }, []);
 
   async function choisirCompetition(id, list = competitions) {
@@ -142,6 +142,7 @@ export function KivuProvider({ children }) {
         rechargerCompetitions,
         rechargerClubs,
         chargerClubsSaison,
+        reessayer: chargerTout,
         setClubs,
       }}
     >

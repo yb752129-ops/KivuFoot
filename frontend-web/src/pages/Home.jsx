@@ -20,7 +20,7 @@ function fusionner(a, b) {
 }
 
 export default function Home() {
-  const { loading, saison, clubsById } = useKivu();
+  const { saison, clubsById } = useKivu();
   const { user } = useAuth();
   const staff = user?.role === "organisateur" || user?.role === "admin";
   const [classement, setClassement] = useState([]);
@@ -73,8 +73,6 @@ export default function Home() {
     .filter((m) => (m.statut === "termine" || m.statut === "valide") && civilDate(m.date_heure) === jour)
     .sort((a, b) => new Date(a.date_heure) - new Date(b.date_heure));
   const apercu = classement.slice(0, 5);
-
-  if (loading) return <p className="empty">Chargement…</p>;
 
   return (
     <>

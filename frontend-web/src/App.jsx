@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from "react-router-dom";
-import { KivuProvider } from "./context.jsx";
+import { KivuProvider, useKivu } from "./context.jsx";
 import Layout from "./components/Layout.jsx";
+import ChargementEcran from "./components/ChargementEcran.jsx";
 import OrgaLayout from "./components/OrgaLayout.jsx";
 import CollecteurLayout from "./components/CollecteurLayout.jsx";
 import Home from "./pages/Home.jsx";
@@ -38,6 +39,15 @@ import AdminPropositions from "./pages/admin/Propositions.jsx";
 import { AuthProvider, useAuth } from "./auth.jsx";
 import { isAuthenticated } from "./api.js";
 
+function PorteChargement({ children }) {
+  const { loading, error, competitions, reessayer } = useKivu();
+  if (loading) return <ChargementEcran />;
+  if (error && competitions.length === 0) {
+    return <ChargementEcran erreur={error} onRetry={reessayer} />;
+  }
+  return children;
+}
+
 function Porte({ roles, children }) {
   const { user } = useAuth();
   if (!isAuthenticated()) return <Navigate to="/compte" replace />;
@@ -56,6 +66,7 @@ export default function App() {
   return (
     <AuthProvider>
       <KivuProvider>
+        <PorteChargement>
         <Routes>
           <Route element={<Layout />}>
             <Route path="/" element={<Home />} />
@@ -135,6 +146,7 @@ export default function App() {
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        </PorteChargement>
       </KivuProvider>
     </AuthProvider>
   );
