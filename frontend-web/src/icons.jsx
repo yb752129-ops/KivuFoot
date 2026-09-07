@@ -39,32 +39,31 @@ export function Ballon({ className }) {
   );
 }
 
-/** Botine / crampon — passe décisive, petite, à côté du nom. */
+/** Crampon de profil : tige, pointe, semelle, 4 crampons. */
 export function Botte({ className }) {
   return (
     <svg
       className={className}
-      viewBox="0 0 32 32"
-      width="16"
-      height="16"
+      viewBox="0 0 24 24"
+      width="22"
+      height="22"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      strokeLinecap="round"
+      strokeLinejoin="round"
       style={{
-        width: "1.05rem",
-        height: "1.05rem",
+        width: "1.35rem",
+        height: "1.35rem",
         verticalAlign: "middle",
-        marginRight: "0.35rem",
+        marginRight: "0.4rem",
         flexShrink: 0,
         display: "inline-block",
       }}
       aria-hidden="true"
     >
-      <path
-        fill="currentColor"
-        d="M4.2 20.4V10.6c0-.9.65-1.7 1.55-1.85l4.4-.75 2.15-3.05c.35-.5.95-.75 1.55-.65l3.35.55c3.35.55 5.95 2.85 6.8 5.95.45 1.65.15 3.35-.95 4.65-1.1 1.35-2.85 2.1-4.75 2.1H4.2z"
-      />
-      <path
-        fill="currentColor"
-        d="M5.4 21.5h2.05v3.15H5.4zm4.15 0h2.05v3.15H9.55zm4.2 0h2.05v2.9h-2.05zm4.25 0h1.95v2.65h-1.95z"
-      />
+      <path d="M4.2 8.2V16.4h12.4c1.1 0 2.35-.35 3.15-1.35.55-.7.7-1.55.55-2.35L19.3 9.4c-.3-.85-1.1-1.4-2-1.4h-3.15L11.4 5.2H6.1c-.9 0-1.9.7-1.9 1.7z" />
+      <path d="M6.4 16.4v3.1M10.2 16.4v3.1M14 16.4v2.85M17.4 16.4v2.45" />
     </svg>
   );
 }
