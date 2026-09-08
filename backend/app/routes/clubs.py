@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -10,6 +10,7 @@ from app.models.match import Match
 from app.models.user import User
 from app.schemas.competition import ClubCreate, ClubOut, ClubUpdate
 from app.services.audit import log_audit
+from app.services.stockage_logo import DepotRefus, uploader_logo
 
 router = APIRouter(prefix="/clubs", tags=["Clubs"])
 
@@ -112,3 +113,27 @@ async def supprimer_club(
     await db.delete(club)
     await db.commit()
     return None
+
+
+@router.post("/{club_id}/logo", response_model=ClubOut)
+async def depot_logo(
+    club_id: int,
+    fichier: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles(RoleUtilisateur.ADMIN, RoleUtilisateur.ORGANISATEUR)),
+):
+    club = await db.get(Club, club_id)
+    if club is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Club introuvable.")
+    data = await fichier.read()
+    try:
+        url = await uploader_logo(club_id, fichier.filename or "logo.png", data)
+    except DepotRefus as ex:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(ex))
+    avant = {"logo_url": club.logo_url}
+    club.logo_url = url
+    await log_audit(db, "clubs", club.id, ActionAudit.UPDATE, current_user.id, avant, {"logo_url": url})
+    await db.commit()
+    await db.refresh(club)
+    noms = await _coach_noms(db, [club_id])
+    return _club_out(club, noms.get(club_id))

@@ -35,6 +35,7 @@ export default function OrgaEquipe() {
   const [err, setErr] = useState("");
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
+  const [fichier, setFichier] = useState(null);
 
   async function load() {
     const c = await api.club(id);
@@ -108,6 +109,25 @@ export default function OrgaEquipe() {
     }
   }
 
+  async function envoyerLogo(e) {
+    e.preventDefault();
+    if (!fichier) return;
+    setBusy(true);
+    setErr("");
+    setMsg("");
+    try {
+      const c = await api.uploaderLogo(club.id, fichier);
+      setClub(c);
+      await rechargerClubs();
+      setFichier(null);
+      setMsg("Logo enregistré. Il s’affiche déjà sur la carte live.");
+    } catch (ex) {
+      setErr(ex.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function desinscrire() {
     if (!saison) return;
     if (!window.confirm("Retirer cette équipe de la compétition ? L’historique des matchs n’est pas effacé.")) return;
@@ -167,6 +187,30 @@ export default function OrgaEquipe() {
           </p>
         </>
       )}
+
+      <div className="section-head">
+        <h2>Logo du club</h2>
+      </div>
+      <div className="logo-bloc">
+        {club.logo_url ? (
+          <img className="logo-apercu" src={club.logo_url} alt={`Logo ${stripDemo(club.nom)}`} />
+        ) : (
+          <p className="empty">Pas encore de logo : l’écusson à monogramme s’affiche partout.</p>
+        )}
+        <form className="logo-form" onSubmit={envoyerLogo}>
+          <label className="field">
+            Fichier PNG, JPG ou SVG carré, 512 Ko max
+            <input
+              type="file"
+              accept="image/png,image/jpeg,image/svg+xml"
+              onChange={(e) => setFichier(e.target.files?.[0] || null)}
+            />
+          </label>
+          <button className="btn btn-primary" type="submit" disabled={busy || !fichier}>
+            {busy ? "…" : "Déposer le logo"}
+          </button>
+        </form>
+      </div>
 
       {edit && (
         <form className="compte-form" onSubmit={sauver}>

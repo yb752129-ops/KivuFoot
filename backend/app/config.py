@@ -31,6 +31,10 @@ class Settings(BaseSettings):
     # CORS
     cors_allow_origins: str = "http://localhost:5173"
 
+    # Supabase Storage (logos clubs) — secrets environnement seulement
+    supabase_url: str | None = None
+    supabase_service_role: str | None = None
+
     # Stockage fichiers (logos clubs, etc.) - optionnel V1
     s3_bucket: str | None = None
     s3_key: str | None = None

@@ -65,6 +65,36 @@ export const api = {
   club: (id) => request(`/clubs/${id}`),
   creerClub: (payload) => request("/clubs", { method: "POST", body: payload, auth: true }),
   modifierClub: (id, payload) => request(`/clubs/${id}`, { method: "PUT", body: payload, auth: true }),
+  uploaderLogo: (id, file) => {
+    const fd = new FormData();
+    fd.append("fichier", file);
+    const t = getToken();
+    return fetch(`${API}/clubs/${id}/logo`, {
+      method: "POST",
+      headers: { Accept: "application/json", ...(t ? { Authorization: `Bearer ${t}` } : {}) },
+      body: fd,
+    }).then(async (res) => {
+      const text = await res.text();
+      let data = null;
+      try {
+        data = text ? JSON.parse(text) : null;
+      } catch {
+        data = { detail: text };
+      }
+      if (!res.ok) {
+        const detail = data?.detail;
+        const msg = Array.isArray(detail)
+          ? detail.map((d) => d.msg || JSON.stringify(d)).join(" ")
+          : typeof detail === "string"
+            ? detail
+            : `Erreur ${res.status}`;
+        const err = new Error(msg);
+        err.status = res.status;
+        throw err;
+      }
+      return data;
+    });
+  },
   supprimerClub: (id) => request(`/clubs/${id}`, { method: "DELETE", auth: true }),
   clubsSaison: (saisonId) => request(`/saisons/${saisonId}/clubs`),
   inscrireClub: (saisonId, clubId) =>

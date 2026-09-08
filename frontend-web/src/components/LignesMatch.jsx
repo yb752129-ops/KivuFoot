@@ -50,6 +50,8 @@ export function LiveUne({ match, clubsById, evt }) {
   const journee = match.journee ? journeeTitre(match.journee) : "";
   const periode = periodeLabel(match.periode);
   const carton = evt?.type === "carton_rouge" ? "rouge" : evt?.type === "carton_jaune" ? "jaune" : "";
+  const logoHome = clubsById[match.equipe_domicile_id]?.logo_url;
+  const logoAway = clubsById[match.equipe_exterieur_id]?.logo_url;
   return (
     <Link to={`/matchs/${match.id}`} className="live-band">
       <div className="lk-top">
@@ -61,7 +63,7 @@ export function LiveUne({ match, clubsById, evt }) {
       </div>
       <div className="lk-body">
         <span className="lk-side">
-          <Ecu className="ecu" initiales={initiales(home)} />
+          {logoHome ? <img className="ecu ecu-img" src={logoHome} alt="" /> : <Ecu className="ecu" initiales={initiales(home)} />}
           <span className="lk-name">{home || "Équipe à nommer"}</span>
         </span>
         <span className="lk-center">
@@ -73,7 +75,7 @@ export function LiveUne({ match, clubsById, evt }) {
           <Chrono match={match} running={match.periode !== "mi_temps"} />
         </span>
         <span className="lk-side">
-          <Ecu className="ecu" initiales={initiales(away)} />
+          {logoAway ? <img className="ecu ecu-img" src={logoAway} alt="" /> : <Ecu className="ecu" initiales={initiales(away)} />}
           <span className="lk-name">{away || "Équipe à nommer"}</span>
         </span>
       </div>

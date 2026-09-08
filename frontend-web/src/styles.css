@@ -1902,3 +1902,22 @@ html[data-theme="dark"] {
   font-size: 0.8rem;
   color: rgba(239, 237, 230, 0.75);
 }
+
+/* ==== PACK LOGOS (8 sept 2026) — dépôt orga + affichage live ==== */
+.logo-bloc { display: flex; flex-direction: column; gap: 0.7rem; margin: 0 0 1.2rem; }
+.logo-apercu {
+  width: 5.5rem;
+  height: 5.5rem;
+  object-fit: contain;
+  background: #fff;
+  border: 1px solid var(--rule);
+  border-radius: 14px;
+  padding: 0.4rem;
+}
+.logo-form { display: flex; flex-direction: column; gap: 0.6rem; }
+.ecu-img {
+  object-fit: contain;
+  border-radius: 10px;
+  background: rgba(239, 237, 230, 0.92);
+  padding: 3px;
+}
