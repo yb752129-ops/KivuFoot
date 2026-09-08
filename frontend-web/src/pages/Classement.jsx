@@ -7,12 +7,32 @@ import { stripDemo } from "../display.js";
 export default function Classement() {
   const { saison } = useKivu();
   const [lignes, setLignes] = useState([]);
+  const [groupes, setGroupes] = useState([]);
+  const [groupe, setGroupe] = useState("");
   const [err, setErr] = useState("");
 
   useEffect(() => {
     if (!saison) return;
-    api.classement(saison.id).then(setLignes).catch((e) => setErr(e.message));
+    let stop = false;
+    api.matchs(saison.id)
+      .then((rows) => {
+        if (stop) return;
+        const gs = [...new Set((rows || []).map((m) => m.groupe).filter(Boolean))].sort();
+        setGroupes(gs);
+      })
+      .catch(() => { if (!stop) setGroupes([]); });
+    return () => { stop = true; };
   }, [saison]);
+
+  useEffect(() => {
+    if (!saison) return;
+    let stop = false;
+    setErr("");
+    api.classement(saison.id, groupe || undefined)
+      .then((l) => { if (!stop) setLignes(l); })
+      .catch((e) => { if (!stop) setErr(e.message); });
+    return () => { stop = true; };
+  }, [saison, groupe]);
 
   return (
     <section className="hero">
@@ -20,6 +40,18 @@ export default function Classement() {
         <h1 style={{ margin: 0 }}>Classement</h1>
         <Link to="/buteurs">Buteurs</Link>
       </div>
+      {groupes.length > 0 && (
+        <div className="pills" role="tablist" aria-label="Filtrer par groupe">
+          <button type="button" className={`pill${groupe === "" ? " pill-active" : ""}`} onClick={() => setGroupe("")}>
+            Général
+          </button>
+          {groupes.map((g) => (
+            <button key={g} type="button" className={`pill${groupe === g ? " pill-active" : ""}`} onClick={() => setGroupe(g)}>
+              Groupe {g}
+            </button>
+          ))}
+        </div>
+      )}
       {err && <p className="erreur">{err}</p>}
       <div className="table-wrap">
         {lignes.length === 0 && <p className="empty">Le classement se calcule sur les matchs validés.</p>}

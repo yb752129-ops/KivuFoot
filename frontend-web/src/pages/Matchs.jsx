@@ -42,6 +42,18 @@ export default function Matchs() {
     .sort((a, b) => new Date(b.date_heure) - new Date(a.date_heure));
   const groupesAvenir = groupMatchsByJournee(aVenir);
   const groupesTermines = groupMatchsByJournee(termines);
+  const PHASES = [
+    ["quart", "Quarts de finale"],
+    ["demi", "Demi-finales"],
+    ["finale", "Finale"],
+  ];
+  const phases = PHASES.map(([code, titre]) => ({
+    code,
+    titre,
+    items: matchs
+      .filter((m) => m.phase === code)
+      .sort((a, b) => new Date(a.date_heure) - new Date(b.date_heure)),
+  })).filter((p) => p.items.length > 0);
 
   return (
     <section className="hero">
@@ -49,6 +61,24 @@ export default function Matchs() {
 
       {lives.map((m) => (
         <LiveUne key={m.id} match={m} clubsById={clubsById} evt={evtsById[m.id] || null} />
+      ))}
+
+      {phases.length > 0 && (
+        <div className="section-head">
+          <h2>Phase finale</h2>
+        </div>
+      )}
+      {phases.map((p) => (
+        <div key={p.code} className="journee-block">
+          <p className="journee-date">{p.titre}</p>
+          {p.items.map((m) =>
+            m.statut === "programme" ? (
+              <AVenirLigne key={m.id} match={m} clubsById={clubsById} />
+            ) : (
+              <TermineLigne key={m.id} match={m} clubsById={clubsById} />
+            ),
+          )}
+        </div>
       ))}
 
       <div className="section-head">

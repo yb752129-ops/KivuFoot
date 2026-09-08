@@ -22,6 +22,8 @@ export default function OrgaCalendrier() {
   const [heureMatch, setHeureMatch] = useState("");
   const [stadeMatch, setStadeMatch] = useState("");
   const [journee, setJournee] = useState("");
+  const [phase, setPhase] = useState("poule");
+  const [groupe, setGroupe] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const [msg, setMsg] = useState("");
@@ -59,6 +61,8 @@ export default function OrgaCalendrier() {
       await api.creerMatch({
         saison_id: s.id,
         journee: journee.trim().slice(0, 20) || null,
+        phase: phase || "poule",
+        groupe: groupe || null,
         date_heure: isoDepuisDateHeure(dateMatch, heureMatch),
         stade: stadeMatch.trim() || domicile?.stade || null,
         equipe_domicile_id: d,
@@ -127,6 +131,25 @@ export default function OrgaCalendrier() {
               onChange={(e) => setStadeMatch(e.target.value)}
               placeholder={equipes.find((c) => String(c.id) === String(domId))?.stade || "à compléter"}
             />
+          </label>
+          <label className="field">
+            Phase
+            <select value={phase} onChange={(e) => setPhase(e.target.value)}>
+              <option value="poule">Poule</option>
+              <option value="quart">Quart de finale</option>
+              <option value="demi">Demi-finale</option>
+              <option value="finale">Finale</option>
+            </select>
+          </label>
+          <label className="field">
+            Groupe
+            <select value={groupe} onChange={(e) => setGroupe(e.target.value)}>
+              <option value="">Sans groupe</option>
+              <option value="A">Groupe A</option>
+              <option value="B">Groupe B</option>
+              <option value="C">Groupe C</option>
+              <option value="D">Groupe D</option>
+            </select>
           </label>
           <label className="field">
             Journée

@@ -1921,3 +1921,18 @@ html[data-theme="dark"] {
   background: rgba(239, 237, 230, 0.92);
   padding: 3px;
 }
+
+/* ==== PACK POULES-FRONT (8-9 sept 2026) — pilules de groupes ==== */
+.pills { display: flex; flex-wrap: wrap; gap: 0.45rem; margin: 0.6rem 0 0.9rem; }
+.pill {
+  border: 1.5px solid var(--rule-strong);
+  background: transparent;
+  color: var(--ink);
+  border-radius: 999px;
+  padding: 0.3rem 0.85rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.pill-active { background: var(--green); border-color: var(--green); color: var(--cream); }
