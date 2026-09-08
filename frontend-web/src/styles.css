@@ -1604,3 +1604,102 @@ html[data-theme="dark"] .bulletin-row {
   0%, 80%, 100% { opacity: 0.22; }
   40% { opacity: 1; }
 }
+
+/* ==== PACK DESIGN-1 (8 sept 2026) — copie de ref-direction-kivufoot.jpg ====
+   Uniquement des ajouts en fin de fichier : aucune ligne existante supprimée. */
+:root,
+html[data-theme="light"] {
+  --paper: #EFEDE6;
+  --paper-2: #E3E0D5;
+  --green: #0F3D2E;
+  --green-2: #14503C;
+  --lime: #C8F04A;
+  --cream: #EFEDE6;
+}
+html[data-theme="dark"] {
+  --green: #0B2E22;
+  --green-2: #123B2C;
+  --lime: #C8F04A;
+  --cream: #EFEDE6;
+}
+
+/* Masthead vert profond, wordmark crème */
+.masthead { background: var(--green); border-bottom: 0; }
+.masthead-inner { padding: 0.9rem 1rem 0.8rem; }
+.wordmark-name { color: var(--cream); }
+.wordmark-place { color: rgba(239, 237, 230, 0.72); }
+.masthead-row { gap: 0.6rem; }
+.masthead-row .wordmark { margin-right: auto; }
+.mast-round,
+.compte-personne {
+  flex: 0 0 auto;
+  width: 2.1rem;
+  height: 2.1rem;
+  display: grid;
+  place-items: center;
+  border: 1.5px solid rgba(239, 237, 230, 0.55);
+  border-radius: 50%;
+  color: var(--cream);
+  background: transparent;
+}
+.round-ico { width: 1.05rem; height: 1.05rem; display: block; }
+
+/* Sélecteur de compétition : pilule sombre sur vert */
+.comp-switch select {
+  background: var(--green-2);
+  color: var(--cream);
+  border: 1px solid rgba(239, 237, 230, 0.35);
+  border-radius: 999px;
+  padding: 0.45rem 0.9rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+/* Pastille DÉMO lime */
+.demo-line {
+  background: var(--lime);
+  color: #14201A;
+  border: 0;
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-weight: 700;
+}
+.demo-line::before {
+  content: "";
+  display: inline-block;
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: #14201A;
+  margin-right: 0.45rem;
+  vertical-align: middle;
+}
+
+/* Nav flottante vert foncé, actif lime + cran */
+.bottom-nav {
+  left: 0.8rem;
+  right: 0.8rem;
+  bottom: 0.8rem;
+  border-top: 0;
+  border-radius: 22px;
+  background: var(--green);
+  box-shadow: 0 12px 30px rgba(10, 25, 18, 0.35);
+  padding: 0.25rem 0.25rem calc(0.25rem + env(safe-area-inset-bottom));
+}
+.bottom-nav a { color: rgba(239, 237, 230, 0.66); border-radius: 18px; }
+.bottom-nav a.active { color: var(--lime); }
+.bottom-nav a.active::before {
+  content: "";
+  position: absolute;
+  top: 0.15rem;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 1.6rem;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--lime);
+}
+
+/* Carte live et bulletin : mêmes rayons que la maquette */
+.live-band { background: var(--green); border-radius: 18px; }
+.bulletin-row { border-radius: 16px; }

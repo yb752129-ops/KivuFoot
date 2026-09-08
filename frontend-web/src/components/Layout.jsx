@@ -1,9 +1,8 @@
-import { useState } from "react";
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { NavLink, Outlet } from "react-router-dom";
 import { useAuth } from "../auth.jsx";
 import { useKivu } from "../context.jsx";
 import { stripDemo } from "../display.js";
-import { IcoBouclier, IcoCalendrier, IcoClassement, IcoHome, IcoPersonne } from "../icons.jsx";
+import { IcoBouclier, IcoCalendrier, IcoClassement, IcoHome, IcoPersonne, IcoRecherche } from "../icons.jsx";
 import Marque from "./Marque.jsx";
 
 const SOMMAIRE = [
@@ -12,29 +11,6 @@ const SOMMAIRE = [
   { to: "/classement", label: "Classement", Icon: IcoClassement },
   { to: "/clubs", label: "Clubs", Icon: IcoBouclier },
 ];
-
-function RechercheChamp() {
-  const navigate = useNavigate();
-  const [q, setQ] = useState("");
-  function go(e) {
-    e.preventDefault();
-    const t = q.trim();
-    if (!t) return;
-    navigate(`/recherche?q=${encodeURIComponent(t)}`);
-  }
-  return (
-    <form className="mast-search" onSubmit={go} role="search">
-      <input
-        type="search"
-        name="q"
-        placeholder="Rechercher sur KivuFoot"
-        value={q}
-        onChange={(e) => setQ(e.target.value)}
-        aria-label="Rechercher sur KivuFoot"
-      />
-    </form>
-  );
-}
 
 export default function Layout() {
   const { competition, competitions, choisirCompetition, error } = useKivu();
@@ -47,7 +23,9 @@ export default function Layout() {
             <NavLink to="/" className="wordmark" aria-label="KivuFoot, Sud-Kivu">
               <Marque />
             </NavLink>
-            <RechercheChamp />
+            <NavLink to="/recherche" className="mast-round" aria-label="Rechercher sur KivuFoot">
+              <IcoRecherche className="round-ico" />
+            </NavLink>
             <NavLink
               to="/compte"
               className="compte-personne"
