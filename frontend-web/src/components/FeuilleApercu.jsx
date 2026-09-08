@@ -1,27 +1,23 @@
-import { Ballon, Botte, Carton, FlecheIn, FlecheOut } from "../icons.jsx";
+import { Ballon, Botte, Carton, IcoCsc, IcoPenalty, IcoRefuse, IcoRemplacement, IcoSifflet } from "../icons.jsx";
 import { estPeriodeUn, formatMinute, labelEvenement, MOTIF_REFUS } from "../display.js";
 
 function Ico({ e }) {
   if (e.type === "carton_jaune") return <Carton couleur="jaune" />;
   if (e.type === "carton_rouge") return <Carton couleur="rouge" />;
-  const ballon = e.type === "but" || e.type === "but_contre_son_camp"
-    || (e.type === "penalty" && e.resultat !== "rate" && e.resultat !== "raté");
-  if (ballon) {
-    return (
-      <span className="feuille-ballon-wrap">
-        <Ballon className="fait-ballon" />
-        {e.refuse && <span className="fait-rate" aria-hidden="true">×</span>}
-      </span>
-    );
+  if (e.type === "remplacement") return <IcoRemplacement className="fait-ballon" />;
+  if (e.refuse) return <IcoRefuse className="fait-ballon" />;
+  if (e.type === "but") return <Ballon className="fait-ballon" />;
+  if (e.type === "but_contre_son_camp") return <IcoCsc className="fait-ballon" />;
+  if (e.type === "penalty") {
+    const rate = e.resultat === "rate" || e.resultat === "raté";
+    return rate ? <IcoRefuse className="fait-ballon" /> : <IcoPenalty className="fait-ballon" />;
   }
-  if (e.type === "penalty") return <span className="fait-rate" aria-hidden="true">×</span>;
   return null;
 }
 
 function Texte({ e, nom }) {
   const joueur = nom(e.joueur_id);
   const second = e.joueur_secondaire_id ? nom(e.joueur_secondaire_id) : "";
-  const penaltyRate = e.type === "penalty" && (e.resultat === "rate" || e.resultat === "raté");
   const sub = e.type === "remplacement";
   const assist = !e.refuse && e.type === "but" && second;
   const motif = MOTIF_REFUS[e.motif_refus] || e.motif_refus;
@@ -34,13 +30,12 @@ function Texte({ e, nom }) {
       <div>
         {sub ? (
           <p className="fait-sub">
-            <span className="fait-out"><FlecheOut className="fait-fleche" /> Sort : {joueur || "à compléter"}</span>
-            <span className="fait-in"><FlecheIn className="fait-fleche" /> Entre : {second || "à compléter"}</span>
+            <span className="fait-in">{second || "à compléter"}</span>
+            <span className="fait-out">{joueur || "à compléter"}</span>
           </p>
         ) : (
           <p className="fait-ligne">
             {tag && <span className="fait-tag">{tag}</span>}
-            {penaltyRate && !e.refuse && <span className="fait-rate" aria-hidden="true">×</span>}
             <span className="fait-nom">{joueur}</span>
           </p>
         )}
@@ -94,14 +89,14 @@ export default function FeuilleApercu({ faits, nom, match }) {
 
   return (
     <ul className="feuille-apercu">
-      {montreCoup && <li className="feuille-break">Coup d’envoi</li>}
+      {montreCoup && <li className="feuille-break"><IcoSifflet />Coup d’envoi</li>}
       {lignes(p1)}
-      {montreHt && <li className="feuille-break">Mi-temps</li>}
-      {montreP2 && <li className="feuille-break">2e période</li>}
+      {montreHt && <li className="feuille-break"><IcoSifflet />Mi-temps</li>}
+      {montreP2 && <li className="feuille-break"><IcoSifflet />2e période</li>}
       {lignes(p2)}
       {montreFin && (
         <li className="feuille-break">
-          Fin {match.score_domicile}–{match.score_exterieur}
+          <IcoSifflet />Fin {match.score_domicile}–{match.score_exterieur}
         </li>
       )}
     </ul>
