@@ -9,8 +9,12 @@ router = APIRouter(prefix="/classement", tags=["Classement"])
 
 
 @router.get("", response_model=list[ClassementLigne])
-async def classement_saison(saison_id: int, db: AsyncSession = Depends(get_db)):
-    lignes = await calculer_classement(db, saison_id)
+async def classement_saison(
+    saison_id: int,
+    db: AsyncSession = Depends(get_db),
+    groupe: str | None = None,
+):
+    lignes = await calculer_classement(db, saison_id, groupe=groupe)
     return [
         ClassementLigne(
             club_id=l.club_id,
@@ -29,8 +33,13 @@ async def classement_saison(saison_id: int, db: AsyncSession = Depends(get_db)):
 
 
 @router.get("/club/{club_id}")
-async def position_club(club_id: int, saison_id: int, db: AsyncSession = Depends(get_db)):
-    lignes = await calculer_classement(db, saison_id)
+async def position_club(
+    club_id: int,
+    saison_id: int,
+    db: AsyncSession = Depends(get_db),
+    groupe: str | None = None,
+):
+    lignes = await calculer_classement(db, saison_id, groupe=groupe)
     for position, ligne in enumerate(lignes, start=1):
         if ligne.club_id == club_id:
             return {

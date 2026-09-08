@@ -21,6 +21,8 @@ class MatchOut(BaseModel):
     started_at: datetime | None = None
     ended_at: datetime | None = None
     periode: PeriodeMatch | None = None
+    phase: str = "poule"
+    groupe: str | None = None
     periode_started_at: datetime | None = None
     paused_at: datetime | None = None
     forfait: bool
@@ -35,6 +37,8 @@ class MatchCreate(BaseModel):
     stade: str | None = None
     equipe_domicile_id: int
     equipe_exterieur_id: int
+    phase: str = "poule"
+    groupe: str | None = None
 
     @field_validator("equipe_exterieur_id")
     @classmethod
@@ -43,6 +47,11 @@ class MatchCreate(BaseModel):
         if dom is not None and v == dom:
             raise ValueError("Une équipe ne peut pas jouer contre elle-même.")
         return v
+
+
+class MatchPhaseUpdate(BaseModel):
+    phase: str = "poule"
+    groupe: str | None = None
 
 
 class MatchStatutUpdate(BaseModel):

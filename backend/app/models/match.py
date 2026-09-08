@@ -29,6 +29,8 @@ class Match(Base):
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     ended_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     periode: Mapped[PeriodeMatch | None] = mapped_column(String(12))
+    phase: Mapped[str] = mapped_column(String(10), default="poule", nullable=False)
+    groupe: Mapped[str | None] = mapped_column(String(2))
     periode_started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     paused_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 

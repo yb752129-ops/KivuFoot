@@ -12,7 +12,7 @@ from app.models.enums import ActionAudit, EquipeConcernee, PeriodeMatch, RoleUti
 from app.models.joueur import Joueur
 from app.models.match import Match, MatchParticipation
 from app.models.user import User
-from app.schemas.match import MatchCreate, MatchOut, ParticipationCreate, ParticipationOut, ParticipationUpdate
+from app.schemas.match import MatchCreate, MatchOut, MatchPhaseUpdate, ParticipationCreate, ParticipationOut, ParticipationUpdate
 from app.services.audit import log_audit
 from app.services.validation import valider_match
 
@@ -23,6 +23,8 @@ router = APIRouter(prefix="/matchs", tags=["Matchs"])
 async def lister_matchs(
     db: AsyncSession = Depends(get_db),
     saison_id: int | None = None,
+    phase: str | None = None,
+    groupe: str | None = None,
     limit: int = 20,
     offset: int = 0,
 ):
@@ -40,6 +42,10 @@ async def lister_matchs(
     )
     if saison_id:
         query = query.where(Match.saison_id == saison_id)
+    if phase:
+        query = query.where(Match.phase == phase)
+    if groupe:
+        query = query.where(Match.groupe == groupe)
     result = await db.execute(query.order_by(Match.date_heure.desc()).limit(min(limit, 100)).offset(offset))
     return result.scalars().all()
 
@@ -56,6 +62,10 @@ async def lister_matchs_gestion(
     query = select(Match)
     if saison_id:
         query = query.where(Match.saison_id == saison_id)
+    if phase:
+        query = query.where(Match.phase == phase)
+    if groupe:
+        query = query.where(Match.groupe == groupe)
     result = await db.execute(query.order_by(Match.date_heure.desc()).limit(min(limit, 100)).offset(offset))
     return result.scalars().all()
 
@@ -274,3 +284,31 @@ async def ajouter_participation(
 async def lister_participations(match_id: int, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(MatchParticipation).where(MatchParticipation.match_id == match_id))
     return result.scalars().all()
+
+
+PHASES_VALIDES = ("poule", "quart", "demi", "finale")
+
+
+@router.put("/{match_id}/phase", response_model=MatchOut)
+async def changer_phase_match(
+    match_id: int,
+    payload: MatchPhaseUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles(RoleUtilisateur.ADMIN, RoleUtilisateur.ORGANISATEUR)),
+):
+    match_ = await db.get(Match, match_id)
+    if match_ is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Match introuvable.")
+    if match_.locked:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Match verrouillé : phase non modifiable.")
+    if payload.phase not in PHASES_VALIDES:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Phase inconnue : poule, quart, demi ou finale.")
+    if payload.groupe is not None and len(payload.groupe) > 2:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Groupe : une ou deux lettres.")
+    avant = {"phase": match_.phase, "groupe": match_.groupe}
+    match_.phase = payload.phase
+    match_.groupe = payload.groupe
+    await log_audit(db, "matchs", match_.id, ActionAudit.UPDATE, current_user.id, avant, payload.model_dump())
+    await db.commit()
+    await db.refresh(match_)
+    return match_

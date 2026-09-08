@@ -40,10 +40,15 @@ class LigneClassement:
         return self.victoires * 3 + self.nuls
 
 
-async def calculer_classement(db: AsyncSession, saison_id: int) -> list[LigneClassement]:
-    result = await db.execute(
-        select(Match).where(Match.saison_id == saison_id, Match.statut == StatutMatch.VALIDE)
-    )
+async def calculer_classement(
+    db: AsyncSession,
+    saison_id: int,
+    groupe: str | None = None,
+) -> list[LigneClassement]:
+    query = select(Match).where(Match.saison_id == saison_id, Match.statut == StatutMatch.VALIDE)
+    if groupe:
+        query = query.where(Match.groupe == groupe)
+    result = await db.execute(query)
     matchs_valides = result.scalars().all()
 
     club_ids: set[int] = set()
