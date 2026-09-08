@@ -54,6 +54,8 @@ async def lister_matchs(
 async def lister_matchs_gestion(
     db: AsyncSession = Depends(get_db),
     saison_id: int | None = None,
+    phase: str | None = None,
+    groupe: str | None = None,
     current_user: User = Depends(require_roles(RoleUtilisateur.ADMIN, RoleUtilisateur.ORGANISATEUR)),
     limit: int = 50,
     offset: int = 0,
