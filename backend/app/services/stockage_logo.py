@@ -24,17 +24,20 @@ async def uploader_logo(club_id: int, nom_fichier: str, data: bytes) -> str:
     if len(data) > MAX_OCTETS:
         raise DepotRefus("Fichier trop lourd : 512 Ko maximum.")
     base = settings.supabase_url.rstrip("/")
+    cle = settings.supabase_service_role
     chemin = f"clubs/{club_id}.{ext}"
     async with httpx.AsyncClient(timeout=30) as client:
         r = await client.post(
             f"{base}/storage/v1/object/logos-clubs/{chemin}",
             content=data,
             headers={
-                "Authorization": f"Bearer {settings.supabase_service_role}",
+                "Authorization": f"Bearer {cle}",
+                "apikey": cle,
                 "Content-Type": EXTS[ext],
                 "x-upsert": "true",
             },
         )
     if r.status_code >= 400:
-        raise DepotRefus(f"Le stockage a refusé le fichier (code {r.status_code}).")
+        detail = r.text[:180]
+        raise DepotRefus(f"Le stockage a refusé le fichier (code {r.status_code}) : {detail}")
     return f"{base}/storage/v1/object/public/logos-clubs/{chemin}"
