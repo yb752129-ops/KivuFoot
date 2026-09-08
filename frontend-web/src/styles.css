@@ -1703,3 +1703,88 @@ html[data-theme="dark"] {
 /* Carte live et bulletin : mêmes rayons que la maquette */
 .live-band { background: var(--green); border-radius: 18px; }
 .bulletin-row { border-radius: 16px; }
+
+/* ==== PACK DESIGN-2 (8 sept 2026) — carte live copiée sur la maquette ==== */
+.mast-search input {
+  background: rgba(239, 237, 230, 0.12);
+  border: 1.5px solid rgba(239, 237, 230, 0.5);
+  color: var(--cream);
+}
+.mast-search input::placeholder { color: rgba(239, 237, 230, 0.6); }
+
+/* Carte live : structure de ref-direction-kivufoot.jpg */
+.live-band { padding: 0; overflow: hidden; border-radius: 18px; }
+.lk-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.7rem 1rem;
+  border-bottom: 1px solid rgba(239, 237, 230, 0.16);
+  font-size: 0.66rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+.live-band .lk-top .live-now {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  width: auto;
+  justify-content: flex-start;
+  color: #f3efe4;
+  font-size: 0.66rem;
+  letter-spacing: 0.18em;
+}
+.lk-journee { color: rgba(239, 237, 230, 0.85); text-align: right; }
+.lk-body {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 1.1rem 1rem 0.9rem;
+}
+.lk-side {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+.ecu { width: 3.4rem; height: auto; display: block; }
+.lk-name { font-weight: 700; font-size: 0.9rem; text-align: center; line-height: 1.2; }
+.lk-center { text-align: center; }
+.lk-center .live-score { margin: 0; }
+.lk-center .chrono,
+.lk-center .live-min {
+  margin: 0.35rem 0 0;
+  font-family: var(--score);
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  opacity: 0.85;
+  color: #f3efe4;
+}
+.live-band .live-evt {
+  margin: 0;
+  padding: 0.75rem 1rem;
+  border-top: 1px solid rgba(239, 237, 230, 0.16);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  opacity: 1;
+}
+.lk-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.8rem 1rem 0.9rem;
+  font-size: 0.66rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: rgba(239, 237, 230, 0.8);
+}
+.lk-voir { display: flex; align-items: center; gap: 0.3rem; color: #f3efe4; }
+.lk-voir .bulletin-chevron { width: 0.9rem; height: 0.9rem; color: #f3efe4; }

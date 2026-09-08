@@ -165,3 +165,23 @@ export function IcoRecherche({ className }) {
     </svg>
   );
 }
+
+/** Cloche en trait : bouton rond du masthead (maquette). Ouvre les matchs en direct. */
+export function IcoCloche({ className }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 4c-3.6 0-6 2.6-6 6.2v3.2l-1.7 2.4h15.4L18 13.4v-3.2C18 6.6 15.6 4 12 4Z" />
+      <path d="M10.2 18.8a1.9 1.9 0 0 0 3.6 0" />
+    </svg>
+  );
+}
+
+/** Écusson crème à monogramme, comme les boucliers de la maquette. */
+export function Ecu({ initiales, className }) {
+  return (
+    <svg className={className} viewBox="0 0 44 50" aria-hidden="true">
+      <path d="M22 1 43 8v18c0 12-9 20-21 23C10 46 1 38 1 26V8Z" fill="var(--cream, #EFEDE6)" />
+      <text x="22" y="31" textAnchor="middle" fontSize="15" fontWeight="700" fill="#0F3D2E" fontFamily="inherit">{initiales}</text>
+    </svg>
+  );
+}

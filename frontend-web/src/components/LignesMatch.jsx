@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { clubName } from "../context.jsx";
 import Chrono from "./Chrono.jsx";
-import { Carton } from "../icons.jsx";
+import { Carton, Ecu } from "../icons.jsx";
 import {
   formatDateline,
   formatHeure,
@@ -14,6 +14,13 @@ import {
 
 export function nomClub(clubsById, id) {
   return stripDemo(clubName(clubsById, id));
+}
+
+function initiales(nom) {
+  const mots = (nom || "").split(/\s+/).filter(Boolean);
+  const a = mots[0]?.[0] || "?";
+  const b = mots[1]?.[0] || mots[0]?.[1] || "";
+  return (a + b).toUpperCase();
 }
 
 function Chevron() {
@@ -35,26 +42,30 @@ export function LiveUne({ match, clubsById, evt }) {
   const carton = evt?.type === "carton_rouge" ? "rouge" : evt?.type === "carton_jaune" ? "jaune" : "";
   return (
     <Link to={`/matchs/${match.id}`} className="live-band">
-      <p className="live-now">
-        <span className="live-dot" aria-hidden="true"><b /></span>
-        {match.periode === "mi_temps" ? "Mi-temps" : "En cours"}
-      </p>
-      {(journee || periode) && (
-        <p className="live-kicker">
-          {[journee, periode].filter(Boolean).join(" · ")}
-        </p>
-      )}
-      <div className="live-body">
-        <Chrono match={match} running={match.periode !== "mi_temps"} />
-        <div className="live-center">
-          <p className="live-team">{home || "Équipe à nommer"}</p>
+      <div className="lk-top">
+        <span className="live-now">
+          <span className="live-dot" aria-hidden="true"><b /></span>
+          {match.periode === "mi_temps" ? "Mi-temps" : "En cours"}
+        </span>
+        <span className="lk-journee">{[journee, periode].filter(Boolean).join(" · ")}</span>
+      </div>
+      <div className="lk-body">
+        <span className="lk-side">
+          <Ecu className="ecu" initiales={initiales(home)} />
+          <span className="lk-name">{home || "Équipe à nommer"}</span>
+        </span>
+        <span className="lk-center">
           <p className="live-score">
             {sd}
             <span className="sb-dash">–</span>
             {se}
           </p>
-          <p className="live-team">{away || "Équipe à nommer"}</p>
-        </div>
+          <Chrono match={match} running={match.periode !== "mi_temps"} />
+        </span>
+        <span className="lk-side">
+          <Ecu className="ecu" initiales={initiales(away)} />
+          <span className="lk-name">{away || "Équipe à nommer"}</span>
+        </span>
       </div>
       {evt && (
         <p className="live-evt">
@@ -63,6 +74,10 @@ export function LiveUne({ match, clubsById, evt }) {
           {cote ? ` · ${cote}` : ""}
         </p>
       )}
+      <div className="lk-foot">
+        <span>Feuille en direct</span>
+        <span className="lk-voir">Voir le match <Chevron /></span>
+      </div>
     </Link>
   );
 }

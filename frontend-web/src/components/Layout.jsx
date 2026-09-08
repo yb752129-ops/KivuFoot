@@ -2,7 +2,7 @@ import { NavLink, Outlet } from "react-router-dom";
 import { useAuth } from "../auth.jsx";
 import { useKivu } from "../context.jsx";
 import { stripDemo } from "../display.js";
-import { IcoBouclier, IcoCalendrier, IcoClassement, IcoHome, IcoPersonne, IcoRecherche } from "../icons.jsx";
+import { IcoBouclier, IcoCalendrier, IcoClassement, IcoCloche, IcoHome, IcoPersonne } from "../icons.jsx";
 import Marque from "./Marque.jsx";
 
 const SOMMAIRE = [
@@ -11,6 +11,19 @@ const SOMMAIRE = [
   { to: "/classement", label: "Classement", Icon: IcoClassement },
   { to: "/clubs", label: "Clubs", Icon: IcoBouclier },
 ];
+
+function RechercheChamp() {
+  return (
+    <form className="mast-search" role="search" action="/recherche" method="get">
+      <input
+        type="search"
+        name="q"
+        placeholder="Rechercher sur KivuFoot"
+        aria-label="Rechercher sur KivuFoot"
+      />
+    </form>
+  );
+}
 
 export default function Layout() {
   const { competition, competitions, choisirCompetition, error } = useKivu();
@@ -23,8 +36,9 @@ export default function Layout() {
             <NavLink to="/" className="wordmark" aria-label="KivuFoot, Sud-Kivu">
               <Marque />
             </NavLink>
-            <NavLink to="/recherche" className="mast-round" aria-label="Rechercher sur KivuFoot">
-              <IcoRecherche className="round-ico" />
+            <RechercheChamp />
+            <NavLink to="/matchs" className="mast-round" aria-label="Matchs en direct">
+              <IcoCloche className="round-ico" />
             </NavLink>
             <NavLink
               to="/compte"
