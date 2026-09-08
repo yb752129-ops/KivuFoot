@@ -1817,3 +1817,88 @@ html[data-theme="dark"] {
   color: var(--ink-soft);
 }
 .off-ico { width: 0.85rem; height: 0.85rem; flex: 0 0 auto; }
+
+/* ==== PACK DESIGN-4 (8 sept 2026) — cloche vivante + bloc N° maquette ==== */
+.bulletin-hero {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 1rem;
+}
+.hero-num {
+  margin: 0 0 0.35rem;
+  font-family: var(--score);
+  text-align: right;
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--ink);
+  white-space: nowrap;
+}
+.hero-num span {
+  display: block;
+  font-family: var(--sans);
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+.cloche-wrap { position: relative; flex: 0 0 auto; }
+.cloche-badge {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  min-width: 1rem;
+  height: 1rem;
+  border-radius: 999px;
+  background: var(--lime);
+  color: #14201A;
+  font-size: 0.62rem;
+  font-weight: 800;
+  display: grid;
+  place-items: center;
+  padding: 0 0.25rem;
+}
+.cloche-panel {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 0.6rem);
+  width: 16.5rem;
+  background: var(--green);
+  color: var(--cream);
+  border-radius: 16px;
+  box-shadow: 0 16px 40px rgba(10, 25, 18, 0.4);
+  padding: 0.6rem;
+  z-index: 60;
+}
+.cloche-titre {
+  margin: 0.15rem 0.35rem 0.45rem;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--lime);
+}
+.cloche-ligne {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.35rem;
+  font-size: 0.82rem;
+}
+.cloche-ligne + .cloche-ligne { border-top: 1px solid rgba(239, 237, 230, 0.14); }
+.cloche-ligne b { margin-left: auto; font-family: var(--score); font-size: 1rem; letter-spacing: 0.04em; }
+.cloche-ligne .chrono,
+.cloche-ligne .live-min {
+  color: var(--lime);
+  font-family: var(--score);
+  font-size: 0.8rem;
+  font-weight: 700;
+  margin: 0;
+}
+.cloche-vide {
+  margin: 0.2rem 0.35rem 0.4rem;
+  font-size: 0.8rem;
+  color: rgba(239, 237, 230, 0.75);
+}

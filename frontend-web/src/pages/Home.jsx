@@ -74,13 +74,27 @@ export default function Home() {
     .sort((a, b) => new Date(a.date_heure) - new Date(b.date_heure));
   const apercu = classement.slice(0, 5);
   const nomComp = competition ? stripDemo(competition.nom) : "";
+  const numJ =
+    lives[0]?.journee
+    || aVenir[0]?.journee
+    || termines[termines.length - 1]?.journee
+    || programmes[programmes.length - 1]?.journee
+    || 0;
 
   return (
     <>
       <header className="bulletin-hero">
-        <p className="kicker">Bulletin de compétition</p>
-        <h1>Le terrain, sans détour.</h1>
-        {nomComp && <p className="lead">{nomComp}</p>}
+        <div>
+          <p className="kicker">Bulletin de compétition</p>
+          <h1>Le terrain, sans détour.</h1>
+          {nomComp && <p className="lead">{nomComp}</p>}
+        </div>
+        {numJ ? (
+          <p className="hero-num">
+            N° {String(numJ).padStart(2, "0")}
+            <span>feuille officielle</span>
+          </p>
+        ) : null}
       </header>
 
       {lives.map((m) => (

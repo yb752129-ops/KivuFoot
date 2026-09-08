@@ -1,8 +1,11 @@
-import { NavLink, Outlet } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, NavLink, Outlet } from "react-router-dom";
+import { api } from "../api.js";
 import { useAuth } from "../auth.jsx";
-import { useKivu } from "../context.jsx";
+import { clubName, useKivu } from "../context.jsx";
 import { stripDemo } from "../display.js";
 import { IcoBouclier, IcoCalendrier, IcoClassement, IcoCloche, IcoHome, IcoPersonne } from "../icons.jsx";
+import Chrono from "./Chrono.jsx";
 import Marque from "./Marque.jsx";
 
 const SOMMAIRE = [
@@ -25,6 +28,62 @@ function RechercheChamp() {
   );
 }
 
+function Cloche() {
+  const { saison, clubsById } = useKivu();
+  const [open, setOpen] = useState(false);
+  const [lives, setLives] = useState([]);
+
+  useEffect(() => {
+    if (!saison) return undefined;
+    let stop = false;
+    function charge() {
+      api.matchs(saison.id)
+        .then((rows) => {
+          if (!stop) setLives((rows || []).filter((m) => m.statut === "en_cours"));
+        })
+        .catch(() => { if (!stop) setLives([]); });
+    }
+    charge();
+    const t = setInterval(charge, 30000);
+    return () => { stop = true; clearInterval(t); };
+  }, [saison]);
+
+  return (
+    <div className="cloche-wrap">
+      <button
+        type="button"
+        className="mast-round"
+        aria-label={lives.length ? `Matchs en direct : ${lives.length}` : "Matchs en direct"}
+        aria-expanded={open}
+        onClick={() => setOpen((o) => !o)}
+      >
+        <IcoCloche className="round-ico" />
+        {lives.length > 0 && <span className="cloche-badge">{lives.length}</span>}
+      </button>
+      {open && (
+        <div className="cloche-panel" role="dialog" aria-label="Matchs en direct">
+          <p className="cloche-titre">En direct</p>
+          {lives.length === 0 && <p className="cloche-vide">Aucun match en direct.</p>}
+          {lives.map((m) => (
+            <Link
+              key={m.id}
+              to={`/matchs/${m.id}`}
+              className="cloche-ligne"
+              onClick={() => setOpen(false)}
+            >
+              <Chrono match={m} running />
+              <span>
+                {stripDemo(clubName(clubsById, m.equipe_domicile_id))} – {stripDemo(clubName(clubsById, m.equipe_exterieur_id))}
+              </span>
+              <b>{m.score_domicile}–{m.score_exterieur}</b>
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Layout() {
   const { competition, competitions, choisirCompetition, error } = useKivu();
   const { prenom } = useAuth();
@@ -37,9 +96,7 @@ export default function Layout() {
               <Marque />
             </NavLink>
             <RechercheChamp />
-            <NavLink to="/matchs" className="mast-round" aria-label="Matchs en direct">
-              <IcoCloche className="round-ico" />
-            </NavLink>
+            <Cloche />
             <NavLink
               to="/compte"
               className="compte-personne"
