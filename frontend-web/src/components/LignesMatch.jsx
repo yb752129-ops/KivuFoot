@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { clubName } from "../context.jsx";
 import Chrono from "./Chrono.jsx";
-import { Carton, Ecu } from "../icons.jsx";
+import { Carton, Ecu, IcoEpingle } from "../icons.jsx";
 import {
   formatDateline,
   formatHeure,
@@ -21,6 +21,16 @@ function initiales(nom) {
   const a = mots[0]?.[0] || "?";
   const b = mots[1]?.[0] || mots[0]?.[1] || "";
   return (a + b).toUpperCase();
+}
+
+function SceauDoc() {
+  return (
+    <svg className="off-ico" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M6 3h9l4 4v14H6z" />
+      <path d="M15 3v4h4" />
+      <path d="M9.5 13.5l2 2 3.5-4" />
+    </svg>
+  );
 }
 
 function Chevron() {
@@ -95,7 +105,7 @@ export function AVenirLigne({ match, clubsById, to }) {
       <span className="bulletin-noms">
         <span>{home || "Équipe à nommer"}</span>
         <span>{away || "Équipe à nommer"}</span>
-        {lieu && <span className="bulletin-lieu">{lieu}</span>}
+        {lieu && <span className="bulletin-lieu"><IcoEpingle className="lieu-ico" />{lieu}</span>}
       </span>
       <Chevron />
     </Link>
@@ -115,10 +125,11 @@ export function TermineLigne({ match, clubsById, to }) {
       <span className="bulletin-noms">
         <span>{home || "Équipe à nommer"}</span>
         <span>{away || "Équipe à nommer"}</span>
-        {officiel && <span className="bulletin-lieu">Résultat officiel</span>}
+        {officiel && <span className="bulletin-officiel"><SceauDoc />Résultat officiel</span>}
       </span>
       <span className="bulletin-score">
         {match.score_domicile}–{match.score_exterieur}
+        <Chevron />
       </span>
     </Link>
   );

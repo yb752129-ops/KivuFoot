@@ -185,3 +185,13 @@ export function Ecu({ initiales, className }) {
     </svg>
   );
 }
+
+/** Épingle de lieu en trait, pour les lignes du bulletin (maquette). */
+export function IcoEpingle({ className }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 21c-4.4-5.2-6.8-8.6-6.8-12a6.8 6.8 0 0 1 13.6 0c0 3.4-2.4 6.8-6.8 12Z" />
+      <circle cx="12" cy="9" r="2.4" />
+    </svg>
+  );
+}
