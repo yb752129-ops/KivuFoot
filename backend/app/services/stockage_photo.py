@@ -23,13 +23,17 @@ def url_publique(storage_key: str) -> str:
 
 
 async def _assurer_bucket(client: httpx.AsyncClient, base: str, cle: str) -> None:
+    entetes = {"Authorization": f"Bearer {cle}", "apikey": cle}
+    existe = await client.get(f"{base}/storage/v1/bucket/{BUCKET}", headers=entetes)
+    if existe.status_code == 200:
+        return
     r = await client.post(
         f"{base}/storage/v1/bucket",
         json={"id": BUCKET, "name": BUCKET, "public": True},
-        headers={"Authorization": f"Bearer {cle}", "apikey": cle, "Content-Type": "application/json"},
+        headers={**entetes, "Content-Type": "application/json"},
     )
-    # 409 = le bucket existe déjà : c'est le cas nominal.
-    if r.status_code >= 400 and r.status_code != 409:
+    # 400 ou 409 = le bucket existe déjà : cas nominal.
+    if r.status_code >= 400 and r.status_code not in (400, 409):
         raise DepotRefus(f"Impossible de préparer le stockage (code {r.status_code}).")
 
 

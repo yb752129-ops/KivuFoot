@@ -104,13 +104,13 @@ async def photos_en_attente(
             if j:
                 ligne.sujet_nom = j.nom_complet
                 ligne.sujet_club_id = j.club_actuel_id
-                ligne.sujet_poste = j.poste.value if j.poste else None
+                ligne.sujet_poste = getattr(j.poste, "value", j.poste)
         else:
             s = await db.get(Staff, ph.sujet_id)
             if s:
                 ligne.sujet_nom = s.nom_complet
                 ligne.sujet_club_id = s.club_id
-                ligne.sujet_poste = s.role.value
+                ligne.sujet_poste = getattr(s.role, "value", s.role)
         ligne.propose_par = ph.uploadeur.nom_complet if ph.uploadeur else None
         sortie.append(ligne)
     return sortie
@@ -233,10 +233,10 @@ async def changer_statut_joueur(
     joueur = await db.get(Joueur, joueur_id)
     if joueur is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Joueur introuvable.")
-    avant = joueur.statut
+    avant = getattr(joueur.statut, "value", joueur.statut)
     joueur.statut = payload.statut
     await log_audit(db, "joueurs", joueur.id, ActionAudit.UPDATE, current_user.id,
-                    {"statut": avant.value}, {"statut": payload.statut.value})
+                    {"statut": avant}, {"statut": getattr(payload.statut, "value", payload.statut)})
     await db.commit()
     await db.refresh(joueur)
     return joueur
