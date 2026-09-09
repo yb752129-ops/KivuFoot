@@ -34,17 +34,35 @@ function ranger(titulaires, byId) {
   });
 }
 
-function Pion({ p, nom }) {
-  const label = p ? nom(p.joueur_id) : "";
+function Pion({ p, nom, byId }) {
+  if (!p) {
+    return (
+      <span className="pion pion-trou" aria-hidden="true">
+        <span className="pion-disque" />
+        <span className="pion-nom">{" "}</span>
+      </span>
+    );
+  }
+  const j = byId?.[p.joueur_id];
+  const label = nom(p.joueur_id);
+  const num = j?.numero ?? (label ? label.trim().charAt(0).toUpperCase() : "");
   return (
     <span className="pion">
-      <span className="pion-disque" />
-      <span className="pion-nom">{label || "\u00a0"}</span>
+      <span className="pion-disque">{num}</span>
+      <span className="pion-nom">{label || " "}</span>
     </span>
   );
 }
 
 function Demi({ titre, titulaires, banc, nom, byId, inverse, coachNom }) {
+  if (titulaires.length === 0) {
+    return (
+      <div className="pitch-demi">
+        <p className="pitch-club">{titre}</p>
+        <p className="pitch-nonpubliee">Composition non publiée</p>
+      </div>
+    );
+  }
   const lignes = ranger(titulaires, byId);
   const ordre = inverse ? [...lignes].reverse() : lignes;
   return (
@@ -53,14 +71,14 @@ function Demi({ titre, titulaires, banc, nom, byId, inverse, coachNom }) {
       {ordre.map((row, i) => (
         <div key={i} className="pitch-rang">
           {row.map((p, j) => (
-            <Pion key={p ? p.joueur_id : `v-${i}-${j}`} p={p} nom={nom} />
+            <Pion key={p ? p.joueur_id : `v-${i}-${j}`} p={p} nom={nom} byId={byId} />
           ))}
         </div>
       ))}
-      <p className="pitch-coach">Entraîneur · {coachNom || "à compléter"}</p>
-      <p className="pitch-banc">
-        Banc · {banc.length ? banc.map((p) => nom(p.joueur_id)).join(" · ") : "à compléter"}
-      </p>
+      {coachNom && <p className="pitch-coach">Entraîneur · {coachNom}</p>}
+      {banc.length > 0 && (
+        <p className="pitch-banc">Banc · {banc.map((p) => nom(p.joueur_id)).join(" · ")}</p>
+      )}
     </div>
   );
 }
@@ -68,7 +86,19 @@ function Demi({ titre, titulaires, banc, nom, byId, inverse, coachNom }) {
 export default function Terrain({ home, away, parts, nom, byId, coachHome, coachAway }) {
   const titu = (cote) => (parts || []).filter((p) => p.equipe_concernee === cote && p.statut === "titulaire");
   const banc = (cote) => (parts || []).filter((p) => p.equipe_concernee === cote && p.statut === "remplacant");
-  const n = (parts || []).filter((p) => p.statut === "titulaire").length;
+  const nHome = titu("domicile").length;
+  const nAway = titu("exterieur").length;
+
+  if (nHome === 0 && nAway === 0) {
+    return (
+      <div className="compo-vide">
+        <p className="compo-vide-titre">Compositions non publiées</p>
+        <p className="compo-vide-texte">
+          Les compositions officielles apparaîtront ici dès leur publication par les clubs.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="pitch">
@@ -90,7 +120,6 @@ export default function Terrain({ home, away, parts, nom, byId, coachHome, coach
         byId={byId}
         coachNom={coachHome}
       />
-      {n === 0 && <p className="pitch-vide">Composition à compléter</p>}
     </div>
   );
 }
