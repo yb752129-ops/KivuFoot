@@ -28,7 +28,7 @@ export default function OrgaMatchsListe() {
       <h1>Matchs</h1>
       <p className="lead">Ouvrir un match pour démarrer, saisir, valider.</p>
       {matchs.filter((m) => m.statut === "en_cours").map((m) => (
-        <Link key={m.id} to="/orga/matchs/${m.id}" className="live-jump">
+        <Link key={m.id} to={`/orga/matchs/${m.id}`} className="live-jump">
           <span className="live-jump-tag">
             <span className="live-dot" aria-hidden="true"><b /></span>
             En cours
