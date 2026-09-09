@@ -2,7 +2,7 @@ from datetime import date, datetime
 
 from pydantic import BaseModel, ConfigDict, field_validator
 
-from app.models.enums import PosteJoueur, StatutVerificationJoueur
+from app.models.enums import PosteJoueur, StatutJoueur, StatutVerificationJoueur
 
 
 class JoueurPublicOut(BaseModel):
@@ -13,6 +13,8 @@ class JoueurPublicOut(BaseModel):
     nom_complet: str
     poste: PosteJoueur | None
     club_actuel_id: int | None
+    statut: StatutJoueur = StatutJoueur.ACTIF
+    photo_url: str | None = None
 
 
 class JoueurDetailOut(BaseModel):
@@ -29,6 +31,12 @@ class JoueurDetailOut(BaseModel):
     statut_verification: StatutVerificationJoueur
     fusionne: bool
     est_mineur: bool
+    statut: StatutJoueur = StatutJoueur.ACTIF
+    photo_url: str | None = None
+
+
+class JoueurStatutUpdate(BaseModel):
+    statut: StatutJoueur
 
 
 class JoueurCreate(BaseModel):

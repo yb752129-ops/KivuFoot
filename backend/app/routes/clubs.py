@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.rbac import require_roles
+from app.auth.rbac import require_roles, verifier_scope_club
 from app.database import get_db
 from app.models.club import Club
 from app.models.enums import ActionAudit, RoleUtilisateur
@@ -11,6 +11,13 @@ from app.models.user import User
 from app.schemas.competition import ClubCreate, ClubOut, ClubUpdate
 from app.services.audit import log_audit
 from app.services.stockage_logo import DepotRefus, uploader_logo
+
+from sqlalchemy import func, select
+from app.models.photo import Photo
+from app.schemas.photo import PhotoOut
+from app.models.staff import Staff
+from app.schemas.staff import StaffCreate, StaffOut
+from sqlalchemy.orm import selectinload
 
 router = APIRouter(prefix="/clubs", tags=["Clubs"])
 
@@ -137,3 +144,85 @@ async def depot_logo(
     await db.refresh(club)
     noms = await _coach_noms(db, [club_id])
     return _club_out(club, noms.get(club_id))
+
+
+@router.get("/{club_id}/staff", response_model=list[StaffOut])
+async def lister_staff(club_id: int, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(Staff)
+        .where(Staff.club_id == club_id)
+        .options(selectinload(Staff.photo_actuelle_rel))
+        .order_by(Staff.id)
+    )
+    return result.scalars().all()
+
+
+@router.post("/{club_id}/staff", response_model=StaffOut, status_code=status.HTTP_201_CREATED)
+async def creer_staff(
+    club_id: int,
+    payload: StaffCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(
+        require_roles(RoleUtilisateur.CLUB_MANAGER, RoleUtilisateur.COACH, RoleUtilisateur.ADMIN)
+    ),
+):
+    club = await db.get(Club, club_id)
+    if club is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Club introuvable.")
+    if current_user.role in (RoleUtilisateur.CLUB_MANAGER, RoleUtilisateur.COACH):
+        verifier_scope_club(current_user, club_id)
+    membre = Staff(club_id=club_id, nom_complet=payload.nom_complet, role=payload.role)
+    db.add(membre)
+    await db.flush()
+    await log_audit(db, "staffs", membre.id, ActionAudit.INSERT, current_user.id, None,
+                    {"nom_complet": membre.nom_complet, "role": membre.role.value})
+    await db.commit()
+    await db.refresh(membre)
+    return membre
+
+
+@router.post("/staff/{staff_id}/photo", response_model=PhotoOut, status_code=status.HTTP_201_CREATED)
+async def proposer_photo_staff(
+    staff_id: int,
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(
+        require_roles(RoleUtilisateur.CLUB_MANAGER, RoleUtilisateur.COACH, RoleUtilisateur.ADMIN)
+    ),
+):
+    membre = await db.get(Staff, staff_id)
+    if membre is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Membre du staff introuvable.")
+    if current_user.role in (RoleUtilisateur.CLUB_MANAGER, RoleUtilisateur.COACH):
+        verifier_scope_club(current_user, membre.club_id)
+    data = await file.read()
+    rang = await db.execute(
+        select(func.coalesce(func.max(Photo.version), 0)).where(
+            Photo.sujet_type == "staff", Photo.sujet_id == staff_id
+        )
+    )
+    version = int(rang.scalar() or 0) + 1
+    try:
+        key, taille = await uploader_photo("staff", staff_id, version, file.content_type or "", data)
+    except PhotoDepotRefus as exc:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(exc))
+    photo = Photo(
+        sujet_type="staff",
+        sujet_id=staff_id,
+        storage_key=key,
+        mime_type=file.content_type,
+        file_size=taille,
+        uploaded_by=current_user.id,
+        version=version,
+    )
+    db.add(photo)
+    await db.flush()
+    await log_audit(db, "photos", photo.id, ActionAudit.INSERT, current_user.id, None,
+                    {"sujet": f"staff:{staff_id}", "version": version})
+    await db.commit()
+    await db.refresh(photo)
+    from app.services.stockage_photo import url_publique
+    from app.schemas.photo import PhotoOut as _PhotoOut
+    sortie = _PhotoOut.model_validate(photo)
+    sortie.url = url_publique(photo.storage_key)
+    return sortie

@@ -35,6 +35,40 @@ class StatutVerificationJoueur(str, enum.Enum):
     DOUBLON_SUSPECTE = "doublon_suspecte"
 
 
+class StatutJoueur(str, enum.Enum):
+    ACTIF = "actif"
+    SUSPENDU = "suspendu"
+    INACTIF = "inactif"
+    TRANSFERE = "transfere"
+    LIBERE = "libere"
+    RETIRE = "retire"
+
+
+class RoleStaff(str, enum.Enum):
+    ENTRAINEUR_PRINCIPAL = "entraineur_principal"
+    ADJOINT = "adjoint"
+    ENTRAINEUR_GARDIENS = "entraineur_gardiens"
+    PREPARATEUR_PHYSIQUE = "preparateur_physique"
+    ANALYSTE = "analyste"
+    TEAM_MANAGER = "team_manager"
+    MEDICAL = "medical"
+    AUTRE = "autre"
+
+
+class StatutPhoto(str, enum.Enum):
+    EN_ATTENTE = "en_attente"
+    VALIDEE = "validee"
+    REJETEE = "rejetee"
+
+
+class MotifRefusPhoto(str, enum.Enum):
+    VISAGE_NON_VISIBLE = "visage_non_visible"
+    PHOTO_TROP_FLOUE = "photo_trop_floue"
+    MAUVAISE_PERSONNE = "mauvaise_personne"
+    PHOTO_NON_CONFORME = "photo_non_conforme"
+    AUTRE = "autre"
+
+
 class StatutMatch(str, enum.Enum):
     PROGRAMME = "programme"
     EN_COURS = "en_cours"

@@ -4,7 +4,7 @@ from sqlalchemy import Boolean, Date, DateTime, ForeignKey, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
-from app.models.enums import PosteJoueur, StatutVerificationJoueur
+from app.models.enums import PosteJoueur, StatutJoueur, StatutVerificationJoueur
 
 
 class Joueur(Base):
@@ -15,6 +15,7 @@ class Joueur(Base):
     date_naissance: Mapped[date] = mapped_column(Date, nullable=False)
     poste: Mapped[PosteJoueur | None] = mapped_column(String(50))
     club_actuel_id: Mapped[int | None] = mapped_column(ForeignKey("clubs.id", ondelete="SET NULL"))
+    statut: Mapped[StatutJoueur] = mapped_column(String(12), default=StatutJoueur.ACTIF, nullable=False)
     telephone: Mapped[str | None] = mapped_column(String(20))
     email: Mapped[str | None] = mapped_column(String(255))
 
@@ -29,9 +30,22 @@ class Joueur(Base):
     anonymise: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), onupdate=func.now())
+    photo_actuelle_id: Mapped[int | None] = mapped_column(ForeignKey("photos.id", ondelete="SET NULL"))
 
+    photo_actuelle_rel = relationship("Photo", foreign_keys=[photo_actuelle_id])
     club_actuel = relationship("Club", back_populates="joueurs", foreign_keys=[club_actuel_id])
     consentements = relationship("Consentement", back_populates="joueur", cascade="all, delete-orphan")
+
+    @property
+    def photo_url(self) -> str | None:
+        """Uniquement la photo VALIDÉE courante ; jamais une photo en attente."""
+        from sqlalchemy.orm.attributes import instance_state
+        ph = instance_state(self).dict.get("photo_actuelle_rel")
+        if ph is None:
+            return None
+        from app.services.stockage_photo import url_publique
+        return url_publique(ph.storage_key)
 
     @property
     def est_mineur(self) -> bool:

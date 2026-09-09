@@ -1,11 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user
 from app.auth.rbac import require_roles, verifier_scope_club
 from app.database import get_db
-from app.models.enums import ActionAudit, RoleUtilisateur, StatutVerificationJoueur
+from app.models.enums import ActionAudit, RoleUtilisateur, StatutPhoto, StatutVerificationJoueur
 from app.models.joueur import Joueur, JoueurModificationProposee
 from app.models.user import User
 from app.schemas.joueur import (
@@ -18,7 +18,13 @@ from app.schemas.joueur import (
     ModificationProposeeOut,
 )
 from app.services.audit import log_audit
+from app.models.photo import Photo
+from app.models.staff import Staff
+from app.schemas.joueur import JoueurStatutUpdate
+from app.schemas.photo import PhotoEnAttenteOut, PhotoOut, PhotoRejet
 from app.services.detection_doublons import fusionner_joueurs, rechercher_doublons
+from app.services.stockage_photo import DepotRefus, uploader_photo, url_publique
+from sqlalchemy.orm import selectinload
 
 router = APIRouter(prefix="/joueurs", tags=["Joueurs"])
 
@@ -45,6 +51,7 @@ async def lister_joueurs(
         query = query.where(Joueur.poste == poste)
     if nom:
         query = query.where(Joueur.nom_complet.ilike(f"%{nom}%"))
+    query = query.options(selectinload(Joueur.photo_actuelle_rel))
     result = await db.execute(query.limit(min(limit, 100)).offset(offset))
     return result.scalars().all()
 
@@ -73,6 +80,168 @@ async def lister_propositions(
     return result.scalars().all()
 
 
+
+@router.get("/photos/en-attente", response_model=list[PhotoEnAttenteOut])
+async def photos_en_attente(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles(RoleUtilisateur.ADMIN, RoleUtilisateur.ORGANISATEUR)),
+):
+    """File de validation de l'organisateur : photos proposées, jamais publiques."""
+    result = await db.execute(
+        select(Photo)
+        .where(Photo.statut == StatutPhoto.EN_ATTENTE)
+        .options(selectinload(Photo.uploadeur))
+        .order_by(Photo.id.desc())
+        .limit(100)
+    )
+    photos = result.scalars().all()
+    sortie = []
+    for ph in photos:
+        ligne = PhotoEnAttenteOut.model_validate(ph)
+        ligne.url = url_publique(ph.storage_key)
+        if ph.sujet_type == "joueur":
+            j = await db.get(Joueur, ph.sujet_id)
+            if j:
+                ligne.sujet_nom = j.nom_complet
+                ligne.sujet_club_id = j.club_actuel_id
+                ligne.sujet_poste = j.poste.value if j.poste else None
+        else:
+            s = await db.get(Staff, ph.sujet_id)
+            if s:
+                ligne.sujet_nom = s.nom_complet
+                ligne.sujet_club_id = s.club_id
+                ligne.sujet_poste = s.role.value
+        ligne.propose_par = ph.uploadeur.nom_complet if ph.uploadeur else None
+        sortie.append(ligne)
+    return sortie
+
+
+@router.post("/{joueur_id}/photo", response_model=PhotoOut, status_code=status.HTTP_201_CREATED)
+async def proposer_photo_joueur(
+    joueur_id: int,
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(
+        require_roles(RoleUtilisateur.CLUB_MANAGER, RoleUtilisateur.COACH, RoleUtilisateur.ADMIN)
+    ),
+):
+    """Le club propose une photo : elle entre EN_ATTENTE, rien ne change côté public."""
+    joueur = await db.get(Joueur, joueur_id)
+    if joueur is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Joueur introuvable.")
+    if current_user.role in (RoleUtilisateur.CLUB_MANAGER, RoleUtilisateur.COACH):
+        verifier_scope_club(current_user, joueur.club_actuel_id or -1)
+    data = await file.read()
+    rang = await db.execute(
+        select(func.coalesce(func.max(Photo.version), 0)).where(
+            Photo.sujet_type == "joueur", Photo.sujet_id == joueur_id
+        )
+    )
+    version = int(rang.scalar() or 0) + 1
+    try:
+        key, taille = await uploader_photo("joueur", joueur_id, version, file.content_type or "", data)
+    except DepotRefus as exc:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(exc))
+    photo = Photo(
+        sujet_type="joueur",
+        sujet_id=joueur_id,
+        storage_key=key,
+        mime_type=file.content_type,
+        file_size=taille,
+        uploaded_by=current_user.id,
+        version=version,
+    )
+    db.add(photo)
+    await db.flush()
+    await log_audit(db, "photos", photo.id, ActionAudit.INSERT, current_user.id, None,
+                    {"sujet": f"joueur:{joueur_id}", "version": version})
+    await db.commit()
+    await db.refresh(photo)
+    sortie = PhotoOut.model_validate(photo)
+    sortie.url = url_publique(photo.storage_key)
+    return sortie
+
+
+@router.post("/photos/{photo_id}/valider", response_model=PhotoOut)
+async def valider_photo(
+    photo_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles(RoleUtilisateur.ADMIN, RoleUtilisateur.ORGANISATEUR)),
+):
+    """L'organisateur valide : la photo devient officielle, l'ancienne passe en historique."""
+    from datetime import datetime, timezone
+
+    photo = await db.get(Photo, photo_id)
+    if photo is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Photo introuvable.")
+    if photo.statut != StatutPhoto.EN_ATTENTE:
+        raise HTTPException(status.HTTP_409_CONFLICT, "Cette photo a déjà été traitée.")
+    photo.statut = StatutPhoto.VALIDEE
+    photo.reviewed_by = current_user.id
+    photo.reviewed_at = datetime.now(timezone.utc)
+    if photo.sujet_type == "joueur":
+        sujet = await db.get(Joueur, photo.sujet_id)
+    else:
+        sujet = await db.get(Staff, photo.sujet_id)
+    if sujet is not None:
+        sujet.photo_actuelle_id = photo.id
+    await log_audit(db, "photos", photo.id, ActionAudit.VALIDATE, current_user.id,
+                    {"statut": "en_attente"}, {"statut": "validee"})
+    await db.commit()
+    await db.refresh(photo)
+    sortie = PhotoOut.model_validate(photo)
+    sortie.url = url_publique(photo.storage_key)
+    return sortie
+
+
+@router.post("/photos/{photo_id}/rejeter", response_model=PhotoOut)
+async def rejeter_photo(
+    photo_id: int,
+    payload: PhotoRejet,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles(RoleUtilisateur.ADMIN, RoleUtilisateur.ORGANISATEUR)),
+):
+    """Rejet motivé : la photo officielle précédente reste seule publique."""
+    from datetime import datetime, timezone
+
+    photo = await db.get(Photo, photo_id)
+    if photo is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Photo introuvable.")
+    if photo.statut != StatutPhoto.EN_ATTENTE:
+        raise HTTPException(status.HTTP_409_CONFLICT, "Cette photo a déjà été traitée.")
+    photo.statut = StatutPhoto.REJETEE
+    photo.motif_refus = payload.motif
+    photo.reviewed_by = current_user.id
+    photo.reviewed_at = datetime.now(timezone.utc)
+    await log_audit(db, "photos", photo.id, ActionAudit.REJECT, current_user.id,
+                    {"statut": "en_attente"}, {"statut": "rejetee", "motif": payload.motif.value})
+    await db.commit()
+    await db.refresh(photo)
+    sortie = PhotoOut.model_validate(photo)
+    sortie.url = url_publique(photo.storage_key)
+    return sortie
+
+
+@router.put("/{joueur_id}/statut", response_model=JoueurDetailOut)
+async def changer_statut_joueur(
+    joueur_id: int,
+    payload: JoueurStatutUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles(RoleUtilisateur.ADMIN, RoleUtilisateur.ORGANISATEUR)),
+):
+    """Archiver, suspendre, libérer : jamais de suppression silencieuse."""
+    joueur = await db.get(Joueur, joueur_id)
+    if joueur is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Joueur introuvable.")
+    avant = joueur.statut
+    joueur.statut = payload.statut
+    await log_audit(db, "joueurs", joueur.id, ActionAudit.UPDATE, current_user.id,
+                    {"statut": avant.value}, {"statut": payload.statut.value})
+    await db.commit()
+    await db.refresh(joueur)
+    return joueur
+
+
 @router.get("/{joueur_id}", response_model=JoueurPublicOut)
 async def profil_public_joueur(joueur_id: int, db: AsyncSession = Depends(get_db)):
     """
@@ -81,7 +250,10 @@ async def profil_public_joueur(joueur_id: int, db: AsyncSession = Depends(get_db
     n'inclut de toute façon pas ces champs, donc aucune fuite possible
     même pour un mineur.
     """
-    joueur = await db.get(Joueur, joueur_id)
+    result = await db.execute(
+        select(Joueur).where(Joueur.id == joueur_id).options(selectinload(Joueur.photo_actuelle_rel))
+    )
+    joueur = result.scalars().first()
     if joueur is None or joueur.anonymise:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Joueur introuvable.")
     return joueur
@@ -96,7 +268,10 @@ async def detail_prive_joueur(
     ),
 ):
     """Vue réservée au staff : inclut téléphone/email (§9.3 : endpoints protégés)."""
-    joueur = await db.get(Joueur, joueur_id)
+    result = await db.execute(
+        select(Joueur).where(Joueur.id == joueur_id).options(selectinload(Joueur.photo_actuelle_rel))
+    )
+    joueur = result.scalars().first()
     if joueur is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Joueur introuvable.")
     if current_user.role == RoleUtilisateur.CLUB_MANAGER:

@@ -8,6 +8,8 @@ from app.models.club import Club
 from app.models.competition import Competition, OrganisateurCompetition, Saison, SaisonClub
 from app.models.evenement import EvenementMatch
 from app.models.joueur import Joueur, JoueurModificationProposee
+from app.models.photo import Photo
+from app.models.staff import Staff
 from app.models.match import Match, MatchParticipation
 from app.models.stats import Consentement, StatistiqueJoueur
 from app.models.sync import ConflitSynchronisation, StockageSynchronisation
@@ -23,6 +25,8 @@ __all__ = [
     "EvenementMatch",
     "Joueur",
     "JoueurModificationProposee",
+    "Photo",
+    "Staff",
     "Match",
     "MatchParticipation",
     "Consentement",
