@@ -1923,6 +1923,8 @@ html[data-theme="dark"] {
 }
 
 /* ==== PACK PORTES-DESIGN (9 sept 2026) — les portes passent au système approuvé ==== */
+:root, html[data-theme="light"] { --door-card: #f9f7f0; --door-num: var(--green); }
+html[data-theme="dark"] { --door-card: #1c1914; --door-num: var(--lime); }
 .orga-top { background: var(--green); border-bottom: 0; }
 .orga-top-inner { align-items: center; gap: 0.6rem; padding: 0.85rem 1rem 0.55rem; flex-wrap: wrap; }
 .orga-top .wordmark-name { color: var(--cream); }
@@ -1979,8 +1981,8 @@ html[data-theme="dark"] {
 .orga-app .shell { padding-bottom: 2.2rem; }
 .orga-chiffres { gap: 0.7rem; }
 .orga-chiffre {
-  background: color-mix(in srgb, #ffffff 55%, var(--paper));
-  border: 1px solid var(--rule-strong);
+  background: var(--door-card);
+  border: 1px solid var(--rule);
   border-radius: 14px;
   padding: 0.85rem 0.95rem;
   box-shadow: 0 1px 0 rgba(15, 61, 46, 0.08);
@@ -1989,7 +1991,7 @@ html[data-theme="dark"] {
   font-family: var(--serif);
   font-size: 1.9rem;
   line-height: 1;
-  color: var(--green);
+  color: var(--door-num);
 }
 .orga-chiffre span, .orga-chiffre small {
   text-transform: uppercase;
@@ -1998,8 +2000,8 @@ html[data-theme="dark"] {
   color: var(--ink-soft);
 }
 .id-sheet {
-  background: color-mix(in srgb, #ffffff 55%, var(--paper));
-  border: 1px solid var(--rule-strong);
+  background: var(--door-card);
+  border: 1px solid var(--rule);
   border-radius: 14px;
   padding: 0.35rem 0.95rem;
 }
@@ -2020,14 +2022,14 @@ html[data-theme="dark"] {
   border: 1px solid var(--rule-strong);
   border-radius: 14px;
   padding: 0.7rem 0.95rem;
-  background: color-mix(in srgb, #ffffff 45%, var(--paper));
+  background: var(--door-card);
 }
 .phase-box {
   margin-top: 1.1rem;
   border: 1px solid var(--rule-strong);
   border-radius: 14px;
   padding: 0.8rem 0.95rem;
-  background: color-mix(in srgb, #ffffff 45%, var(--paper));
+  background: var(--door-card);
 }
 .phase-row { display: flex; flex-wrap: wrap; gap: 0.7rem; align-items: flex-end; }
 .phase-row .field { flex: 1 1 8rem; margin: 0; }
