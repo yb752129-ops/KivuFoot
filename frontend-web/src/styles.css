@@ -1922,17 +1922,113 @@ html[data-theme="dark"] {
   padding: 3px;
 }
 
-/* ==== PACK POULES-FRONT (8-9 sept 2026) — pilules de groupes ==== */
-.pills { display: flex; flex-wrap: wrap; gap: 0.45rem; margin: 0.6rem 0 0.9rem; }
-.pill {
-  border: 1.5px solid var(--rule-strong);
-  background: transparent;
-  color: var(--ink);
+/* ==== PACK PORTES-DESIGN (9 sept 2026) — les portes passent au système approuvé ==== */
+.orga-top { background: var(--green); border-bottom: 0; }
+.orga-top-inner { align-items: center; gap: 0.6rem; padding: 0.85rem 1rem 0.55rem; flex-wrap: wrap; }
+.orga-top .wordmark-name { color: var(--cream); }
+.porte-badge {
+  background: var(--lime);
+  color: var(--green);
   border-radius: 999px;
-  padding: 0.3rem 0.85rem;
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
+  padding: 0.18rem 0.6rem;
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.09em;
   text-transform: uppercase;
 }
-.pill-active { background: var(--green); border-color: var(--green); color: var(--cream); }
+.orga-comp {
+  color: color-mix(in srgb, var(--cream) 78%, transparent);
+  font-size: 0.78rem;
+  margin: 0;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.orga-top .linkish {
+  color: var(--cream);
+  border: 1.5px solid color-mix(in srgb, var(--cream) 70%, transparent);
+  border-radius: 999px;
+  padding: 0.32rem 0.85rem;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.orga-top .linkish:active { background: var(--lime); color: var(--green); border-color: var(--lime); }
+.orga-nav {
+  background: var(--green);
+  border-bottom: 0;
+  padding: 0.15rem 0.9rem 0.75rem;
+  gap: 0.4rem;
+}
+.orga-nav a {
+  color: color-mix(in srgb, var(--cream) 72%, transparent);
+  border: 1px solid transparent;
+  border-radius: 999px;
+  padding: 0.42rem 0.85rem;
+  font-size: 0.68rem;
+}
+.orga-nav a.active {
+  background: var(--lime);
+  color: var(--green);
+  border-color: var(--lime);
+  font-weight: 800;
+}
+.orga-app .shell { padding-bottom: 2.2rem; }
+.orga-chiffres { gap: 0.7rem; }
+.orga-chiffre {
+  background: color-mix(in srgb, #ffffff 55%, var(--paper));
+  border: 1px solid var(--rule-strong);
+  border-radius: 14px;
+  padding: 0.85rem 0.95rem;
+  box-shadow: 0 1px 0 rgba(15, 61, 46, 0.08);
+}
+.orga-chiffre strong, .orga-chiffre b {
+  font-family: var(--serif);
+  font-size: 1.9rem;
+  line-height: 1;
+  color: var(--green);
+}
+.orga-chiffre span, .orga-chiffre small {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.62rem;
+  color: var(--ink-soft);
+}
+.id-sheet {
+  background: color-mix(in srgb, #ffffff 55%, var(--paper));
+  border: 1px solid var(--rule-strong);
+  border-radius: 14px;
+  padding: 0.35rem 0.95rem;
+}
+.id-row span { text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.64rem; color: var(--ink-soft); }
+.orga-app .empty {
+  border: 1.5px dashed var(--rule-strong);
+  border-radius: 12px;
+  padding: 0.9rem 1rem;
+  text-align: center;
+}
+.orga-alerte {
+  border-left: 4px solid var(--lime);
+  background: color-mix(in srgb, var(--lime) 14%, transparent);
+  border-radius: 10px;
+  padding: 0.6rem 0.8rem;
+}
+.orga-autre {
+  border: 1px solid var(--rule-strong);
+  border-radius: 14px;
+  padding: 0.7rem 0.95rem;
+  background: color-mix(in srgb, #ffffff 45%, var(--paper));
+}
+.phase-box {
+  margin-top: 1.1rem;
+  border: 1px solid var(--rule-strong);
+  border-radius: 14px;
+  padding: 0.8rem 0.95rem;
+  background: color-mix(in srgb, #ffffff 45%, var(--paper));
+}
+.phase-row { display: flex; flex-wrap: wrap; gap: 0.7rem; align-items: flex-end; }
+.phase-row .field { flex: 1 1 8rem; margin: 0; }
+.phase-row .btn { flex: 0 0 auto; }

@@ -21,6 +21,7 @@ export default function CoachLayout() {
       <header className="orga-top">
         <div className="orga-top-inner">
           <Link to="/" className="wordmark-name">KivuFoot</Link>
+          <span className="porte-badge">Coach</span>
           <p className="orga-comp">{nom}</p>
           <button className="linkish" type="button" onClick={out}>
             Déconnexion

@@ -21,6 +21,7 @@ export default function OrgaLayout() {
       <header className="orga-top">
         <div className="orga-top-inner">
           <Link to="/" className="wordmark-name">KivuFoot</Link>
+          <span className="porte-badge">{role === "admin" ? "Admin" : "Organisateur"}</span>
           <p className="orga-comp">{nom}</p>
           <button className="linkish" type="button" onClick={out}>
             Déconnexion

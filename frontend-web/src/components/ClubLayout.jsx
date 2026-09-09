@@ -21,6 +21,7 @@ export default function ClubLayout() {
       <header className="orga-top">
         <div className="orga-top-inner">
           <Link to="/" className="wordmark-name">KivuFoot</Link>
+          <span className="porte-badge">Club</span>
           <p className="orga-comp">{nom}</p>
           <button className="linkish" type="button" onClick={out}>
             Déconnexion

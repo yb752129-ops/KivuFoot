@@ -58,6 +58,8 @@ export default function OrgaMatch({ backTo = "/orga/matchs", mode = "orga" } = {
   const [joueurId, setJoueurId] = useState("");
   const [secondaireId, setSecondaireId] = useState("");
   const [resultat, setResultat] = useState("marque");
+  const [phaseSel, setPhaseSel] = useState("poule");
+  const [groupeSel, setGroupeSel] = useState("");
   const [minute, setMinute] = useState("0");
   const [now, setNow] = useState(Date.now());
   const [compDraft, setCompDraft] = useState({});
@@ -75,6 +77,28 @@ export default function OrgaMatch({ backTo = "/orga/matchs", mode = "orga" } = {
   const enCours = match?.statut === "en_cours";
   const ht = enCours && periode === "mi_temps";
   const running = enCours && !ht;
+
+  useEffect(() => {
+    if (match) {
+      setPhaseSel(match.phase || "poule");
+      setGroupeSel(match.groupe || "");
+    }
+  }, [match]);
+
+  async function enregistrerPhase() {
+    setBusy(true);
+    setErr("");
+    setMsg("");
+    try {
+      const m = await api.majPhase(match.id, phaseSel, groupeSel || null);
+      setMatch(m);
+      setMsg("Phase et groupe enregistrés.");
+    } catch (e) {
+      setErr(e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function load() {
     try {
@@ -382,6 +406,36 @@ export default function OrgaMatch({ backTo = "/orga/matchs", mode = "orga" } = {
         )}
         {match.locked && <p className="empty">Match verrouillé — plus aucune modification.</p>}
       </div>
+
+      {!collecteur && !match.locked && (
+        <div className="phase-box">
+          <p className="kicker">Phase & groupe</p>
+          <div className="phase-row">
+            <label className="field">
+              Phase
+              <select value={phaseSel} onChange={(e) => setPhaseSel(e.target.value)}>
+                <option value="poule">Poule</option>
+                <option value="quart">Quart de finale</option>
+                <option value="demi">Demi-finale</option>
+                <option value="finale">Finale</option>
+              </select>
+            </label>
+            <label className="field">
+              Groupe
+              <select value={groupeSel} onChange={(e) => setGroupeSel(e.target.value)}>
+                <option value="">Sans groupe</option>
+                <option value="A">A</option>
+                <option value="B">B</option>
+                <option value="C">C</option>
+                <option value="D">D</option>
+              </select>
+            </label>
+            <button className="btn" type="button" disabled={busy} onClick={enregistrerPhase}>
+              Enregistrer
+            </button>
+          </div>
+        </div>
+      )}
 
       {formOk && (
         <form className="compte-form" onSubmit={ajouter} style={{ marginTop: "0.4rem" }}>

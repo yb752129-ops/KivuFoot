@@ -120,7 +120,7 @@ export const api = {
   matchs: (saisonId) => request(`/matchs?limit=100${saisonId ? `&saison_id=${saisonId}` : ""}`),
   match: (id) => request(`/matchs/${id}`),
   evenementsPublics: (id) => request(`/matchs/${id}/evenements-publics`),
-  classement: (saisonId, groupe) => request(`/classement?saison_id=${saisonId}${groupe ? `&groupe=${encodeURIComponent(groupe)}` : ""}`),
+  classement: (saisonId) => request(`/classement?saison_id=${saisonId}`),
   buteurs: (saisonId) => request(`/stats/meilleurs-buteurs?saison_id=${saisonId}&limit=10`),
   passeurs: (saisonId) => request(`/stats/meilleurs-passeurs?saison_id=${saisonId}&limit=10`),
   login: (email, mot_de_passe) => request("/auth/login", { method: "POST", body: { email, mot_de_passe } }),
@@ -144,6 +144,7 @@ export const api = {
     }),
   validerMatch: (id) => request(`/matchs/${id}/valider`, { method: "POST", auth: true }),
   creerMatch: (payload) => request("/matchs", { method: "POST", body: payload, auth: true }),
+  majPhase: (id, phase, groupe) => request(`/matchs/${id}/phase`, { method: "PUT", body: { phase, groupe }, auth: true }),
   changerStatut: (id, statut) =>
     request(`/matchs/${id}/statut?nouveau_statut=${encodeURIComponent(statut)}`, { method: "PUT", auth: true }),
   changerPeriode: (id, periode) =>
