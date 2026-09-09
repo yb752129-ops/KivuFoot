@@ -1,48 +1,25 @@
-const RANGS = [
-  { key: "gk", n: 1, postes: ["gardien"] },
-  { key: "def", n: 4, postes: ["defenseur"] },
-  { key: "mid", n: 3, postes: ["milieu"] },
-  { key: "fwd", n: 3, postes: ["attaquant"] },
-];
+const FAMILLES = ["defenseur", "milieu", "attaquant"];
 
-function ranger(titulaires, byId) {
-  const used = new Set();
-  const rows = RANGS.map((row) => {
-    const slots = [];
-    for (const p of titulaires) {
-      if (slots.length >= row.n) break;
-      const poste = byId[p.joueur_id]?.poste;
-      if (row.postes.includes(poste) && !used.has(p.joueur_id)) {
-        used.add(p.joueur_id);
-        slots.push(p);
-      }
-    }
-    return { ...row, slots };
-  });
-  const rest = titulaires.filter((p) => !used.has(p.joueur_id));
-  for (const row of rows) {
-    while (row.slots.length < row.n && rest.length) {
-      const p = rest.shift();
-      used.add(p.joueur_id);
-      row.slots.push(p);
-    }
+function groupes(titulaires, byId) {
+  const g = { gardien: [], defenseur: [], milieu: [], attaquant: [], autre: [] };
+  for (const p of titulaires) {
+    const poste = byId?.[p.joueur_id]?.poste;
+    if (poste && g[poste]) g[poste].push(p);
+    else g.autre.push(p);
   }
-  return rows.map((row) => {
-    const filled = [...row.slots];
-    while (filled.length < row.n) filled.push(null);
-    return filled;
-  });
+  let i = 0;
+  while (g.autre.length) {
+    g[FAMILLES[i % 3]].push(g.autre.shift());
+    i += 1;
+  }
+  const rows = [g.gardien, g.defenseur, g.milieu, g.attaquant].filter((r) => r.length > 0);
+  const totale = titulaires.length;
+  const formation =
+    totale === 11 ? `${g.defenseur.length}-${g.milieu.length}-${g.attaquant.length}` : null;
+  return { rows, formation };
 }
 
 function Pion({ p, nom, byId }) {
-  if (!p) {
-    return (
-      <span className="pion pion-trou" aria-hidden="true">
-        <span className="pion-disque" />
-        <span className="pion-nom">{" "}</span>
-      </span>
-    );
-  }
   const j = byId?.[p.joueur_id];
   const label = nom(p.joueur_id);
   const num = j?.numero ?? (label ? label.trim().charAt(0).toUpperCase() : "");
@@ -54,7 +31,7 @@ function Pion({ p, nom, byId }) {
   );
 }
 
-function Demi({ titre, titulaires, banc, nom, byId, inverse, coachNom }) {
+function Demi({ titre, titulaires, banc, nom, byId, coachNom }) {
   if (titulaires.length === 0) {
     return (
       <div className="pitch-demi">
@@ -63,21 +40,27 @@ function Demi({ titre, titulaires, banc, nom, byId, inverse, coachNom }) {
       </div>
     );
   }
-  const lignes = ranger(titulaires, byId);
-  const ordre = inverse ? [...lignes].reverse() : lignes;
+  const { rows, formation } = groupes(titulaires, byId);
   return (
     <div className="pitch-demi">
-      <p className="pitch-club">{titre}</p>
-      {ordre.map((row, i) => (
+      <p className="pitch-club">
+        {titre}
+        {formation && <span className="pitch-form">{formation}</span>}
+      </p>
+      {rows.map((row, i) => (
         <div key={i} className="pitch-rang">
-          {row.map((p, j) => (
-            <Pion key={p ? p.joueur_id : `v-${i}-${j}`} p={p} nom={nom} byId={byId} />
+          {row.map((p) => (
+            <Pion key={p.joueur_id} p={p} nom={nom} byId={byId} />
           ))}
         </div>
       ))}
-      {coachNom && <p className="pitch-coach">Entraîneur · {coachNom}</p>}
-      {banc.length > 0 && (
-        <p className="pitch-banc">Banc · {banc.map((p) => nom(p.joueur_id)).join(" · ")}</p>
+      {(coachNom || banc.length > 0) && (
+        <div className="pitch-pied">
+          {coachNom && <span className="pitch-chip">Entraîneur · {coachNom}</span>}
+          {banc.length > 0 && (
+            <span className="pitch-chip">Banc · {banc.map((p) => nom(p.joueur_id)).join(", ")}</span>
+          )}
+        </div>
       )}
     </div>
   );
@@ -108,7 +91,6 @@ export default function Terrain({ home, away, parts, nom, byId, coachHome, coach
         banc={banc("exterieur")}
         nom={nom}
         byId={byId}
-        inverse
         coachNom={coachAway}
       />
       <div className="pitch-milieu" aria-hidden="true" />

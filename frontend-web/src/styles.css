@@ -2104,3 +2104,70 @@ html[data-theme="dark"] { --door-card: #1c1914; --door-num: var(--lime); }
   color: var(--ink);
 }
 .compo-vide-texte { margin: 0; font-size: 0.8rem; color: var(--ink-soft); }
+
+/* ==== PACK COMPO-LIVESCORE (10 sept 2026) — structure SofaScore : zéro trou ==== */
+.pitch {
+  background:
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.05) 0 11%, rgba(255, 255, 255, 0) 11% 22%),
+    var(--green-2);
+  border-radius: 16px;
+  overflow: hidden;
+}
+.pitch-rang {
+  display: flex;
+  justify-content: space-around;
+  align-items: flex-start;
+  gap: 0.4rem;
+  padding: 0.55rem 0.6rem;
+}
+.pion {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.28rem;
+  width: 4.8rem;
+  max-width: 22%;
+}
+.pion-disque {
+  width: 2.15rem;
+  height: 2.15rem;
+  border: 1.5px solid color-mix(in srgb, var(--cream) 80%, transparent);
+  background: color-mix(in srgb, var(--cream) 12%, transparent);
+  color: var(--cream);
+  font-size: 0.92rem;
+}
+.pion-nom {
+  color: color-mix(in srgb, var(--cream) 88%, transparent);
+  font-size: 0.6rem;
+  line-height: 1.2;
+  text-align: center;
+}
+.pitch-club {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+.pitch-form {
+  background: var(--lime);
+  color: var(--green);
+  border-radius: 999px;
+  padding: 0.14rem 0.55rem;
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+.pitch-pied {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.2rem 0.8rem 0.9rem;
+}
+.pitch-chip {
+  border: 1px solid color-mix(in srgb, var(--cream) 40%, transparent);
+  border-radius: 999px;
+  padding: 0.26rem 0.65rem;
+  font-size: 0.64rem;
+  color: color-mix(in srgb, var(--cream) 82%, transparent);
+}
