@@ -33,6 +33,18 @@ export default function CollecteurMatchs() {
     <section className="hero">
       <h1>Matchs</h1>
       <p className="lead">Saisir le match. L’organisateur valide.</p>
+      {matchs.filter((m) => m.statut === "en_cours").map((m) => (
+        <Link key={m.id} to="/collecteur/matchs/${m.id}" className="live-jump">
+          <span className="live-jump-tag">
+            <span className="live-dot" aria-hidden="true"><b /></span>
+            En cours
+          </span>
+          <span className="live-jump-noms">
+            {nom(m.equipe_domicile_id)} — {nom(m.equipe_exterieur_id)}
+          </span>
+          <span className="live-jump-score">{m.score_domicile}–{m.score_exterieur}</span>
+        </Link>
+      ))}
       {matchs.length === 0 && <p className="empty">Aucun match à saisir.</p>}
       {groupes.map((g) => (
         <div key={g.code} className="journee-block">
