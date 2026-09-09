@@ -23,26 +23,7 @@ STATUT_PERSONNE = "statut IN ('actif','suspendu','inactif','transfere','libere',
 
 
 def upgrade() -> None:
-    op.create_table(
-        "staffs",
-        sa.Column("id", sa.Integer, primary_key=True),
-        sa.Column("club_id", sa.Integer, sa.ForeignKey("clubs.id", ondelete="CASCADE"), nullable=False),
-        sa.Column("nom_complet", sa.String(255), nullable=False),
-        sa.Column("role", sa.String(30), nullable=False),
-        sa.Column("statut", sa.String(12), nullable=False, server_default="actif"),
-        sa.Column("photo_actuelle_id", sa.Integer, sa.ForeignKey("photos.id", ondelete="SET NULL"), nullable=True),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
-        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=True),
-    )
-    op.create_index("ix_staffs_club_id", "staffs", ["club_id"])
-    op.create_check_constraint(
-        "ck_staffs_role",
-        "staffs",
-        "role IN ('entraineur_principal','adjoint','entraineur_gardiens',"
-        "'preparateur_physique','analyste','team_manager','medical','autre')",
-    )
-    op.create_check_constraint("ck_staffs_statut", "staffs", STATUT_PERSONNE)
-
+    # 1) photos d'abord : ne référence que users (déjà existant)
     op.create_table(
         "photos",
         sa.Column("id", sa.Integer, primary_key=True),
@@ -73,6 +54,28 @@ def upgrade() -> None:
         "'mauvaise_personne','photo_non_conforme','autre')",
     )
 
+    # 2) staffs ensuite : pointe vers photos désormais existant
+    op.create_table(
+        "staffs",
+        sa.Column("id", sa.Integer, primary_key=True),
+        sa.Column("club_id", sa.Integer, sa.ForeignKey("clubs.id", ondelete="CASCADE"), nullable=False),
+        sa.Column("nom_complet", sa.String(255), nullable=False),
+        sa.Column("role", sa.String(30), nullable=False),
+        sa.Column("statut", sa.String(12), nullable=False, server_default="actif"),
+        sa.Column("photo_actuelle_id", sa.Integer, sa.ForeignKey("photos.id", ondelete="SET NULL"), nullable=True),
+        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
+        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=True),
+    )
+    op.create_index("ix_staffs_club_id", "staffs", ["club_id"])
+    op.create_check_constraint(
+        "ck_staffs_role",
+        "staffs",
+        "role IN ('entraineur_principal','adjoint','entraineur_gardiens',"
+        "'preparateur_physique','analyste','team_manager','medical','autre')",
+    )
+    op.create_check_constraint("ck_staffs_statut", "staffs", STATUT_PERSONNE)
+
+    # 3) colonnes joueurs en dernier
     op.add_column(
         "joueurs",
         sa.Column("statut", sa.String(12), nullable=False, server_default="actif"),
