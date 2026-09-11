@@ -2504,3 +2504,22 @@ html[data-theme="dark"] { --door-card: #1c1914; --door-num: var(--lime); }
   padding: 0.3rem 0.3rem;
   text-align: center;
 }
+
+/* ==== espace coach et staff (11 sept) ==== */
+.coach-ligne {
+  display: grid;
+  grid-template-columns: 2.2rem 1fr auto auto;
+  gap: 0.6rem;
+  align-items: center;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--rule);
+}
+.coach-id { display: flex; flex-direction: column; }
+.coach-etat {
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  border: 1px solid var(--rule-strong);
+  border-radius: 999px;
+  padding: 0.15rem 0.6rem;
+}

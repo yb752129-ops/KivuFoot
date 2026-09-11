@@ -151,7 +151,7 @@ export const api = {
   staffClub: (clubId) => request(`/clubs/${clubId}/staff`),
   creerStaff: (clubId, payload) => request(`/clubs/${clubId}/staff`, { method: "POST", body: payload, auth: true }),
   photoStaff: (staffId, file) => {
-    const t = localStorage.getItem("kivufoot_token");
+    const t = localStorage.getItem("kivufoot_access");
     const fd = new FormData();
     fd.append("file", file);
     return fetch(`${import.meta.env.VITE_API_URL || "/api/v1"}/clubs/staff/${staffId}/photo`, {

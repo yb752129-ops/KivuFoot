@@ -135,6 +135,7 @@ export default function App() {
             }
           >
             <Route index element={<CoachVue />} />
+            <Route path="staff" element={<ClubCoach />} />
             <Route path="matchs" element={<CoachMatchs />} />
             <Route path="matchs/:id" element={<CoachMatch />} />
           </Route>
