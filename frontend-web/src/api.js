@@ -120,7 +120,7 @@ export const api = {
   matchs: (saisonId) => request(`/matchs?limit=100${saisonId ? `&saison_id=${saisonId}` : ""}`),
   match: (id) => request(`/matchs/${id}`),
   evenementsPublics: (id) => request(`/matchs/${id}/evenements-publics`),
-  classement: (saisonId) => request(`/classement?saison_id=${saisonId}`),
+  classement: (saisonId, groupe) => request(`/classement?saison_id=${saisonId}${groupe ? `&groupe=${encodeURIComponent(groupe)}` : ""}`),
   buteurs: (saisonId) => request(`/stats/meilleurs-buteurs?saison_id=${saisonId}&limit=10`),
   passeurs: (saisonId) => request(`/stats/meilleurs-passeurs?saison_id=${saisonId}&limit=10`),
   login: (email, mot_de_passe) => request("/auth/login", { method: "POST", body: { email, mot_de_passe } }),
@@ -145,6 +145,10 @@ export const api = {
   validerMatch: (id) => request(`/matchs/${id}/valider`, { method: "POST", auth: true }),
   creerMatch: (payload) => request("/matchs", { method: "POST", body: payload, auth: true }),
   majPhase: (id, phase, groupe) => request(`/matchs/${id}/phase`, { method: "PUT", body: { phase, groupe }, auth: true }),
+  staffClub: (clubId) => request(`/clubs/${clubId}/staff`),
+  photosEnAttente: () => request("/joueurs/photos/en-attente", { auth: true }),
+  validerPhoto: (id) => request(`/joueurs/photos/${id}/valider`, { method: "POST", auth: true }),
+  rejeterPhoto: (id, motif) => request(`/joueurs/photos/${id}/rejeter`, { method: "POST", body: { motif }, auth: true }),
   changerStatut: (id, statut) =>
     request(`/matchs/${id}/statut?nouveau_statut=${encodeURIComponent(statut)}`, { method: "PUT", auth: true }),
   changerPeriode: (id, periode) =>
@@ -161,3 +165,18 @@ export const api = {
   saisirEvenement: (matchId, payload) =>
     request(`/matchs/${matchId}/evenements`, { method: "POST", body: payload, auth: true }),
 };
+
+export async function uploadFichier(path, fichier) {
+  const fd = new FormData();
+  fd.append("file", fichier);
+  const headers = { Accept: "application/json" };
+  const t = getToken();
+  if (t) headers.Authorization = `Bearer ${t}`;
+  const res = await fetch(`${API}${path}`, { method: "POST", headers, body: fd });
+  const data = await res.text().then((s) => { try { return JSON.parse(s); } catch { return null; } });
+  if (!res.ok) {
+    const msg = data?.detail || (Array.isArray(data?.erreurs) ? data.erreurs.map((e) => e.msg).join(" ") : `Erreur ${res.status}`);
+    throw new Error(msg);
+  }
+  return data;
+}

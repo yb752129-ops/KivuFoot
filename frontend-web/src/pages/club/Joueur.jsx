@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { api } from "../../api.js";
+import { api, uploadFichier } from "../../api.js";
 import { labelPoste } from "../../display.js";
 
 const CHAMP_LIBELLE = {
@@ -20,6 +20,9 @@ export default function ClubJoueur() {
   const [err, setErr] = useState("");
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
+  const [fichier, setFichier] = useState(null);
+  const [apercu, setApercu] = useState("");
+  const entree = useRef(null);
 
   async function load() {
     const d = await api.joueurDetail(id);
@@ -37,6 +40,29 @@ export default function ClubJoueur() {
 
   if (!j && !err) return <p className="empty">Chargement…</p>;
   if (!j) return <p className="erreur">{err}</p>;
+
+  function choisir(f) {
+    setFichier(f || null);
+    setApercu(f ? URL.createObjectURL(f) : "");
+  }
+
+  async function proposerPhoto(e) {
+    e.preventDefault();
+    if (!fichier) return;
+    setBusy(true);
+    setErr("");
+    setMsg("");
+    try {
+      await uploadFichier(`/joueurs/${j.id}/photo`, fichier);
+      setMsg("Photo proposée. Elle reste invisible du public jusqu’à la validation de l’organisateur.");
+      choisir(null);
+      if (entree.current) entree.current.value = "";
+    } catch (ex) {
+      setErr(ex.message);
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function sauverContact(e) {
     e.preventDefault();
@@ -81,6 +107,34 @@ export default function ClubJoueur() {
       )}
       {err && <p className="erreur">{err}</p>}
       {msg && <p className="empty">{msg}</p>}
+
+      <div className="photo-bloc">
+        <span className="effectif-photo effectif-photo-grande">
+          {(apercu || j.photo_url) ? (
+            <img src={apercu || j.photo_url} alt="" />
+          ) : (
+            <span className="effectif-initiale">{(j.nom_complet || "?").charAt(0)}</span>
+          )}
+        </span>
+        <div className="photo-bloc-texte">
+          <p className="meta-line" style={{ margin: 0 }}>
+            {j.photo_url ? "Photo officielle en place." : "Aucune photo officielle pour l’instant."}
+            {apercu ? " Aperçu du nouveau portrait choisi." : ""}
+          </p>
+          <input
+            ref={entree}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            onChange={(e) => choisir(e.target.files?.[0] || null)}
+          />
+          <p className="meta-line">Portrait net, visage visible. JPG, PNG ou WEBP, 2 Mo maximum.</p>
+          {apercu && (
+            <button className="btn btn-primary" type="button" disabled={busy} onClick={proposerPhoto}>
+              Proposer cette photo
+            </button>
+          )}
+        </div>
+      </div>
 
       <div className="sheet id-sheet">
         <div className="id-row"><span>Poste</span><strong>{labelPoste(j.poste) || "à compléter"}</strong></div>

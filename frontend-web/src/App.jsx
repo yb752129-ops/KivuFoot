@@ -21,6 +21,7 @@ import OrgaEquipe from "./pages/orga/Equipe.jsx";
 import OrgaCalendrier from "./pages/orga/Calendrier.jsx";
 import OrgaMatchsListe from "./pages/orga/MatchsListe.jsx";
 import OrgaMatch from "./pages/OrgaMatch.jsx";
+import OrgaValidation from "./pages/orga/Validation.jsx";
 import CollecteurMatchs from "./pages/collecteur/Matchs.jsx";
 import CollecteurMatch from "./pages/collecteur/Match.jsx";
 import ClubLayout from "./components/ClubLayout.jsx";
@@ -95,6 +96,7 @@ export default function App() {
             <Route path="calendrier" element={<OrgaCalendrier />} />
             <Route path="matchs" element={<OrgaMatchsListe />} />
             <Route path="matchs/:id" element={<OrgaMatch />} />
+            <Route path="validation" element={<OrgaValidation />} />
           </Route>
           <Route
             path="/collecteur"

@@ -4,6 +4,14 @@ import { api } from "../../api.js";
 import { useAuth } from "../../auth.jsx";
 import { labelPoste } from "../../display.js";
 
+const STATUT_JOUEUR = {
+  suspendu: "Suspendu",
+  inactif: "Inactif",
+  transfere: "Transféré",
+  libere: "Libéré",
+  retire: "Retiré",
+};
+
 function estMineur(iso) {
   if (!iso) return false;
   const d = new Date(`${iso}T00:00:00`);
@@ -84,10 +92,23 @@ export default function ClubEffectif() {
       {msg && <p className="empty">{msg}</p>}
       {joueurs.length === 0 && <p className="empty">Aucun joueur.</p>}
       {joueurs.map((j) => (
-        <Link key={j.id} to={`/club/effectif/${j.id}`} className="avenir-row">
-          <span className="avenir-noms">
-            <span>{j.nom_complet}</span>
-            <span className="meta-line">{labelPoste(j.poste) || "Poste à compléter"}</span>
+        <Link key={j.id} to={`/club/effectif/${j.id}`} className="effectif-row">
+          <span className="effectif-photo">
+            {j.photo_url ? (
+              <img src={j.photo_url} alt="" />
+            ) : (
+              <span className="effectif-initiale">{(j.nom_complet || "?").charAt(0)}</span>
+            )}
+          </span>
+          <span className="effectif-infos">
+            <strong>{j.nom_complet}</strong>
+            <span className="meta-line">
+              {labelPoste(j.poste) || "Poste à compléter"}
+              {j.statut && j.statut !== "actif" ? ` · ${STATUT_JOUEUR[j.statut] || j.statut}` : ""}
+            </span>
+          </span>
+          <span className={j.photo_url ? "chip chip-ok" : "chip chip-attente"}>
+            {j.photo_url ? "Photo validée" : "Photo à proposer"}
           </span>
         </Link>
       ))}

@@ -25,7 +25,9 @@ export default function Joueur() {
         {j.club_actuel_id ? <Link to={`/clubs/${j.club_actuel_id}`}>← {club || "Équipe"}</Link> : <Link to="/clubs">← Équipes</Link>}
       </p>
       <div className="id-head">
-        <span className="id-mark" aria-hidden="true">{(j.nom_complet || "?").charAt(0)}</span>
+        <span className="id-mark" aria-hidden="true">
+          {j.photo_url ? <img src={j.photo_url} alt="" className="id-mark-photo" /> : (j.nom_complet || "?").charAt(0)}
+        </span>
         <div>
           <h1>{j.nom_complet}</h1>
           <p className="journee-date">{labelPoste(j.poste) || "Poste à compléter"}</p>
@@ -43,10 +45,6 @@ export default function Joueur() {
         <div className="id-row">
           <span>Poste</span>
           <strong>{labelPoste(j.poste) || "à compléter"}</strong>
-        </div>
-        <div className="id-row">
-          <span>Numéro</span>
-          <strong>à compléter</strong>
         </div>
       </div>
       <p className="empty">Buts, passes et cartons s’affichent après les matchs validés. On n’invente pas de stats.</p>
