@@ -2308,3 +2308,188 @@ html[data-theme="dark"] { --door-card: #1c1914; --door-num: var(--lime); }
   flex: 0 0 auto;
 }
 .bulletin-logo-vide { width: 1.5rem; height: 1.5rem; flex: 0 0 auto; }
+
+/* ==== PACK COMPOSITION (11 sept) — feuille de match numérique, sans terrain ==== */
+.feuille {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+@media (min-width: 900px) {
+  .feuille { grid-template-columns: 1fr 1fr; }
+}
+.feuille-equipe {
+  border: 1px solid var(--rule-strong);
+  border-radius: 14px;
+  padding: 0.9rem;
+  background: color-mix(in srgb, var(--card) 88%, transparent);
+}
+.feuille-tete {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding-bottom: 0.7rem;
+  border-bottom: 1px solid var(--rule);
+  margin-bottom: 0.7rem;
+}
+.feuille-logo {
+  flex: 0 0 auto;
+  width: 2.6rem;
+  height: 2.6rem;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+}
+.feuille-club {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.feuille-club strong { font-size: 1.05rem; }
+.feuille-formation {
+  align-self: flex-start;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  padding: 0.12rem 0.5rem;
+  border: 1px solid var(--rule-strong);
+  border-radius: 999px;
+  color: var(--lime);
+}
+.feuille-section {
+  margin: 0.8rem 0 0.35rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.feuille-ligne,
+.feuille-coach {
+  display: grid;
+  grid-template-columns: 2.2rem 1fr auto auto;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.35rem 0;
+  border-bottom: 1px solid var(--rule);
+  color: inherit;
+  text-decoration: none;
+}
+.feuille-coach { grid-template-columns: 2.2rem 1fr auto; }
+.feuille-photo {
+  width: 2.2rem;
+  height: 2.2rem;
+  border-radius: 50%;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--rule-strong);
+  font-weight: 700;
+  position: relative;
+}
+.feuille-photo img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 22%;
+  display: block;
+}
+.feuille-nom { font-weight: 600; }
+.feuille-num {
+  min-width: 1.7rem;
+  text-align: center;
+  font-weight: 700;
+  font-size: 0.85rem;
+  padding: 0.1rem 0.3rem;
+  border: 1px solid var(--rule-strong);
+  border-radius: 8px;
+}
+.feuille-poste {
+  font-size: 0.75rem;
+  color: var(--muted);
+  min-width: 4.2rem;
+  text-align: right;
+}
+.feuille-vide {
+  color: var(--muted);
+  font-size: 0.85rem;
+  padding: 0.3rem 0;
+}
+
+/* ==== éditeur club de la feuille ==== */
+.editeur-reglages {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+  align-items: flex-end;
+  margin: 0.8rem 0;
+}
+.editeur-champ { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.8rem; }
+.editeur-champ input,
+.editeur-champ select {
+  background: var(--card);
+  border: 1px solid var(--rule-strong);
+  border-radius: 10px;
+  color: inherit;
+  padding: 0.45rem 0.6rem;
+  font: inherit;
+}
+.editeur-formations { display: flex; gap: 0.4rem; }
+.editeur-chip {
+  border: 1px solid var(--rule-strong);
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  padding: 0.3rem 0.7rem;
+  font: inherit;
+  font-size: 0.8rem;
+}
+.editeur-ligne {
+  display: grid;
+  grid-template-columns: 2.2rem 1fr auto;
+  gap: 0.6rem;
+  align-items: center;
+  padding: 0.45rem 0;
+  border-bottom: 1px solid var(--rule);
+}
+.editeur-id { display: flex; flex-direction: column; }
+.editeur-seg { display: flex; gap: 0.35rem; }
+.editeur-bouton {
+  border: 1px solid var(--rule-strong);
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  padding: 0.3rem 0.7rem;
+  font: inherit;
+  font-size: 0.78rem;
+}
+.editeur-bouton.actif {
+  background: var(--lime);
+  border-color: var(--lime);
+  color: #10201a;
+  font-weight: 700;
+}
+.editeur-msg { color: var(--lime); font-weight: 600; margin-top: 0.8rem; }
+.editeur-erreur { color: #e07a6a; font-weight: 600; margin-top: 0.8rem; }
+.editeur-enregistrer {
+  margin-top: 0.9rem;
+  width: 100%;
+  border: 0;
+  border-radius: 12px;
+  background: var(--lime);
+  color: #10201a;
+  font: inherit;
+  font-weight: 800;
+  padding: 0.8rem 1rem;
+}
+
+.feuille-lien-editeur {
+  display: inline-block;
+  margin-top: 0.8rem;
+  border: 1px solid var(--lime);
+  border-radius: 999px;
+  color: var(--lime);
+  font-weight: 700;
+  padding: 0.45rem 1rem;
+  text-decoration: none;
+}

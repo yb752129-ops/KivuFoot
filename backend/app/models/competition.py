@@ -1,6 +1,6 @@
 from datetime import date, datetime
 
-from sqlalchemy import Boolean, Date, DateTime, ForeignKey, String, func
+from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Integer, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -20,6 +20,9 @@ class Competition(Base):
     saison_label: Mapped[str | None] = mapped_column("saison", String(50))
     est_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     est_demo: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, index=True)
+    # Nombre maximal de remplaçants par feuille de composition.
+    # NULL = valeur par défaut de la plateforme (7), jamais codé dur côté routes.
+    max_remplacants: Mapped[int | None] = mapped_column(Integer)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     saisons = relationship("Saison", back_populates="competition", cascade="all, delete-orphan")

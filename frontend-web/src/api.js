@@ -119,6 +119,9 @@ export const api = {
   audit: () => request("/audit", { auth: true }),
   matchs: (saisonId) => request(`/matchs?limit=100${saisonId ? `&saison_id=${saisonId}` : ""}`),
   match: (id) => request(`/matchs/${id}`),
+  composition: (matchId) => request(`/matchs/${matchId}/composition`),
+  enregistrerComposition: (matchId, payload) =>
+    request(`/matchs/${matchId}/composition`, { method: "PUT", body: payload, auth: true }),
   evenementsPublics: (id) => request(`/matchs/${id}/evenements-publics`),
   classement: (saisonId, groupe) => request(`/classement?saison_id=${saisonId}${groupe ? `&groupe=${encodeURIComponent(groupe)}` : ""}`),
   buteurs: (saisonId) => request(`/stats/meilleurs-buteurs?saison_id=${saisonId}&limit=10`),

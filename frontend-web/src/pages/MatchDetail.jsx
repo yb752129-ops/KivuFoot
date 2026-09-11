@@ -4,7 +4,7 @@ import { api } from "../api.js";
 import { useKivu } from "../context.jsx";
 import Scoreboard from "../components/Scoreboard.jsx";
 import FeuilleApercu from "../components/FeuilleApercu.jsx";
-import Terrain from "../components/Terrain.jsx";
+import FeuilleMatch from "../components/FeuilleMatch.jsx";
 import { LiveUne } from "../components/LignesMatch.jsx";
 import { dernierFaitLive, formatJour, grouperFaits, journeeTitre, statsDesFaits, stripDemo } from "../display.js";
 
@@ -20,7 +20,8 @@ export default function MatchDetail() {
   const [match, setMatch] = useState(null);
   const [evts, setEvts] = useState([]);
   const [joueurs, setJoueurs] = useState({});
-  const [parts, setParts] = useState([]);
+  const [compo, setCompo] = useState(null);
+  const [moi, setMoi] = useState(null);
   const [onglet, setOnglet] = useState("apercu");
   const [err, setErr] = useState("");
 
@@ -29,13 +30,14 @@ export default function MatchDetail() {
     const [e, js, p] = await Promise.all([
       api.evenementsPublics(id).catch(() => []),
       api.joueurs().catch(() => []),
-      api.participations(id).catch(() => []),
+      api.composition(id).catch(() => null),
     ]);
     setErr("");
     setMatch(m);
     setEvts(e || []);
     setJoueurs(Object.fromEntries((js || []).map((j) => [j.id, j])));
-    setParts(p || []);
+    setCompo(p || null);
+    api.me().then(setMoi).catch(() => setMoi(null));
   }
 
   useEffect(() => {
@@ -152,15 +154,12 @@ export default function MatchDetail() {
       )}
 
       {onglet === "compo" && (
-        <Terrain
-          home={stripDemo(home?.nom)}
-          away={stripDemo(away?.nom)}
-          parts={parts}
-          nom={nom}
-          byId={joueurs}
-          coachHome={home?.coach_nom}
-          coachAway={away?.coach_nom}
-        />
+        <>
+          <FeuilleMatch compo={compo} />
+          {moi && moi.club_id && moi.club_id === match.equipe_domicile_id || moi && moi.club_id && moi.club_id === match.equipe_exterieur_id ? (
+            <Link className="feuille-lien-editeur" to={`/club/matchs/${id}/composition`}>Préparer la feuille de mon équipe</Link>
+          ) : null}
+        </>
       )}
     </section>
   );

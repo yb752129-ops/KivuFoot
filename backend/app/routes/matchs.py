@@ -14,6 +14,16 @@ from app.models.match import Match, MatchParticipation
 from app.models.user import User
 from app.schemas.match import MatchCreate, MatchOut, MatchPhaseUpdate, ParticipationCreate, ParticipationOut, ParticipationUpdate
 from app.services.audit import log_audit
+from app.schemas.match import (
+    CompositionEquipeIn,
+    CompositionEquipeOut,
+    CompositionJoueurOut,
+    CompositionOut,
+    CompositionStaffOut,
+)
+from app.models.club import Club
+from app.models.competition import Competition
+from app.models.staff import Staff
 from app.services.validation import valider_match
 
 router = APIRouter(prefix="/matchs", tags=["Matchs"])
@@ -314,3 +324,164 @@ async def changer_phase_match(
     await db.commit()
     await db.refresh(match_)
     return match_
+
+
+# ==== PACK COMPOSITION (11 sept) : feuille de match numérique ====
+REMPLECANTS_DEFAUT = 7  # valeur par défaut SI la compétition n'a pas fixé sa règle
+
+
+async def _bloc_equipe(db: AsyncSession, match_: Match, equipe: str, max_rempl: int) -> CompositionEquipeOut:
+    club_id = match_.equipe_domicile_id if equipe == "domicile" else match_.equipe_exterieur_id
+    bloc = CompositionEquipeOut()
+    if club_id is None:
+        return bloc
+    club = await db.get(Club, club_id)
+    bloc.club_id = club_id
+    bloc.club_nom = club.nom if club else None
+    bloc.logo_url = club.logo_url if club else None
+    bloc.formation = match_.formation_domicile if equipe == "domicile" else match_.formation_exterieur
+    staff_id = match_.staff_domicile_id if equipe == "domicile" else match_.staff_exterieur_id
+    if staff_id:
+        st = await db.get(Staff, staff_id)
+        if st:
+            bloc.staff = CompositionStaffOut(
+                id=st.id, nom_complet=st.nom_complet, role=getattr(st.role, "value", st.role), photo_url=st.photo_url
+            )
+    rows = (
+        await db.execute(
+            select(MatchParticipation)
+            .where(MatchParticipation.match_id == match_.id)
+            .where(MatchParticipation.equipe_concernee == equipe)
+            .order_by(MatchParticipation.id)
+        )
+    ).scalars().all()
+    for part in rows:
+        j = await db.get(Joueur, part.joueur_id)
+        if not j:
+            continue
+        out = CompositionJoueurOut(
+            id=j.id,
+            nom_complet=j.nom_complet,
+            poste=getattr(j.poste, "value", j.poste),
+            numero=j.numero,
+            photo_url=j.photo_url,
+        )
+        if getattr(part.statut, "value", part.statut) == "titulaire":
+            bloc.titulaires.append(out)
+        else:
+            bloc.banc.append(out)
+    return bloc
+
+
+async def _composition_complete(db: AsyncSession, match_: Match) -> CompositionOut:
+    saison = await db.get(Saison, match_.saison_id)
+    compo = await db.get(Competition, saison.competition_id) if saison else None
+    max_rempl = (compo.max_remplacants if compo and compo.max_remplacants else REMPLACANTS_DEFAUT)
+    return CompositionOut(
+        match_id=match_.id,
+        max_remplacants=max_rempl,
+        domicile=await _bloc_equipe(db, match_, "domicile", max_rempl),
+        exterieur=await _bloc_equipe(db, match_, "exterieur", max_rempl),
+    )
+
+
+@router.get("/{match_id}/composition", response_model=CompositionOut)
+async def lire_composition(match_id: int, db: AsyncSession = Depends(get_db)):
+    match_ = await db.get(Match, match_id)
+    if not match_:
+        raise HTTPException(status_code=404, detail="Match introuvable.")
+    return await _composition_complete(db, match_)
+
+
+@router.put("/{match_id}/composition", response_model=CompositionOut)
+async def enregistrer_composition(
+    match_id: int,
+    payload: CompositionEquipeIn,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(
+        require_roles(
+            RoleUtilisateur.ADMIN,
+            RoleUtilisateur.ORGANISATEUR,
+            RoleUtilisateur.CLUB_MANAGER,
+            RoleUtilisateur.COACH,
+        )
+    ),
+):
+    match_ = await db.get(Match, match_id)
+    if not match_:
+        raise HTTPException(status_code=404, detail="Match introuvable.")
+    if match_.locked or getattr(match_.statut, "value", match_.statut) in ("termine", "valide"):
+        raise HTTPException(status_code=400, detail="Match verrouillé : composition non modifiable.")
+    equipe = getattr(payload.equipe, "value", payload.equipe)
+    club_id = match_.equipe_domicile_id if equipe == "domicile" else match_.equipe_exterieur_id
+    if club_id is None:
+        raise HTTPException(status_code=400, detail="Équipe non définie pour ce match.")
+    role = getattr(current_user.role, "value", current_user.role)
+    if role in ("club_manager", "coach") and current_user.club_id != club_id:
+        raise HTTPException(status_code=403, detail="Vous ne gérez pas cette équipe.")
+    saison = await db.get(Saison, match_.saison_id)
+    compo = await db.get(Competition, saison.competition_id) if saison else None
+    max_rempl = (compo.max_remplacants if compo and compo.max_remplacants else REMPLACANTS_DEFAUT)
+    titulaires = [j for j in payload.joueurs if getattr(j.statut, "value", j.statut) == "titulaire"]
+    banc = [j for j in payload.joueurs if getattr(j.statut, "value", j.statut) == "remplacant"]
+    if len(titulaires) > 11:
+        raise HTTPException(status_code=400, detail="Maximum 11 titulaires.")
+    if len(banc) > max_rempl:
+        raise HTTPException(status_code=400, detail=f"Maximum {max_rempl} remplaçants pour cette compétition.")
+    if payload.staff_id:
+        st = await db.get(Staff, payload.staff_id)
+        if not st or st.club_id != club_id:
+            raise HTTPException(status_code=400, detail="Entraîneur hors de ce club.")
+    ids_voulus = set()
+    for ligne in payload.joueurs:
+        j = await db.get(Joueur, ligne.joueur_id)
+        if not j or j.club_actuel_id != club_id:
+            raise HTTPException(status_code=400, detail="Un joueur sélectionné n'appartient pas à ce club.")
+        ids_voulus.add(ligne.joueur_id)
+    avant = {
+        "formation": match_.formation_domicile if equipe == "domicile" else match_.formation_exterieur,
+        "staff_id": match_.staff_domicile_id if equipe == "domicile" else match_.staff_exterieur_id,
+    }
+    existantes = (
+        await db.execute(
+            select(MatchParticipation)
+            .where(MatchParticipation.match_id == match_.id)
+            .where(MatchParticipation.equipe_concernee == equipe)
+        )
+    ).scalars().all()
+    par_joueur = {p.joueur_id: p for p in existantes}
+    for part in existantes:
+        if part.joueur_id not in ids_voulus:
+            await db.delete(part)
+    for ligne in payload.joueurs:
+        stat = getattr(ligne.statut, "value", ligne.statut)
+        part = par_joueur.get(ligne.joueur_id)
+        if part:
+            part.statut = stat
+        else:
+            db.add(
+                MatchParticipation(
+                    match_id=match_.id,
+                    joueur_id=ligne.joueur_id,
+                    club_id=club_id,
+                    equipe_concernee=equipe,
+                    statut=stat,
+                    minute_entree=0,
+                )
+            )
+    if equipe == "domicile":
+        match_.formation_domicile = payload.formation
+        match_.staff_domicile_id = payload.staff_id
+    else:
+        match_.formation_exterieur = payload.formation
+        match_.staff_exterieur_id = payload.staff_id
+    apres = {
+        "formation": payload.formation,
+        "staff_id": payload.staff_id,
+        "titulaires": len(titulaires),
+        "banc": len(banc),
+    }
+    await log_audit(db, "matchs", match_.id, ActionAudit.UPDATE, current_user.id, avant, apres)
+    await db.commit()
+    await db.refresh(match_)
+    return await _composition_complete(db, match_)

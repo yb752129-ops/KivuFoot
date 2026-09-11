@@ -84,3 +84,48 @@ class ParticipationOut(BaseModel):
     statut: StatutParticipation
     minute_entree: int
     minute_sortie: int | None
+
+
+# ==== PACK COMPOSITION (11 sept) : feuille de match numérique ====
+class CompositionJoueurIn(BaseModel):
+    joueur_id: int
+    statut: StatutParticipation
+
+
+class CompositionEquipeIn(BaseModel):
+    equipe: EquipeConcernee
+    formation: str | None = None
+    staff_id: int | None = None
+    joueurs: list[CompositionJoueurIn] = []
+
+
+class CompositionJoueurOut(BaseModel):
+    id: int
+    nom_complet: str
+    poste: str | None = None
+    numero: int | None = None
+    photo_url: str | None = None
+
+
+class CompositionStaffOut(BaseModel):
+    id: int
+    nom_complet: str
+    role: str | None = None
+    photo_url: str | None = None
+
+
+class CompositionEquipeOut(BaseModel):
+    club_id: int | None = None
+    club_nom: str | None = None
+    logo_url: str | None = None
+    formation: str | None = None
+    staff: CompositionStaffOut | None = None
+    titulaires: list[CompositionJoueurOut] = []
+    banc: list[CompositionJoueurOut] = []
+
+
+class CompositionOut(BaseModel):
+    match_id: int
+    max_remplacants: int
+    domicile: CompositionEquipeOut
+    exterieur: CompositionEquipeOut

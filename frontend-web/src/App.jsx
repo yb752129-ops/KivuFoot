@@ -29,6 +29,7 @@ import ClubVue from "./pages/club/Vue.jsx";
 import ClubEffectif from "./pages/club/Effectif.jsx";
 import ClubJoueur from "./pages/club/Joueur.jsx";
 import ClubMatchs from "./pages/club/Matchs.jsx";
+import ClubComposition from "./pages/club/Composition.jsx";
 import CoachLayout from "./components/CoachLayout.jsx";
 import CoachVue from "./pages/coach/Vue.jsx";
 import CoachMatchs from "./pages/coach/Matchs.jsx";
@@ -120,6 +121,7 @@ export default function App() {
             <Route index element={<ClubVue />} />
             <Route path="effectif" element={<ClubEffectif />} />
             <Route path="effectif/:id" element={<ClubJoueur />} />
+            <Route path="matchs/:matchId/composition" element={<ClubComposition />} />
             <Route path="matchs" element={<ClubMatchs />} />
           </Route>
           <Route

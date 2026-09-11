@@ -42,6 +42,13 @@ class Match(Base):
     valide_par: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
     date_validation: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     locked: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+
+    # Composition (pack 11 sept) : formation et entraîneur par équipe,
+    # colonnes additives, jamais destructives.
+    formation_domicile: Mapped[str | None] = mapped_column(String(12))
+    formation_exterieur: Mapped[str | None] = mapped_column(String(12))
+    staff_domicile_id: Mapped[int | None] = mapped_column(ForeignKey("staffs.id", ondelete="SET NULL"))
+    staff_exterieur_id: Mapped[int | None] = mapped_column(ForeignKey("staffs.id", ondelete="SET NULL"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     saison = relationship("Saison", back_populates="matchs")
