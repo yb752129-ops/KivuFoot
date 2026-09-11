@@ -227,6 +227,13 @@ export default function OrgaEquipe() {
       {joueurs.length === 0 && <p className="empty">Aucun joueur. Nom complet obligatoire.</p>}
       {joueurs.map((j) => (
         <Link key={j.id} to={`/joueurs/${j.id}`} className="avenir-row">
+          <span className="club-initiale" aria-hidden="true">
+            {j.photo_url ? (
+              <img className="club-initiale-img" src={j.photo_url} alt="" />
+            ) : (
+              (j.nom_complet || "?").charAt(0)
+            )}
+          </span>
           <span className="avenir-noms">
             <span>{j.nom_complet}</span>
             <span className="meta-line">{labelPoste(j.poste) || "Poste à compléter"}</span>
