@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user
 from app.auth.rbac import require_roles, verifier_organisateur_de_competition, verifier_organisateur_du_match
+from app.config import settings
 from app.database import get_db
 from app.models.competition import Saison, SaisonClub
 from app.models.enums import ActionAudit, EquipeConcernee, PeriodeMatch, RoleUtilisateur, StatutMatch
@@ -327,7 +328,6 @@ async def changer_phase_match(
 
 
 # ==== PACK COMPOSITION (11 sept) : feuille de match numérique ====
-REMPLECANTS_DEFAUT = 7  # valeur par défaut SI la compétition n'a pas fixé sa règle
 
 
 async def _bloc_equipe(db: AsyncSession, match_: Match, equipe: str, max_rempl: int) -> CompositionEquipeOut:
@@ -376,7 +376,7 @@ async def _bloc_equipe(db: AsyncSession, match_: Match, equipe: str, max_rempl: 
 async def _composition_complete(db: AsyncSession, match_: Match) -> CompositionOut:
     saison = await db.get(Saison, match_.saison_id)
     compo = await db.get(Competition, saison.competition_id) if saison else None
-    max_rempl = (compo.max_remplacants if compo and compo.max_remplacants else REMPLACANTS_DEFAUT)
+    max_rempl = (compo.max_remplacants if compo and compo.max_remplacants else settings.compo_remplacants_defaut)
     return CompositionOut(
         match_id=match_.id,
         max_remplacants=max_rempl,
@@ -385,16 +385,12 @@ async def _composition_complete(db: AsyncSession, match_: Match) -> CompositionO
     )
 
 
-@router.get("/{match_id}/composition")
+@router.get("/{match_id}/composition", response_model=CompositionOut)
 async def lire_composition(match_id: int, db: AsyncSession = Depends(get_db)):
     match_ = await db.get(Match, match_id)
     if not match_:
         raise HTTPException(status_code=404, detail="Match introuvable.")
-    try:
-        retour = await _composition_complete(db, match_)
-        return retour
-    except Exception as exc:  # DEBUG TEMPORAIRE : retire au prochain pack
-        return {"debug": f"{type(exc).__name__}: {exc}"}
+    return await _composition_complete(db, match_)
 
 
 @router.put("/{match_id}/composition", response_model=CompositionOut)
@@ -425,7 +421,7 @@ async def enregistrer_composition(
         raise HTTPException(status_code=403, detail="Vous ne gérez pas cette équipe.")
     saison = await db.get(Saison, match_.saison_id)
     compo = await db.get(Competition, saison.competition_id) if saison else None
-    max_rempl = (compo.max_remplacants if compo and compo.max_remplacants else REMPLACANTS_DEFAUT)
+    max_rempl = (compo.max_remplacants if compo and compo.max_remplacants else settings.compo_remplacants_defaut)
     titulaires = [j for j in payload.joueurs if getattr(j.statut, "value", j.statut) == "titulaire"]
     banc = [j for j in payload.joueurs if getattr(j.statut, "value", j.statut) == "remplacant"]
     if len(titulaires) > 11:

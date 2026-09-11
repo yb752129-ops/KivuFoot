@@ -29,6 +29,11 @@ class Settings(BaseSettings):
     refresh_token_expire_days: int = 30
 
     # CORS
+    # Feuille de composition : nombre de remplaçants SI la compétition
+    # n'a pas fixé sa propre règle (competitions.max_remplacants).
+    # Réglable sans code via la variable d'environnement COMPO_REMPLACANTS_DEFAUT.
+    compo_remplacants_defaut: int = 7
+
     cors_allow_origins: str = "http://localhost:5173"
 
     # Supabase Storage (logos clubs) — secrets environnement seulement
