@@ -55,7 +55,7 @@ export default function Coach() {
     setMsg(""); setErreur("");
     if (!nom.trim()) { setErreur("Donnez d'abord un nom."); return; }
     try {
-      await api.creerStaff(clubId, { nom_complet: nom.trim(), role });
+      await api.creerStaff(clubId, { nom_complet: nom.trim(), role: String(role).toLowerCase() });
       setNom("");
       setMsg("Membre du staff ajouté. Vous pouvez maintenant proposer sa photo.");
       const frais = await api.staffClub(clubId);
