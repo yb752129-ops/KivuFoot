@@ -13,13 +13,13 @@ export default function Clubs() {
       )}
       {list.map((c) => (
         <Link key={c.id} to={`/clubs/${c.id}`} className="avenir-row">
-          <span className="club-initiale" aria-hidden="true">
-            {c.logo_url ? (
-              <img className="club-initiale-img" src={c.logo_url} alt="" />
-            ) : (
-              (stripDemo(c.nom) || "?").charAt(0)
-            )}
-          </span>
+          {c.logo_url ? (
+            <img className="logo-libre" src={c.logo_url} alt="" />
+          ) : (
+            <span className="club-initiale" aria-hidden="true">
+              {(stripDemo(c.nom) || "?").charAt(0)}
+            </span>
+          )}
           <span className="avenir-noms">
             <span>{stripDemo(c.nom)}</span>
             <span className="meta-line">{[c.ville, c.stade].filter(Boolean).join(" — ") || "Lieu à compléter"}</span>

@@ -41,3 +41,18 @@ async def uploader_logo(club_id: int, nom_fichier: str, data: bytes) -> str:
         detail = r.text[:180]
         raise DepotRefus(f"Le stockage a refusé le fichier (code {r.status_code}) : {detail}")
     return f"{base}/storage/v1/object/public/logos-clubs/{chemin}"
+
+
+async def supprimer_objet(chemin: str) -> None:
+    """Supprime un objet du bucket logos-clubs. 404 = déjà absent : silencieux."""
+    if not settings.supabase_url or not settings.supabase_service_role:
+        raise DepotRefus("Stockage non configuré côté serveur.")
+    base = settings.supabase_url.rstrip("/")
+    cle = settings.supabase_service_role
+    async with httpx.AsyncClient(timeout=30) as client:
+        r = await client.delete(
+            f"{base}/storage/v1/object/logos-clubs/{chemin}",
+            headers={"Authorization": f"Bearer {cle}", "apikey": cle},
+        )
+    if r.status_code >= 400 and r.status_code != 404:
+        raise DepotRefus(f"Le stockage a refusé la suppression (code {r.status_code}).")

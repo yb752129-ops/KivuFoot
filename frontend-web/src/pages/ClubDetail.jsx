@@ -37,13 +37,13 @@ export default function ClubDetail() {
     <section className="hero">
       <p className="kicker"><Link to="/clubs">← Équipes</Link></p>
       <div className="id-head">
-        <span className="id-mark" aria-hidden="true">
-          {club.logo_url ? (
-            <img className="id-mark-photo" src={club.logo_url} alt="" />
-          ) : (
-            (stripDemo(club.nom) || "?").charAt(0)
-          )}
-        </span>
+        {club.logo_url ? (
+          <img className="logo-libre logo-libre-grand" src={club.logo_url} alt="" />
+        ) : (
+          <span className="id-mark" aria-hidden="true">
+            {(stripDemo(club.nom) || "?").charAt(0)}
+          </span>
+        )}
         <div>
           <h1>{stripDemo(club.nom)}</h1>
           <p className="journee-date">{lieu || "Lieu à compléter"}</p>

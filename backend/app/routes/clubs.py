@@ -10,7 +10,7 @@ from app.models.match import Match
 from app.models.user import User
 from app.schemas.competition import ClubCreate, ClubOut, ClubUpdate
 from app.services.audit import log_audit
-from app.services.stockage_logo import DepotRefus, uploader_logo
+from app.services.stockage_logo import DepotRefus, supprimer_objet, uploader_logo
 from app.services.stockage_photo import DepotRefus as PhotoDepotRefus, uploader_photo
 
 from sqlalchemy import func, select
@@ -229,3 +229,31 @@ async def proposer_photo_staff(
     sortie = _PhotoOut.model_validate(photo)
     sortie.url = url_publique(photo.storage_key)
     return sortie
+
+
+@router.delete("/{club_id}/logo", response_model=ClubOut)
+async def supprimer_logo(
+    club_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles(RoleUtilisateur.ADMIN, RoleUtilisateur.ORGANISATEUR)),
+):
+    """Retire un logo erroné ou de test : le monogramme reprend sa place."""
+    club = await db.get(Club, club_id)
+    if club is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Club introuvable.")
+    if not club.logo_url:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Ce club n'a pas de logo à retirer.")
+    avant = {"logo_url": club.logo_url}
+    marque = "/object/public/logos-clubs/"
+    chemin = club.logo_url.split(marque)[-1] if marque in club.logo_url else None
+    if chemin:
+        try:
+            await supprimer_objet(chemin)
+        except DepotRefus as ex:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, str(ex))
+    club.logo_url = None
+    await log_audit(db, "clubs", club.id, ActionAudit.DELETE, current_user.id, avant, {"logo_url": None})
+    await db.commit()
+    await db.refresh(club)
+    noms = await _coach_noms(db, [club_id])
+    return _club_out(club, noms.get(club_id))
