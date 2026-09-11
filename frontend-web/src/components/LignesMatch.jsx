@@ -106,13 +106,15 @@ export function AVenirLigne({ match, clubsById, to }) {
         <span className="bulletin-etat">À venir</span>
         <span className="bulletin-heure">{formatHeure(match.date_heure)}</span>
       </span>
-      <span className="bulletin-logos">
-        {logoHome ? <img className="bulletin-logo" src={logoHome} alt="" /> : <span className="bulletin-logo" />}
-        {logoAway ? <img className="bulletin-logo" src={logoAway} alt="" /> : <span className="bulletin-logo" />}
-      </span>
       <span className="bulletin-noms">
-        <span>{home || "Équipe à nommer"}</span>
-        <span>{away || "Équipe à nommer"}</span>
+        <span className="bulletin-nom">
+          {logoHome ? <img className="bulletin-logo" src={logoHome} alt="" /> : <span className="bulletin-logo-vide" />}
+          {home || "Équipe à nommer"}
+        </span>
+        <span className="bulletin-nom">
+          {logoAway ? <img className="bulletin-logo" src={logoAway} alt="" /> : <span className="bulletin-logo-vide" />}
+          {away || "Équipe à nommer"}
+        </span>
         {lieu && <span className="bulletin-lieu"><IcoEpingle className="lieu-ico" />{lieu}</span>}
       </span>
       <Chevron />
@@ -132,13 +134,15 @@ export function TermineLigne({ match, clubsById, to }) {
         <span className="bulletin-etat">{officiel ? "Validé" : "Terminé"}</span>
         <span className="bulletin-heure">{formatHeure(match.date_heure)}</span>
       </span>
-      <span className="bulletin-logos">
-        {logoHome ? <img className="bulletin-logo" src={logoHome} alt="" /> : <span className="bulletin-logo" />}
-        {logoAway ? <img className="bulletin-logo" src={logoAway} alt="" /> : <span className="bulletin-logo" />}
-      </span>
       <span className="bulletin-noms">
-        <span>{home || "Équipe à nommer"}</span>
-        <span>{away || "Équipe à nommer"}</span>
+        <span className="bulletin-nom">
+          {logoHome ? <img className="bulletin-logo" src={logoHome} alt="" /> : <span className="bulletin-logo-vide" />}
+          {home || "Équipe à nommer"}
+        </span>
+        <span className="bulletin-nom">
+          {logoAway ? <img className="bulletin-logo" src={logoAway} alt="" /> : <span className="bulletin-logo-vide" />}
+          {away || "Équipe à nommer"}
+        </span>
         {officiel && <span className="bulletin-officiel"><SceauDoc />Résultat officiel</span>}
       </span>
       <span className="bulletin-score">

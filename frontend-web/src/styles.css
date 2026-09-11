@@ -2296,3 +2296,15 @@ html[data-theme="dark"] { --door-card: #1c1914; --door-num: var(--lime); }
   border-radius: inherit;
   display: block;
 }
+
+/* 11 sept soir : logos collés aux noms, façon SofaScore — lisibles et stylés */
+.bulletin-nom { display: flex; align-items: center; gap: 0.5rem; }
+.bulletin-logo {
+  width: 1.5rem;
+  height: 1.5rem;
+  object-fit: contain;
+  border-radius: 5px;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.35));
+  flex: 0 0 auto;
+}
+.bulletin-logo-vide { width: 1.5rem; height: 1.5rem; flex: 0 0 auto; }
