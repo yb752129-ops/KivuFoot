@@ -15,8 +15,7 @@ function LigneJoueur({ j }) {
 }
 
 function BlocEquipe({ bloc }) {
-  const club = bloc.club || {};
-  const nom = stripDemo(club.nom) || "Équipe à nommer";
+  const nom = stripDemo(bloc.club_nom) || "Équipe à nommer";
   const titulaires = bloc.titulaires || [];
   const banc = bloc.banc || [];
   const staff = bloc.staff;
@@ -24,7 +23,7 @@ function BlocEquipe({ bloc }) {
     <section className="feuille-equipe">
       <header className="feuille-tete">
         <span className="feuille-logo" aria-hidden="true">
-          {club.logo_url ? <img className="logo-libre" src={club.logo_url} alt="" /> : (nom || "?").charAt(0)}
+          {bloc.logo_url ? <img className="logo-libre" src={bloc.logo_url} alt="" /> : (nom || "?").charAt(0)}
         </span>
         <span className="feuille-club">
           <strong>{nom}</strong>

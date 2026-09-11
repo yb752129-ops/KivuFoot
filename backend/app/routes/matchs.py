@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user
@@ -342,7 +343,11 @@ async def _bloc_equipe(db: AsyncSession, match_: Match, equipe: str, max_rempl: 
     bloc.formation = match_.formation_domicile if equipe == "domicile" else match_.formation_exterieur
     staff_id = match_.staff_domicile_id if equipe == "domicile" else match_.staff_exterieur_id
     if staff_id:
-        st = await db.get(Staff, staff_id)
+        st = (
+            await db.execute(
+                select(Staff).where(Staff.id == staff_id).options(selectinload(Staff.photo_actuelle_rel))
+            )
+        ).scalar_one_or_none()
         if st:
             bloc.staff = CompositionStaffOut(
                 id=st.id, nom_complet=st.nom_complet, role=getattr(st.role, "value", st.role), photo_url=st.photo_url
@@ -355,8 +360,17 @@ async def _bloc_equipe(db: AsyncSession, match_: Match, equipe: str, max_rempl: 
             .order_by(MatchParticipation.id)
         )
     ).scalars().all()
+    ids = [part.joueur_id for part in rows]
+    par_id = {}
+    if ids:
+        js = (
+            await db.execute(
+                select(Joueur).where(Joueur.id.in_(ids)).options(selectinload(Joueur.photo_actuelle_rel))
+            )
+        ).scalars().all()
+        par_id = {j.id: j for j in js}
     for part in rows:
-        j = await db.get(Joueur, part.joueur_id)
+        j = par_id.get(part.joueur_id)
         if not j:
             continue
         out = CompositionJoueurOut(
