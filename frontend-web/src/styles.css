@@ -2523,3 +2523,14 @@ html[data-theme="dark"] { --door-card: #1c1914; --door-num: var(--lime); }
   border-radius: 999px;
   padding: 0.15rem 0.6rem;
 }
+
+/* --- Sombre seul : ajout pack-sombre, aucune ligne enlevee --- */
+:root,html[data-theme=light]{--paper:#14120e;--paper-2:#1c1914;--ink:#ede8dc;--ink-soft:#a39c90;--rule:rgba(237,232,220,.14);--rule-strong:#cfc6b4;--stamp:#6faf86;--stamp-2:#8bc49d;--lake:#8eb4c4;--clay:#d4895c;--live:#e85a5a;--ok:#6faf86;--warn:#e0b14a;--err:#e07a7a;--card-y:#e6c35c;--card-r:#e85a5a;--card-red:#e07a7a;--green:#0b2e22;--green-2:#123b2c;--door-card:#1c1914;--door-num:var(--lime);color-scheme:dark}
+html, body, #root,
+html[data-theme=light], html[data-theme=light] body, html[data-theme=light] #root{background:#14120e;color:#ede8dc}
+html[data-theme=light] .bulletin-row{background:var(--paper-2)}
+.boot-txt{color:#a39c90}
+.boot-kicker{color:#6faf86}
+.boot-ring{border-color:#6faf86}
+.boot-spin::before{border-color:#6faf86 transparent transparent}
+.apparence{display:none}
