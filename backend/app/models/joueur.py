@@ -1,6 +1,6 @@
 from datetime import date, datetime
 
-from sqlalchemy import Boolean, Date, DateTime, ForeignKey, String, func
+from sqlalchemy import Integer, Boolean, Date, DateTime, ForeignKey, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -14,6 +14,7 @@ class Joueur(Base):
     nom_complet: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
     date_naissance: Mapped[date] = mapped_column(Date, nullable=False)
     poste: Mapped[PosteJoueur | None] = mapped_column(String(50))
+    numero: Mapped[int | None] = mapped_column(Integer)  # numéro de maillot : optionnel, contextuel, jamais identifiant
     club_actuel_id: Mapped[int | None] = mapped_column(ForeignKey("clubs.id", ondelete="SET NULL"))
     statut: Mapped[StatutJoueur] = mapped_column(String(12), default=StatutJoueur.ACTIF, nullable=False)
     telephone: Mapped[str | None] = mapped_column(String(20))

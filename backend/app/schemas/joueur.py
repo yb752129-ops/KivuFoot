@@ -8,6 +8,7 @@ from app.models.enums import PosteJoueur, StatutJoueur, StatutVerificationJoueur
 class JoueurPublicOut(BaseModel):
     """Profil public : PAS de téléphone/email, restrictions mineurs appliquées en amont (crud)."""
     model_config = ConfigDict(from_attributes=True)
+    numero: int | None = None
 
     id: int
     nom_complet: str
@@ -20,6 +21,7 @@ class JoueurPublicOut(BaseModel):
 class JoueurDetailOut(BaseModel):
     """Vue réservée club_manager/organisateur/admin - inclut les données personnelles."""
     model_config = ConfigDict(from_attributes=True)
+    numero: int | None = None
 
     id: int
     nom_complet: str
@@ -47,6 +49,7 @@ class JoueurCreate(BaseModel):
     telephone: str | None = None
     email: str | None = None
     autorisation_parentale: bool | None = None
+    numero: int | None = None
 
     @field_validator("date_naissance")
     @classmethod
@@ -71,6 +74,7 @@ class JoueurMergeRequest(BaseModel):
 
 class JoueurUpdate(BaseModel):
     """C1 : téléphone / e-mail seulement. Le reste passe par une proposition."""
+    numero: int | None = None
 
     telephone: str | None = None
     email: str | None = None

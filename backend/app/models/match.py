@@ -79,6 +79,7 @@ class MatchParticipation(Base):
     club_id: Mapped[int] = mapped_column(ForeignKey("clubs.id", ondelete="CASCADE"), nullable=False)
     equipe_concernee: Mapped[EquipeConcernee] = mapped_column(String(10), nullable=False)
     statut: Mapped[str] = mapped_column(String(20), nullable=False)  # titulaire | remplacant
+    numero: Mapped[int | None] = mapped_column(Integer)  # numéro porté pour CE match
     minute_entree: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     minute_sortie: Mapped[int | None] = mapped_column(Integer)  # NULL = a joué jusqu'à la fin
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

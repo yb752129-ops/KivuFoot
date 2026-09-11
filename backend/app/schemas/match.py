@@ -90,6 +90,7 @@ class ParticipationOut(BaseModel):
 class CompositionJoueurIn(BaseModel):
     joueur_id: int
     statut: StatutParticipation
+    numero: int | None = None
 
 
 class CompositionEquipeIn(BaseModel):

@@ -363,7 +363,7 @@ async def _bloc_equipe(db: AsyncSession, match_: Match, equipe: str, max_rempl: 
             id=j.id,
             nom_complet=j.nom_complet,
             poste=getattr(j.poste, "value", j.poste),
-            numero=j.numero,
+            numero=part.numero if part.numero is not None else getattr(j, "numero", None),
             photo_url=j.photo_url,
         )
         if getattr(part.statut, "value", part.statut) == "titulaire":
@@ -458,6 +458,8 @@ async def enregistrer_composition(
         part = par_joueur.get(ligne.joueur_id)
         if part:
             part.statut = stat
+            if ligne.numero is not None:
+                part.numero = ligne.numero
         else:
             db.add(
                 MatchParticipation(
@@ -467,6 +469,7 @@ async def enregistrer_composition(
                     equipe_concernee=equipe,
                     statut=stat,
                     minute_entree=0,
+                    numero=ligne.numero,
                 )
             )
     if equipe == "domicile":

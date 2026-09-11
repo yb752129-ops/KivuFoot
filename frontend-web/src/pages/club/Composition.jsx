@@ -17,6 +17,7 @@ export default function Composition() {
   const [choix, setChoix] = useState({});
   const [formation, setFormation] = useState("");
   const [staffId, setStaffId] = useState("");
+  const [numeros, setNumeros] = useState({});
   const [msg, setMsg] = useState("");
   const [erreur, setErreur] = useState("");
 
@@ -42,6 +43,9 @@ export default function Composition() {
     (bloc.titulaires || []).forEach((j) => { c[j.id] = "titulaire"; });
     (bloc.banc || []).forEach((j) => { c[j.id] = "remplacant"; });
     setChoix(c);
+    const nums = {};
+    [...(bloc.titulaires || []), ...(bloc.banc || [])].forEach((j) => { if (j.numero != null) nums[j.id] = String(j.numero); });
+    setNumeros(nums);
     setFormation(bloc.formation || "");
     setStaffId(bloc.staff ? String(bloc.staff.id) : "");
   }, [compo, equipe]);
@@ -60,7 +64,7 @@ export default function Composition() {
     setMsg(""); setErreur("");
     const lignes = Object.entries(choix)
       .filter(([, v]) => v)
-      .map(([id, v]) => ({ joueur_id: Number(id), statut: v }));
+      .map(([id, v]) => ({ joueur_id: Number(id), statut: v, numero: numeros[id] ? Number(numeros[id]) : null }));
     try {
       const neuf = await api.enregistrerComposition(matchId, {
         equipe,
@@ -115,6 +119,17 @@ export default function Composition() {
             <span className="feuille-nom">{j.nom_complet}</span>
             <span className="meta-line">{labelPoste(j.poste) || "Poste"}{j.numero ? ` · N° ${j.numero}` : ""}</span>
           </span>
+          <label className="editeur-numero">
+            <input
+              type="number"
+              min="1"
+              max="99"
+              inputMode="numeric"
+              value={numeros[j.id] ?? (j.numero != null ? String(j.numero) : "")}
+              placeholder="N°"
+              onChange={(e) => setNumeros((n) => ({ ...n, [j.id]: e.target.value }))}
+            />
+          </label>
           <span className="editeur-seg">
             {["titulaire", "remplacant"].map((v) => (
               <button

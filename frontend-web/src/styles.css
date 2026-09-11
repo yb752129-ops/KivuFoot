@@ -2493,3 +2493,14 @@ html[data-theme="dark"] { --door-card: #1c1914; --door-num: var(--lime); }
   padding: 0.45rem 1rem;
   text-decoration: none;
 }
+
+.editeur-numero input {
+  width: 3.2rem;
+  background: var(--card);
+  border: 1px solid var(--rule-strong);
+  border-radius: 8px;
+  color: inherit;
+  font: inherit;
+  padding: 0.3rem 0.3rem;
+  text-align: center;
+}
