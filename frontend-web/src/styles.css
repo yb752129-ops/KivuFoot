@@ -2540,3 +2540,11 @@ html[data-theme=light] .bulletin-row{background:var(--paper-2)}
 .coach-actions .editeur-bouton{padding:.32rem .7rem;font-size:.78rem}
 .coach-edit{flex-basis:100%;display:flex;flex-wrap:wrap;gap:.5rem;align-items:end;padding:.5rem 0 .2rem}
 .coach-retirer{border-color:var(--err);color:var(--err)}
+
+/* --- Ecran de charge : ballon envoye par Yves, ajout pack-ballon-3 --- */
+.charge-anneau,.charge-anneau-2,.charge-anneau-spin,.charge-ballon-spin{display:none}
+.charge-orbite{background:url(/ballon-charge.png) center/88% no-repeat;animation:kf-ballon 2.5s linear infinite}
+.charge-dots i{background:var(--stamp)}
+.boot-anneau{display:none}
+.boot-orb{background:url(/ballon-charge.png) center/88% no-repeat;animation:kf-ballon 2.5s linear infinite}
+@keyframes kf-ballon{0%{transform:rotate(0deg) scale(1)}50%{transform:rotate(180deg) scale(1.05)}100%{transform:rotate(360deg) scale(1)}}
