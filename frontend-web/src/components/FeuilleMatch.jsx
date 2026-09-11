@@ -42,10 +42,10 @@ function BlocEquipe({ bloc }) {
           {staff ? (
             <span className="feuille-coach">
               <span className="feuille-photo" aria-hidden="true">
-                {staff.photo_url ? <img src={staff.photo_url} alt="" /> : (staff.full_name || "?").charAt(0)}
+                {staff.photo_url ? <img src={staff.photo_url} alt="" /> : (staff.nom_complet || "?").charAt(0)}
               </span>
-              <span className="feuille-nom">{staff.full_name}</span>
-              <span className="feuille-poste">{staff.role_label || staff.role || ""}</span>
+              <span className="feuille-nom">{staff.nom_complet}</span>
+              <span className="feuille-poste">{staff.role_label || posteStaff(staff.role)}</span>
             </span>
           ) : (
             <p className="feuille-vide">Entraîneur à compléter.</p>
@@ -54,6 +54,11 @@ function BlocEquipe({ bloc }) {
       )}
     </section>
   );
+}
+
+function posteStaff(r) {
+  const t = String(r || "").replace(/_/g, " ").trim();
+  return t ? t.charAt(0).toUpperCase() + t.slice(1) : "";
 }
 
 export default function FeuilleMatch({ compo }) {
