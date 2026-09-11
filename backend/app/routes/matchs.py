@@ -385,12 +385,16 @@ async def _composition_complete(db: AsyncSession, match_: Match) -> CompositionO
     )
 
 
-@router.get("/{match_id}/composition", response_model=CompositionOut)
+@router.get("/{match_id}/composition")
 async def lire_composition(match_id: int, db: AsyncSession = Depends(get_db)):
     match_ = await db.get(Match, match_id)
     if not match_:
         raise HTTPException(status_code=404, detail="Match introuvable.")
-    return await _composition_complete(db, match_)
+    try:
+        retour = await _composition_complete(db, match_)
+        return retour
+    except Exception as exc:  # DEBUG TEMPORAIRE : retire au prochain pack
+        return {"debug": f"{type(exc).__name__}: {exc}"}
 
 
 @router.put("/{match_id}/composition", response_model=CompositionOut)
