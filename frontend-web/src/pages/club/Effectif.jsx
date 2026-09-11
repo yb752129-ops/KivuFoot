@@ -88,6 +88,7 @@ export default function ClubEffectif() {
     <section className="hero">
       <h1>Effectif</h1>
       <p className="lead">Les joueurs du club. Nom complet obligatoire. Pas la composition d’un match.</p>
+      <p className="kicker"><Link to="/club/coach">Espace coach et staff →</Link></p>
       {err && <p className="erreur">{err}</p>}
       {msg && <p className="empty">{msg}</p>}
       {joueurs.length === 0 && <p className="empty">Aucun joueur.</p>}

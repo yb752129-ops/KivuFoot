@@ -14,7 +14,7 @@ from app.services.stockage_logo import DepotRefus, supprimer_objet, uploader_log
 from app.services.stockage_photo import DepotRefus as PhotoDepotRefus, uploader_photo
 
 from sqlalchemy import func, select
-from app.models.photo import Photo
+from app.models.photo import Photo, StatutPhoto
 from app.schemas.photo import PhotoOut
 from app.models.staff import Staff
 from app.schemas.staff import StaffCreate, StaffOut
@@ -155,7 +155,21 @@ async def lister_staff(club_id: int, db: AsyncSession = Depends(get_db)):
         .options(selectinload(Staff.photo_actuelle_rel))
         .order_by(Staff.id)
     )
-    return result.scalars().all()
+    membres = result.scalars().all()
+    ids = [m.id for m in membres]
+    en_attente = set()
+    if ids:
+        att = await db.execute(
+            select(Photo.sujet_id)
+            .where(Photo.sujet_type == "staff")
+            .where(Photo.sujet_id.in_(ids))
+            .where(Photo.statut == StatutPhoto.EN_ATTENTE)
+        )
+        en_attente = {row[0] for row in att.all()}
+    return [
+        StaffOut.model_validate(m).model_copy(update={"photo_en_attente": m.id in en_attente})
+        for m in membres
+    ]
 
 
 @router.post("/{club_id}/staff", response_model=StaffOut, status_code=status.HTTP_201_CREATED)

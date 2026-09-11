@@ -149,6 +149,24 @@ export const api = {
   creerMatch: (payload) => request("/matchs", { method: "POST", body: payload, auth: true }),
   majPhase: (id, phase, groupe) => request(`/matchs/${id}/phase`, { method: "PUT", body: { phase, groupe }, auth: true }),
   staffClub: (clubId) => request(`/clubs/${clubId}/staff`),
+  creerStaff: (clubId, payload) => request(`/clubs/${clubId}/staff`, { method: "POST", body: payload, auth: true }),
+  photoStaff: (staffId, file) => {
+    const t = localStorage.getItem("kivufoot_token");
+    const fd = new FormData();
+    fd.append("file", file);
+    return fetch(`${import.meta.env.VITE_API_URL || "/api/v1"}/clubs/staff/${staffId}/photo`, {
+      method: "POST",
+      headers: { Accept: "application/json", ...(t ? { Authorization: `Bearer ${t}` } : {}) },
+      body: fd,
+    }).then(async (res) => {
+      if (!res.ok) {
+        let detail = "";
+        try { detail = (await res.json()).detail; } catch (e) {}
+        throw new Error(typeof detail === "string" ? detail : `Erreur ${res.status}`);
+      }
+      return res.json();
+    });
+  },
   photosEnAttente: () => request("/joueurs/photos/en-attente", { auth: true }),
   validerPhoto: (id) => request(`/joueurs/photos/${id}/valider`, { method: "POST", auth: true }),
   rejeterPhoto: (id, motif) => request(`/joueurs/photos/${id}/rejeter`, { method: "POST", body: { motif }, auth: true }),

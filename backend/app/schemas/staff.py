@@ -17,3 +17,4 @@ class StaffOut(BaseModel):
     role: RoleStaff
     statut: StatutJoueur
     photo_url: str | None = None
+    photo_en_attente: bool = False
