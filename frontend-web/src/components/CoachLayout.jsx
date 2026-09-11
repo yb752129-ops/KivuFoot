@@ -31,6 +31,7 @@ export default function CoachLayout() {
       <nav className="orga-nav" aria-label="Coach">
         <NavLink to="/coach" end>Club</NavLink>
         <NavLink to="/coach/matchs">Matchs</NavLink>
+        <NavLink to="/coach/staff">Staff</NavLink>
       </nav>
       <div className="shell">
         <Outlet />
