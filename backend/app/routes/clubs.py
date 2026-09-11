@@ -11,6 +11,7 @@ from app.models.user import User
 from app.schemas.competition import ClubCreate, ClubOut, ClubUpdate
 from app.services.audit import log_audit
 from app.services.stockage_logo import DepotRefus, uploader_logo
+from app.services.stockage_photo import DepotRefus as PhotoDepotRefus, uploader_photo
 
 from sqlalchemy import func, select
 from app.models.photo import Photo
@@ -206,6 +207,8 @@ async def proposer_photo_staff(
         key, taille = await uploader_photo("staff", staff_id, version, file.content_type or "", data)
     except PhotoDepotRefus as exc:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, str(exc))
+    except Exception as exc:  # jamais de 500 muet : la cause exacte est montrée
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, f"Le dépôt a échoué : {exc!r}")
     photo = Photo(
         sujet_type="staff",
         sujet_id=staff_id,
