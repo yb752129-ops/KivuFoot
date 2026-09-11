@@ -98,11 +98,17 @@ export function AVenirLigne({ match, clubsById, to }) {
   const home = nomClub(clubsById, match.equipe_domicile_id);
   const away = nomClub(clubsById, match.equipe_exterieur_id);
   const lieu = formatDateline(match.date_heure, match.stade);
+  const logoHome = clubsById[match.equipe_domicile_id]?.logo_url;
+  const logoAway = clubsById[match.equipe_exterieur_id]?.logo_url;
   return (
     <Link to={to || `/matchs/${match.id}`} className="bulletin-row">
       <span className="bulletin-quand">
         <span className="bulletin-etat">À venir</span>
         <span className="bulletin-heure">{formatHeure(match.date_heure)}</span>
+      </span>
+      <span className="bulletin-logos">
+        {logoHome ? <img className="bulletin-logo" src={logoHome} alt="" /> : <span className="bulletin-logo" />}
+        {logoAway ? <img className="bulletin-logo" src={logoAway} alt="" /> : <span className="bulletin-logo" />}
       </span>
       <span className="bulletin-noms">
         <span>{home || "Équipe à nommer"}</span>
@@ -118,11 +124,17 @@ export function TermineLigne({ match, clubsById, to }) {
   const home = nomClub(clubsById, match.equipe_domicile_id);
   const away = nomClub(clubsById, match.equipe_exterieur_id);
   const officiel = match.statut === "valide";
+  const logoHome = clubsById[match.equipe_domicile_id]?.logo_url;
+  const logoAway = clubsById[match.equipe_exterieur_id]?.logo_url;
   return (
     <Link to={to || `/matchs/${match.id}`} className="bulletin-row">
       <span className="bulletin-quand">
         <span className="bulletin-etat">{officiel ? "Validé" : "Terminé"}</span>
         <span className="bulletin-heure">{formatHeure(match.date_heure)}</span>
+      </span>
+      <span className="bulletin-logos">
+        {logoHome ? <img className="bulletin-logo" src={logoHome} alt="" /> : <span className="bulletin-logo" />}
+        {logoAway ? <img className="bulletin-logo" src={logoAway} alt="" /> : <span className="bulletin-logo" />}
       </span>
       <span className="bulletin-noms">
         <span>{home || "Équipe à nommer"}</span>
