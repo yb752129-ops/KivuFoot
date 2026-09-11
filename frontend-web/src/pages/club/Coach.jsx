@@ -26,6 +26,9 @@ export default function Coach() {
   const [erreur, setErreur] = useState("");
   const [nom, setNom] = useState("");
   const [role, setRole] = useState(ROLES[0]);
+  const [editId, setEditId] = useState(null);
+  const [editNom, setEditNom] = useState("");
+  const [editRole, setEditRole] = useState(ROLES[0]);
   const inputs = useRef({});
 
   useEffect(() => {
@@ -62,6 +65,33 @@ export default function Coach() {
       setStaff(frais);
     } catch (e) {
       setErreur(e?.message || "Ajout refusé.");
+    }
+  }
+
+  async function modifier(staffId) {
+    setMsg(""); setErreur("");
+    if (!editNom.trim()) { setErreur("Donnez d'abord un nom."); return; }
+    try {
+      await api.modifierStaff(staffId, { nom_complet: editNom.trim(), role: String(editRole).toLowerCase() });
+      setEditId(null);
+      setMsg("Membre mis à jour.");
+      const frais = await api.staffClub(clubId);
+      setStaff(frais);
+    } catch (e) {
+      setErreur(e?.message || "Modification refusée.");
+    }
+  }
+
+  async function retirer(staffId, nomMembre) {
+    setMsg(""); setErreur("");
+    if (!window.confirm("Retirer " + nomMembre + " du staff ?")) return;
+    try {
+      await api.retirerStaff(staffId);
+      setMsg("Membre retiré du staff.");
+      const frais = await api.staffClub(clubId);
+      setStaff(frais);
+    } catch (e) {
+      setErreur(e?.message || "Retrait refusé.");
     }
   }
 
@@ -106,6 +136,38 @@ export default function Coach() {
               e.target.value = "";
             }}
           />
+          <span className="coach-actions">
+            <button
+              type="button"
+              className="editeur-bouton"
+              onClick={() => {
+                if (editId === m.id) { setEditId(null); return; }
+                setEditId(m.id);
+                setEditNom(m.nom_complet);
+                setEditRole(String(m.role).toUpperCase());
+              }}
+            >
+              {editId === m.id ? "Fermer" : "Modifier"}
+            </button>
+            <button type="button" className="editeur-bouton coach-retirer" onClick={() => retirer(m.id, m.nom_complet)}>
+              Retirer
+            </button>
+            {editId === m.id && (
+              <span className="coach-edit">
+                <label className="editeur-champ">
+                  <span>Nom complet</span>
+                  <input value={editNom} onChange={(e) => setEditNom(e.target.value)} />
+                </label>
+                <label className="editeur-champ">
+                  <span>Rôle</span>
+                  <select value={editRole} onChange={(e) => setEditRole(e.target.value)}>
+                    {ROLES.map((r) => <option key={r} value={r}>{roleLabel(r)}</option>)}
+                  </select>
+                </label>
+                <button type="button" className="editeur-bouton" onClick={() => modifier(m.id)}>Enregistrer</button>
+              </span>
+            )}
+          </span>
         </div>
       ))}
 

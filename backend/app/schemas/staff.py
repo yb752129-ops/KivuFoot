@@ -8,6 +8,11 @@ class StaffCreate(BaseModel):
     role: RoleStaff = RoleStaff.ENTRAINEUR_PRINCIPAL
 
 
+class StaffUpdate(BaseModel):
+    nom_complet: str | None = None
+    role: RoleStaff | None = None
+
+
 class StaffOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

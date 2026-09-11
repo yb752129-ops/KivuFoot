@@ -18,6 +18,7 @@ from app.models.photo import Photo, StatutPhoto
 from app.schemas.photo import PhotoOut
 from app.models.staff import Staff
 from app.schemas.staff import StaffCreate, StaffOut
+from app.schemas.staff import StaffUpdate
 from sqlalchemy.orm import selectinload
 
 router = APIRouter(prefix="/clubs", tags=["Clubs"])
@@ -271,3 +272,67 @@ async def supprimer_logo(
     await db.refresh(club)
     noms = await _coach_noms(db, [club_id])
     return _club_out(club, noms.get(club_id))
+
+
+@router.patch("/staff/{staff_id}", response_model=StaffOut)
+async def modifier_staff(
+    staff_id: int,
+    payload: StaffUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(
+        require_roles(RoleUtilisateur.CLUB_MANAGER, RoleUtilisateur.COACH, RoleUtilisateur.ADMIN)
+    ),
+):
+    membre = await db.get(Staff, staff_id)
+    if membre is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Membre du staff introuvable.")
+    if current_user.role in (RoleUtilisateur.CLUB_MANAGER, RoleUtilisateur.COACH):
+        verifier_scope_club(current_user, membre.club_id)
+    avant = {"nom_complet": membre.nom_complet, "role": membre.role.value}
+    if payload.nom_complet is not None:
+        nom = payload.nom_complet.strip()
+        if not nom:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "Nom vide.")
+        membre.nom_complet = nom[:255]
+    if payload.role is not None:
+        membre.role = payload.role
+    await log_audit(db, "staffs", membre.id, ActionAudit.UPDATE, current_user.id, avant,
+                    {"nom_complet": membre.nom_complet, "role": membre.role.value})
+    await db.commit()
+    await db.refresh(membre)
+    return membre
+
+
+@router.delete("/staff/{staff_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def retirer_staff(
+    staff_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(
+        require_roles(RoleUtilisateur.CLUB_MANAGER, RoleUtilisateur.COACH, RoleUtilisateur.ADMIN)
+    ),
+):
+    membre = await db.get(Staff, staff_id)
+    if membre is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Membre du staff introuvable.")
+    if current_user.role in (RoleUtilisateur.CLUB_MANAGER, RoleUtilisateur.COACH):
+        verifier_scope_club(current_user, membre.club_id)
+    photos = await db.execute(
+        select(Photo.id).where(Photo.sujet_type == "staff").where(Photo.sujet_id == staff_id)
+    )
+    if photos.first() is not None:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "Ce membre a un historique photo : modifiez-le au lieu de le retirer.",
+        )
+    feuilles = await db.execute(
+        select(Match.id).where(or_(Match.staff_domicile_id == staff_id, Match.staff_exterieur_id == staff_id))
+    )
+    if feuilles.first() is not None:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "Ce membre apparaît dans des feuilles de match : modifiez-le au lieu de le retirer.",
+        )
+    await log_audit(db, "staffs", membre.id, ActionAudit.DELETE, current_user.id,
+                    {"nom_complet": membre.nom_complet, "role": membre.role.value}, None)
+    await db.delete(membre)
+    await db.commit()

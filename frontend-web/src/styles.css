@@ -2534,3 +2534,9 @@ html[data-theme=light] .bulletin-row{background:var(--paper-2)}
 .boot-ring{border-color:#6faf86}
 .boot-spin::before{border-color:#6faf86 transparent transparent}
 .apparence{display:none}
+
+/* --- Staff : modification et retrait, ajout pack-staff-edit --- */
+.coach-actions{grid-column:1 / -1;display:flex;flex-wrap:wrap;gap:.4rem;align-items:center;padding-top:.15rem}
+.coach-actions .editeur-bouton{padding:.32rem .7rem;font-size:.78rem}
+.coach-edit{flex-basis:100%;display:flex;flex-wrap:wrap;gap:.5rem;align-items:end;padding:.5rem 0 .2rem}
+.coach-retirer{border-color:var(--err);color:var(--err)}
