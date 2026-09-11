@@ -191,7 +191,7 @@ async def creer_staff(
     db.add(membre)
     await db.flush()
     await log_audit(db, "staffs", membre.id, ActionAudit.INSERT, current_user.id, None,
-                    {"nom_complet": membre.nom_complet, "role": membre.role.value})
+                    {"nom_complet": membre.nom_complet, "role": getattr(membre.role, "value", membre.role)})
     await db.commit()
     await db.refresh(membre)
     return membre
@@ -288,7 +288,8 @@ async def modifier_staff(
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Membre du staff introuvable.")
     if current_user.role in (RoleUtilisateur.CLUB_MANAGER, RoleUtilisateur.COACH):
         verifier_scope_club(current_user, membre.club_id)
-    avant = {"nom_complet": membre.nom_complet, "role": membre.role.value}
+    role_avant = getattr(membre.role, "value", membre.role)
+    avant = {"nom_complet": membre.nom_complet, "role": role_avant}
     if payload.nom_complet is not None:
         nom = payload.nom_complet.strip()
         if not nom:
@@ -297,7 +298,7 @@ async def modifier_staff(
     if payload.role is not None:
         membre.role = payload.role
     await log_audit(db, "staffs", membre.id, ActionAudit.UPDATE, current_user.id, avant,
-                    {"nom_complet": membre.nom_complet, "role": membre.role.value})
+                    {"nom_complet": membre.nom_complet, "role": getattr(membre.role, "value", membre.role)})
     await db.commit()
     await db.refresh(membre)
     return membre
@@ -333,6 +334,6 @@ async def retirer_staff(
             "Ce membre apparaît dans des feuilles de match : modifiez-le au lieu de le retirer.",
         )
     await log_audit(db, "staffs", membre.id, ActionAudit.DELETE, current_user.id,
-                    {"nom_complet": membre.nom_complet, "role": membre.role.value}, None)
+                    {"nom_complet": membre.nom_complet, "role": getattr(membre.role, "value", membre.role)}, None)
     await db.delete(membre)
     await db.commit()
