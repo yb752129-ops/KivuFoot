@@ -1,4 +1,8 @@
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+import os
+from pydantic import BaseModel
+from app.models.joueur import Joueur
+from app.services import stockage_logo, stockage_photo
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -337,3 +341,72 @@ async def retirer_staff(
                     {"nom_complet": membre.nom_complet, "role": getattr(membre.role, "value", membre.role)}, None)
     await db.delete(membre)
     await db.commit()
+
+
+class PurgeDemoIn(BaseModel):
+    cle: str
+
+
+@router.post("/purge-demo")
+async def purge_demo(payload: PurgeDemoIn, db: AsyncSession = Depends(get_db)):
+    """Operation UNIQUE : efface clubs DEMO, users @example.com et leurs objets.
+    Double verrou : variable Render PURGE_DEMO_CLE + cle exacte dans le corps.
+    Sans la variable, la route repond 404 : elle est morte."""
+    cle_attendue = os.getenv("PURGE_DEMO_CLE", "")
+    if not cle_attendue or payload.cle != cle_attendue:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Introuvable.")
+    sup_photo = getattr(stockage_photo, "supprimer_objet", None)
+    rapport = {"objets_photos": 0, "objets_logos": 0, "photos": 0, "matchs": 0,
+               "joueurs": 0, "staffs": 0, "clubs": 0, "users": 0}
+    clubs_demo = (await db.execute(select(Club).where(Club.nom.like("DEMO %")))).scalars().all()
+    club_ids = [c.id for c in clubs_demo]
+    users_demo = (await db.execute(select(User).where(User.email.like("%@example.com")))).scalars().all()
+    if club_ids:
+        joueurs = (await db.execute(select(Joueur).where(Joueur.club_id.in_(club_ids)))).scalars().all()
+        joueur_ids = [j.id for j in joueurs]
+        staffs = (await db.execute(select(Staff).where(Staff.club_id.in_(club_ids)))).scalars().all()
+        staff_ids = [m.id for m in staffs]
+        matchs = (await db.execute(
+            select(Match).where(or_(Match.equipe_domicile_id.in_(club_ids), Match.equipe_exterieur_id.in_(club_ids)))
+        )).scalars().all()
+        for m in matchs:
+            await db.delete(m)
+        rapport["matchs"] = len(matchs)
+        conds = []
+        if joueur_ids:
+            conds.append((Photo.sujet_type == "joueur") & Photo.sujet_id.in_(joueur_ids))
+        if staff_ids:
+            conds.append((Photo.sujet_type == "staff") & Photo.sujet_id.in_(staff_ids))
+        if conds:
+            photos = (await db.execute(select(Photo).where(or_(*conds)))).scalars().all()
+            for ph in photos:
+                if sup_photo is not None:
+                    try:
+                        await sup_photo(ph.storage_key)
+                        rapport["objets_photos"] += 1
+                    except Exception:
+                        pass
+                await db.delete(ph)
+                rapport["photos"] += 1
+        for j in joueurs:
+            await db.delete(j)
+        rapport["joueurs"] = len(joueurs)
+        for m in staffs:
+            await db.delete(m)
+        rapport["staffs"] = len(staffs)
+        marque = "/object/public/logos-clubs/"
+        for c in clubs_demo:
+            if c.logo_url and marque in c.logo_url:
+                try:
+                    await stockage_logo.supprimer_objet(c.logo_url.split(marque)[-1])
+                    rapport["objets_logos"] += 1
+                except Exception:
+                    pass
+            await db.delete(c)
+        rapport["clubs"] = len(clubs_demo)
+    for u in users_demo:
+        await db.delete(u)
+    rapport["users"] = len(users_demo)
+    await log_audit(db, "purge", 0, ActionAudit.DELETE, None, None, rapport)
+    await db.commit()
+    return rapport
