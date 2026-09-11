@@ -61,6 +61,6 @@ app.include_router(sync.router, prefix=PREFIX)
 app.include_router(audit.router, prefix=PREFIX)
 
 
-@app.get("/health", tags=["Santé"])
+@app.api_route("/health", methods=["GET", "HEAD"], tags=["Santé"])
 async def health_check():
     return {"status": "ok", "environment": settings.environment}
