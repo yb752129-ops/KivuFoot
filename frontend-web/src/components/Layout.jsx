@@ -106,19 +106,13 @@ export default function Layout() {
             </NavLink>
           </div>
           {competitions.length > 0 && (
-            <label className="comp-switch">
-              <span className="visually-hidden">Compétition</span>
-              <select
-                value={competition?.id || ""}
-                onChange={(e) => choisirCompetition(Number(e.target.value))}
-              >
-                {competitions.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.est_demo ? `Démo — ${stripDemo(c.nom)}` : stripDemo(c.nom)}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <p className="comp-nom">
+              {competition
+                ? competition.est_demo
+                  ? `Démo — ${stripDemo(competition.nom)}`
+                  : stripDemo(competition.nom)
+                : ""}
+            </p>
           )}
           {competition?.est_demo && (
             <p className="demo-line">Données de démonstration</p>

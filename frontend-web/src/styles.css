@@ -2548,3 +2548,6 @@ html[data-theme=light] .bulletin-row{background:var(--paper-2)}
 .boot-anneau{display:none}
 .boot-orb{background:url(/ballon-charge.png) center/88% no-repeat;animation:kf-ballon 2.5s linear infinite}
 @keyframes kf-ballon{0%{transform:rotate(0deg) scale(1)}50%{transform:rotate(180deg) scale(1.05)}100%{transform:rotate(360deg) scale(1)}}
+
+/* --- Competition unique en texte, ajout pack-championnat-unique --- */
+.comp-nom{margin:.5rem 1rem 0;color:color-mix(in srgb,var(--cream) 80%,transparent);font-size:.86rem;letter-spacing:.03em}
