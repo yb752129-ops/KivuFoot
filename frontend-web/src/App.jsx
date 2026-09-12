@@ -39,6 +39,8 @@ import AdminLayout from "./components/AdminLayout.jsx";
 import AdminVue from "./pages/admin/Vue.jsx";
 import AdminAudit from "./pages/admin/Audit.jsx";
 import AdminPropositions from "./pages/admin/Propositions.jsx";
+import AdminComptes from "./pages/admin/Comptes.jsx";
+import Activation from "./pages/Activation.jsx";
 import { AuthProvider, useAuth } from "./auth.jsx";
 import { isAuthenticated } from "./api.js";
 
@@ -84,6 +86,7 @@ export default function App() {
             <Route path="/recherche" element={<Recherche />} />
           </Route>
           <Route path="/login" element={<Login />} />
+          <Route path="/activation" element={<Activation />} />
           <Route
             path="/orga"
             element={
@@ -138,6 +141,7 @@ export default function App() {
             <Route path="staff" element={<ClubCoach />} />
             <Route path="matchs" element={<CoachMatchs />} />
             <Route path="matchs/:id" element={<CoachMatch />} />
+            <Route path="matchs/:matchId/composition" element={<ClubComposition />} />
           </Route>
           <Route
             path="/admin"
@@ -150,6 +154,7 @@ export default function App() {
             <Route index element={<AdminVue />} />
             <Route path="audit" element={<AdminAudit />} />
             <Route path="propositions" element={<AdminPropositions />} />
+            <Route path="comptes" element={<AdminComptes />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

@@ -82,6 +82,38 @@ export default function Compte() {
   const [err, setErr] = useState("");
   const [fieldErr, setFieldErr] = useState({});
   const [busy, setBusy] = useState(false);
+  const [mdpActuel, setMdpActuel] = useState("");
+  const [mdpNeuf, setMdpNeuf] = useState("");
+  const [mdpNeuf2, setMdpNeuf2] = useState("");
+  const [mdpErr, setMdpErr] = useState("");
+  const [mdpMsg, setMdpMsg] = useState("");
+  const [mdpBusy, setMdpBusy] = useState(false);
+
+  async function changerMdp(e) {
+    e.preventDefault();
+    setMdpErr("");
+    setMdpMsg("");
+    if (mdpNeuf.length < 8) {
+      setMdpErr("Au moins 8 caractères.");
+      return;
+    }
+    if (mdpNeuf !== mdpNeuf2) {
+      setMdpErr("Les deux mots de passe ne correspondent pas.");
+      return;
+    }
+    setMdpBusy(true);
+    try {
+      await api.changerMotDePasse(mdpActuel, mdpNeuf);
+      setMdpActuel("");
+      setMdpNeuf("");
+      setMdpNeuf2("");
+      setMdpMsg("Mot de passe changé. Les autres appareils devront se reconnecter.");
+    } catch (ex) {
+      setMdpErr(ex.message || "Changement impossible.");
+    } finally {
+      setMdpBusy(false);
+    }
+  }
 
   async function onLogout() {
     await logout();
@@ -216,6 +248,50 @@ export default function Compte() {
             )}
           </div>
         )}
+        <div className="sheet compte-mdp" style={{ marginTop: "1.1rem" }}>
+          <div className="section-head">
+            <h2>Mot de passe</h2>
+          </div>
+          <form className="compte-form" onSubmit={changerMdp}>
+            <label className="field">
+              Mot de passe actuel
+              <input
+                type="password"
+                autoComplete="current-password"
+                value={mdpActuel}
+                onChange={(e) => setMdpActuel(e.target.value)}
+                required
+              />
+            </label>
+            <label className="field">
+              Nouveau mot de passe (8 caractères minimum)
+              <input
+                type="password"
+                autoComplete="new-password"
+                value={mdpNeuf}
+                onChange={(e) => setMdpNeuf(e.target.value)}
+                required
+                minLength={8}
+              />
+            </label>
+            <label className="field">
+              Confirmer le nouveau mot de passe
+              <input
+                type="password"
+                autoComplete="new-password"
+                value={mdpNeuf2}
+                onChange={(e) => setMdpNeuf2(e.target.value)}
+                required
+                minLength={8}
+              />
+            </label>
+            {mdpErr && <p className="erreur">{mdpErr}</p>}
+            {mdpMsg && <p className="empty">{mdpMsg}</p>}
+            <button className="btn btn-primary" type="submit" disabled={mdpBusy}>
+              {mdpBusy ? "Changement…" : "Changer mon mot de passe"}
+            </button>
+          </form>
+        </div>
         <p className="id-out">
           <Link to="/matchs">Matchs</Link>
           {" · "}

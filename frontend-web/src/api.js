@@ -56,7 +56,7 @@ async function request(path, { method = "GET", body, auth = false } = {}) {
 }
 
 export const api = {
-  competitions: () => request("/competitions?inclure_demo=true"),
+  competitions: () => request("/competitions"),
   creerCompetition: (payload) => request("/competitions", { method: "POST", body: payload, auth: true }),
   supprimerCompetition: (id) => request(`/competitions/${id}`, { method: "DELETE", auth: true }),
   saisons: (competitionId) => request(`/saisons?competition_id=${competitionId}`),
@@ -187,6 +187,24 @@ export const api = {
     request(`/matchs/${id}/participations/${pid}`, { method: "DELETE", auth: true }),
   saisirEvenement: (matchId, payload) =>
     request(`/matchs/${matchId}/evenements`, { method: "POST", body: payload, auth: true }),
+  // Comptes réels (admin) + activation + mot de passe personnel.
+  // Aucune de ces fonctions ne transporte un mot de passe existant :
+  // l'admin ne voit jamais que des codes d'activation à usage unique.
+  utilisateurs: () => request("/admin/utilisateurs", { auth: true }),
+  creerUtilisateur: (payload) =>
+    request("/admin/utilisateurs", { method: "POST", body: payload, auth: true }),
+  reinitialiserUtilisateur: (id) =>
+    request(`/admin/utilisateurs/${id}/reinitialiser`, { method: "POST", auth: true }),
+  modifierUtilisateur: (id, payload) =>
+    request(`/admin/utilisateurs/${id}`, { method: "PATCH", body: payload, auth: true }),
+  activerCompte: (email, jeton, mot_de_passe) =>
+    request("/auth/activation", { method: "POST", body: { email, jeton, mot_de_passe } }),
+  changerMotDePasse: (mot_de_passe_actuel, nouveau_mot_de_passe) =>
+    request("/auth/changer-mot-de-passe", {
+      method: "POST",
+      body: { mot_de_passe_actuel, nouveau_mot_de_passe },
+      auth: true,
+    }),
 };
 
 export async function uploadFichier(path, fichier) {

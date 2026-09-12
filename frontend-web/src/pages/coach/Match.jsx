@@ -4,6 +4,7 @@ import { api } from "../../api.js";
 import { useAuth } from "../../auth.jsx";
 import { clubName, useKivu } from "../../context.jsx";
 import { stripDemo } from "../../display.js";
+import { fmtQuand, STATUT_MATCH } from "../orga/saison.js";
 
 export default function CoachMatch() {
   const { id } = useParams();
@@ -11,37 +12,13 @@ export default function CoachMatch() {
   const { clubsById } = useKivu();
   const clubId = user?.club_id;
   const [match, setMatch] = useState(null);
-  const [joueurs, setJoueurs] = useState([]);
-  const [autresJoueurs, setAutresJoueurs] = useState([]);
-  const [parts, setParts] = useState([]);
-  const [draft, setDraft] = useState({});
+  const [compo, setCompo] = useState(null);
   const [err, setErr] = useState("");
-  const [msg, setMsg] = useState("");
-  const [busy, setBusy] = useState(false);
-
-  async function load() {
-    const m = await api.match(id);
-    setMatch(m);
-    const otherId = clubId === m.equipe_domicile_id ? m.equipe_exterieur_id : m.equipe_domicile_id;
-    const [js, autres, p] = await Promise.all([
-      clubId ? api.joueurs(clubId).catch(() => []) : [],
-      otherId ? api.joueurs(otherId).catch(() => []) : [],
-      api.participations(id).catch(() => []),
-    ]);
-    setJoueurs(js || []);
-    setAutresJoueurs(autres || []);
-    setParts(p || []);
-    const d = {};
-    (p || []).forEach((x) => {
-      if (x.club_id === clubId) d[x.joueur_id] = x.statut;
-    });
-    setDraft(d);
-  }
 
   useEffect(() => {
     if (!clubId) return;
-    load().catch((e) => setErr(e.message));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    api.match(id).then(setMatch).catch((e) => setErr(e.message));
+    api.composition(id).then(setCompo).catch(() => setCompo(null));
   }, [id, clubId]);
 
   if (!clubId) return <p className="empty">Aucun club rattaché.</p>;
@@ -50,110 +27,51 @@ export default function CoachMatch() {
   const home = stripDemo(clubName(clubsById, match.equipe_domicile_id));
   const away = stripDemo(clubName(clubsById, match.equipe_exterieur_id));
   const cote = clubId === match.equipe_domicile_id ? "domicile" : "exterieur";
-  const moi = cote === "domicile" ? home : away;
-  const locked = match.locked || match.statut === "valide";
-
-  function cycle(jid) {
-    if (locked) return;
-    setDraft((d) => {
-      const cur = d[jid];
-      const next = cur === "titulaire" ? "remplacant" : cur === "remplacant" ? "" : "titulaire";
-      const copy = { ...d };
-      if (!next) delete copy[jid];
-      else copy[jid] = next;
-      return copy;
-    });
-  }
-
-  function badge(jid) {
-    const st = draft[jid];
-    if (st === "titulaire") return "Titu";
-    if (st === "remplacant") return "Banc";
-    return "—";
-  }
-
-  async function enregistrer() {
-    setBusy(true);
-    setErr("");
-    setMsg("");
-    try {
-      const mine = parts.filter((p) => p.club_id === clubId);
-      const byJoueur = Object.fromEntries(mine.map((p) => [p.joueur_id, p]));
-      for (const j of joueurs) {
-        const want = draft[j.id];
-        const have = byJoueur[j.id];
-        if (!want && have) {
-          await api.retirerParticipation(id, have.id);
-        } else if (want && !have) {
-          await api.ajouterParticipation(id, {
-            joueur_id: j.id,
-            club_id: clubId,
-            equipe_concernee: cote,
-            statut: want,
-            minute_entree: 0,
-          });
-        } else if (want && have && have.statut !== want) {
-          await api.modifierParticipation(id, have.id, { statut: want });
-        }
-      }
-      setMsg("Composition enregistrée.");
-      await load();
-    } catch (ex) {
-      setErr(ex.message);
-    } finally {
-      setBusy(false);
-    }
-  }
-
   const autreCote = cote === "domicile" ? "exterieur" : "domicile";
-  const autreParts = parts.filter((p) => p.equipe_concernee === autreCote);
-  const autreNom = cote === "domicile" ? away : home;
+  const verrouille = match.locked || ["en_cours", "termine", "valide"].includes(match.statut);
+  const bloc = compo?.[cote];
+  const autreBloc = compo?.[autreCote];
 
   return (
     <section className="hero">
       <p className="kicker"><Link to="/coach/matchs">← Matchs</Link></p>
       <h1>{home} · {away}</h1>
-      <p className="lead">Votre équipe seulement : {moi}. Toucher un nom : titulaire, banc, ou rien.</p>
+      <p className="lead">
+        {[STATUT_MATCH[match.statut] || match.statut, fmtQuand(match.date_heure)].filter(Boolean).join(" · ")}
+      </p>
       {err && <p className="erreur">{err}</p>}
-      {msg && <p className="empty">{msg}</p>}
-      {locked && <p className="empty">Match verrouillé — plus aucune modification.</p>}
-
-      <div className="section-head">
-        <h2>{moi}</h2>
-      </div>
-      {joueurs.length === 0 && <p className="empty">Aucun joueur dans l’effectif. L’effectif se tient au club.</p>}
-      {joueurs.map((j) => (
-        <button
-          key={j.id}
-          type="button"
-          className="comp-row"
-          disabled={locked || busy}
-          onClick={() => cycle(j.id)}
-        >
-          <span>{j.nom_complet}</span>
-          <strong>{badge(j.id)}</strong>
-        </button>
-      ))}
-      {!locked && (
-        <button className="btn btn-primary" type="button" disabled={busy} onClick={enregistrer} style={{ marginTop: "0.8rem" }}>
-          {busy ? "…" : "Enregistrer la composition"}
-        </button>
+      {verrouille && (
+        <p className="empty">Match verrouillé — la feuille ne peut plus être modifiée.</p>
       )}
 
-      <div className="section-head">
-        <h2>{autreNom}</h2>
+      <div className="sheet" style={{ marginTop: "1rem" }}>
+        <div className="avenir-row">
+          <span className="avenir-noms">
+            <span>Feuille de composition</span>
+            <span className="meta-line">
+              {bloc
+                ? `Titulaires ${(bloc.titulaires || []).length}/11 · Banc ${(bloc.banc || []).length}/${compo?.max_remplacants ?? "—"}${bloc.formation ? ` · ${bloc.formation}` : ""}${bloc.staff ? ` · ${bloc.staff.nom_complet || ""}` : ""}`
+                : "Pas encore de feuille"}
+            </span>
+          </span>
+          <Link className="btn btn-primary" to={`/coach/matchs/${id}/composition`}>
+            {verrouille ? "Voir la feuille" : "Composition"}
+          </Link>
+        </div>
+      </div>
+
+      <div className="section-head" style={{ marginTop: "1.2rem" }}>
+        <h2>{autreCote === "domicile" ? home : away}</h2>
       </div>
       <p className="lead">L’autre composition. Vous ne la posez pas.</p>
-      {autreParts.length === 0 && <p className="empty">Composition à compléter</p>}
-      {autreParts.map((p) => {
-        const j = autresJoueurs.find((x) => x.id === p.joueur_id);
-        return (
-          <div key={p.id} className="comp-row">
-            <span>{j?.nom_complet || "à compléter"}</span>
-            <strong>{p.statut === "titulaire" ? "Titu" : "Banc"}</strong>
-          </div>
-        );
-      })}
+      {!autreBloc || ((autreBloc.titulaires || []).length === 0 && (autreBloc.banc || []).length === 0) ? (
+        <p className="empty">Composition à compléter</p>
+      ) : (
+        <p className="empty">
+          Titulaires {(autreBloc.titulaires || []).length} · Banc {(autreBloc.banc || []).length}
+          {autreBloc.formation ? ` · ${autreBloc.formation}` : ""}
+        </p>
+      )}
 
       <p className="id-out">
         <Link to={`/matchs/${id}`}>Voir le match public</Link>

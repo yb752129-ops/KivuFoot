@@ -21,6 +21,7 @@ from app.routes import (
     public,
     stats,
     sync,
+    utilisateurs,
     validation,
 )
 
@@ -59,6 +60,7 @@ app.include_router(classement.router, prefix=PREFIX)
 app.include_router(stats.router, prefix=PREFIX)
 app.include_router(sync.router, prefix=PREFIX)
 app.include_router(audit.router, prefix=PREFIX)
+app.include_router(utilisateurs.router, prefix=PREFIX)
 
 
 @app.api_route("/health", methods=["GET", "HEAD"], tags=["Santé"])

@@ -424,7 +424,7 @@ async def enregistrer_composition(
     match_ = await db.get(Match, match_id)
     if not match_:
         raise HTTPException(status_code=404, detail="Match introuvable.")
-    if match_.locked or getattr(match_.statut, "value", match_.statut) in ("termine", "valide"):
+    if match_.locked or getattr(match_.statut, "value", match_.statut) in ("en_cours", "termine", "valide"):
         raise HTTPException(status_code=400, detail="Match verrouillé : composition non modifiable.")
     equipe = getattr(payload.equipe, "value", payload.equipe)
     club_id = match_.equipe_domicile_id if equipe == "domicile" else match_.equipe_exterieur_id

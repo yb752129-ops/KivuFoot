@@ -3,7 +3,6 @@ import { Link, useNavigate } from "react-router-dom";
 import { api } from "../api.js";
 import { useAuth } from "../auth.jsx";
 import { porteDuRole } from "../portes.js";
-import ComptesTest from "../components/ComptesTest.jsx";
 
 export default function Login() {
   const nav = useNavigate();
@@ -64,12 +63,12 @@ export default function Login() {
           {busy ? "Connexion…" : "Se connecter"}
         </button>
         <p className="meta" style={{ textAlign: "center", marginTop: "1rem" }}>
+          <Link to="/activation">Première connexion ? Activer mon compte</Link>
+        </p>
+        <p className="meta" style={{ textAlign: "center" }}>
           <Link to="/">← Retour au site public</Link>
         </p>
       </form>
-      <div className="login-card">
-        <ComptesTest />
-      </div>
     </div>
   );
 }

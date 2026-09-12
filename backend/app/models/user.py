@@ -20,6 +20,11 @@ class User(Base):
     # club_id : club_manager (effectif) et coach (composition)
     club_id: Mapped[int | None] = mapped_column(ForeignKey("clubs.id", ondelete="SET NULL"))
     est_actif: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    # Première activation / réinitialisation du mot de passe : code à usage
+    # unique, stocké UNIQUEMENT haché (SHA-256), montré une seule fois à
+    # l'admin qui le transmet hors écran. Aucun mot de passe n'est stocké ici.
+    jeton_activation_hash: Mapped[str | None] = mapped_column(String(255))
+    jeton_activation_expire: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     club = relationship("Club", back_populates="managers")

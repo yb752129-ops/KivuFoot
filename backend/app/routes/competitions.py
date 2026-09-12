@@ -19,10 +19,10 @@ router = APIRouter(tags=["Compétitions"])
 
 
 @router.get("/competitions", response_model=list[CompetitionOut])
-async def lister_competitions(db: AsyncSession = Depends(get_db), inclure_demo: bool = False):
-    query = select(Competition)
-    if not inclure_demo:
-        query = query.where(Competition.est_demo.is_(False))
+async def lister_competitions(db: AsyncSession = Depends(get_db)):
+    # Les compétitions de démonstration ne sont plus jamais listées
+    # (l'ancien paramètre inclure_demo a été supprimé avec l'environnement démo).
+    query = select(Competition).where(Competition.est_demo.is_(False))
     result = await db.execute(query)
     return result.scalars().all()
 

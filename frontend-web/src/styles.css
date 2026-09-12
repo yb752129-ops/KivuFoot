@@ -2551,3 +2551,14 @@ html[data-theme=light] .bulletin-row{background:var(--paper-2)}
 
 /* --- Competition unique en texte, ajout pack-championnat-unique --- */
 .comp-nom{margin:.5rem 1rem 0;color:color-mix(in srgb,var(--cream) 80%,transparent);font-size:.86rem;letter-spacing:.03em}
+
+/* --- Comptes réels : activation, comptes admin, mot de passe (12 septembre) — lignes ajoutées --- */
+.jeton-boite{margin:1rem 0;padding:1rem .2rem;border-top:1.5px solid var(--stamp);border-bottom:1.5px solid var(--stamp)}
+.jeton-code{margin:.6rem 0;padding:.7rem .8rem;border:1px dashed var(--rule-strong);font-family:ui-monospace,Menlo,Consolas,monospace;font-size:1rem;letter-spacing:.04em;word-break:break-all;color:var(--ink);user-select:all}
+.jeton-actions{display:flex;flex-wrap:wrap;gap:.9rem;align-items:center;margin:.4rem 0 0}
+.jeton-actions .btn{width:auto;padding:.55rem .9rem}
+.jeton-saisie{font-family:ui-monospace,Menlo,Consolas,monospace;letter-spacing:.03em}
+.comptes-form{margin:1rem 0;padding:1rem 0}
+.compte-ligne-actions{display:flex;gap:.9rem;align-items:center;flex-shrink:0}
+.avenir-row .btn{width:auto;flex-shrink:0;padding:.55rem .9rem}
+.compte-mdp{margin-top:1.1rem}
