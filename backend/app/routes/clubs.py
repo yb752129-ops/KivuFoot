@@ -358,55 +358,71 @@ async def purge_demo(payload: PurgeDemoIn, db: AsyncSession = Depends(get_db)):
     sup_photo = getattr(stockage_photo, "supprimer_objet", None)
     rapport = {"objets_photos": 0, "objets_logos": 0, "photos": 0, "matchs": 0,
                "joueurs": 0, "staffs": 0, "clubs": 0, "users": 0}
-    clubs_demo = (await db.execute(select(Club).where(Club.nom.like("DEMO %")))).scalars().all()
-    club_ids = [c.id for c in clubs_demo]
-    users_demo = (await db.execute(select(User).where(User.email.like("%@example.com")))).scalars().all()
-    if club_ids:
-        joueurs = (await db.execute(select(Joueur).where(Joueur.club_id.in_(club_ids)))).scalars().all()
-        joueur_ids = [j.id for j in joueurs]
-        staffs = (await db.execute(select(Staff).where(Staff.club_id.in_(club_ids)))).scalars().all()
-        staff_ids = [m.id for m in staffs]
-        matchs = (await db.execute(
-            select(Match).where(or_(Match.equipe_domicile_id.in_(club_ids), Match.equipe_exterieur_id.in_(club_ids)))
-        )).scalars().all()
-        for m in matchs:
-            await db.delete(m)
-        rapport["matchs"] = len(matchs)
-        conds = []
-        if joueur_ids:
-            conds.append((Photo.sujet_type == "joueur") & Photo.sujet_id.in_(joueur_ids))
-        if staff_ids:
-            conds.append((Photo.sujet_type == "staff") & Photo.sujet_id.in_(staff_ids))
-        if conds:
-            photos = (await db.execute(select(Photo).where(or_(*conds)))).scalars().all()
-            for ph in photos:
-                if sup_photo is not None:
+    etape = "debut"
+    try:
+        etape = "lecture_clubs"
+        clubs_demo = (await db.execute(select(Club).where(Club.nom.like("DEMO %")))).scalars().all()
+        club_ids = [c.id for c in clubs_demo]
+        etape = "lecture_users"
+        users_demo = (await db.execute(select(User).where(User.email.like("%@example.com")))).scalars().all()
+        if club_ids:
+            etape = "joueurs_staff"
+            joueurs = (await db.execute(select(Joueur).where(Joueur.club_id.in_(club_ids)))).scalars().all()
+            joueur_ids = [j.id for j in joueurs]
+            staffs = (await db.execute(select(Staff).where(Staff.club_id.in_(club_ids)))).scalars().all()
+            staff_ids = [m.id for m in staffs]
+            etape = "matchs"
+            matchs = (await db.execute(
+                select(Match).where(or_(Match.equipe_domicile_id.in_(club_ids), Match.equipe_exterieur_id.in_(club_ids)))
+            )).scalars().all()
+            for m in matchs:
+                await db.delete(m)
+            rapport["matchs"] = len(matchs)
+            etape = "photos"
+            conds = []
+            if joueur_ids:
+                conds.append((Photo.sujet_type == "joueur") & Photo.sujet_id.in_(joueur_ids))
+            if staff_ids:
+                conds.append((Photo.sujet_type == "staff") & Photo.sujet_id.in_(staff_ids))
+            if conds:
+                photos = (await db.execute(select(Photo).where(or_(*conds)))).scalars().all()
+                for ph in photos:
+                    if sup_photo is not None:
+                        try:
+                            await sup_photo(ph.storage_key)
+                            rapport["objets_photos"] += 1
+                        except Exception:
+                            pass
+                    await db.delete(ph)
+                    rapport["photos"] += 1
+            etape = "suppression_joueurs"
+            for j in joueurs:
+                await db.delete(j)
+            rapport["joueurs"] = len(joueurs)
+            etape = "suppression_staffs"
+            for m in staffs:
+                await db.delete(m)
+            rapport["staffs"] = len(staffs)
+            etape = "suppression_clubs"
+            marque = "/object/public/logos-clubs/"
+            for c in clubs_demo:
+                if c.logo_url and marque in c.logo_url:
                     try:
-                        await sup_photo(ph.storage_key)
-                        rapport["objets_photos"] += 1
+                        await stockage_logo.supprimer_objet(c.logo_url.split(marque)[-1])
+                        rapport["objets_logos"] += 1
                     except Exception:
                         pass
-                await db.delete(ph)
-                rapport["photos"] += 1
-        for j in joueurs:
-            await db.delete(j)
-        rapport["joueurs"] = len(joueurs)
-        for m in staffs:
-            await db.delete(m)
-        rapport["staffs"] = len(staffs)
-        marque = "/object/public/logos-clubs/"
-        for c in clubs_demo:
-            if c.logo_url and marque in c.logo_url:
-                try:
-                    await stockage_logo.supprimer_objet(c.logo_url.split(marque)[-1])
-                    rapport["objets_logos"] += 1
-                except Exception:
-                    pass
-            await db.delete(c)
-        rapport["clubs"] = len(clubs_demo)
-    for u in users_demo:
-        await db.delete(u)
-    rapport["users"] = len(users_demo)
-    await log_audit(db, "purge", 0, ActionAudit.DELETE, None, None, rapport)
-    await db.commit()
+                await db.delete(c)
+            rapport["clubs"] = len(clubs_demo)
+        etape = "suppression_users"
+        for u in users_demo:
+            await db.delete(u)
+        rapport["users"] = len(users_demo)
+        etape = "audit"
+        await log_audit(db, "purge", 0, ActionAudit.DELETE, None, None, rapport)
+        etape = "commit"
+        await db.commit()
+    except Exception as ex:
+        await db.rollback()
+        return {"erreur": str(ex), "etape": etape, "rapport_partiel": rapport}
     return rapport
