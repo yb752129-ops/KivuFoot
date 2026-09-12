@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 import os
 from pydantic import BaseModel
 from app.models.joueur import Joueur
+from app.models.competition import OrganisateurCompetition
 from app.services import stockage_logo, stockage_photo
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -414,6 +415,14 @@ async def purge_demo(payload: PurgeDemoIn, db: AsyncSession = Depends(get_db)):
                         pass
                 await db.delete(c)
             rapport["clubs"] = len(clubs_demo)
+        etape = "orga_competitions"
+        user_ids = [u.id for u in users_demo]
+        if user_ids:
+            lignes = (await db.execute(
+                select(OrganisateurCompetition).where(OrganisateurCompetition.user_id.in_(user_ids))
+            )).scalars().all()
+            for lg in lignes:
+                await db.delete(lg)
         etape = "suppression_users"
         for u in users_demo:
             await db.delete(u)
