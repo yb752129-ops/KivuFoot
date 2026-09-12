@@ -6,7 +6,6 @@ import { clubName, useKivu } from "../context.jsx";
 import { stripDemo } from "../display.js";
 import { useTheme } from "../theme.jsx";
 import { porteDuRole } from "../portes.js";
-import ComptesTest from "../components/ComptesTest.jsx";
 
 const ROLE_LIBELLE = {
   supporter: "Lecteur",
@@ -227,7 +226,6 @@ export default function Compte() {
             Se déconnecter
           </button>
         </p>
-        {!(adminPorte || orga || collecte || clubPorte || coachPorte) && <ComptesTest />}
         <Apparence />
       </section>
     );
@@ -314,10 +312,9 @@ export default function Compte() {
       </form>
       {mode === "creer" && (
         <p className="lead" style={{ marginTop: "0.8rem" }}>
-          Un compte créé ici est lecteur. Collecteur, club, coach, orga, admin : un tap ci-dessous.
+          Un compte créé ici est lecteur. Les rôles collecteur, club, coach, orga et admin sont attribués par l’administrateur.
         </p>
       )}
-      <ComptesTest />
       <Apparence />
     </section>
   );
