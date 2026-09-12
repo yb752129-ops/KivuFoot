@@ -367,7 +367,7 @@ async def purge_demo(payload: PurgeDemoIn, db: AsyncSession = Depends(get_db)):
         users_demo = (await db.execute(select(User).where(User.email.like("%@example.com")))).scalars().all()
         if club_ids:
             etape = "joueurs_staff"
-            joueurs = (await db.execute(select(Joueur).where(Joueur.club_id.in_(club_ids)))).scalars().all()
+            joueurs = (await db.execute(select(Joueur).where(Joueur.club_actuel_id.in_(club_ids)))).scalars().all()
             joueur_ids = [j.id for j in joueurs]
             staffs = (await db.execute(select(Staff).where(Staff.club_id.in_(club_ids)))).scalars().all()
             staff_ids = [m.id for m in staffs]
