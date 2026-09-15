@@ -346,7 +346,18 @@ async def creer_joueur(
 
 
 @router.post("/detect-doublon", response_model=list[JoueurDetailOut])
-async def detecter_doublon(payload: JoueurCreate, db: AsyncSession = Depends(get_db)):
+async def detecter_doublon(
+    payload: JoueurCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(
+        require_roles(
+            RoleUtilisateur.ADMIN,
+            RoleUtilisateur.ORGANISATEUR,
+            RoleUtilisateur.CLUB_MANAGER,
+            RoleUtilisateur.COLLECTEUR,
+        )
+    ),
+):
     return await rechercher_doublons(db, payload.nom_complet, payload.date_naissance, payload.poste)
 
 
