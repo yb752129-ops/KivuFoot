@@ -1,16 +1,15 @@
-# Pack pilote 2 (version 2) — zoom, hors connexion, portes qui restent ouvertes
+# Pack pilote 3 — bootstrap du premier admin (une seule fois, audité)
 
-Contenu exact (7 fichiers) :
-1. frontend-web/index.html — ligne viewport modifiée : zoom pincement et double-tap verrouillés.
-2. frontend-web/src/main.jsx — 6 lignes ajoutées : enregistrement du service worker.
-3. frontend-web/src/App.jsx — 2 lignes ajoutées : bandeau réseau sur toutes les portes.
-4. frontend-web/src/api.js — temps limite 12 s + message clair si le réseau manque ;
-   renouvellement silencieux de la clef de 30 minutes par la clef de 30 jours (les portes ne renvoient plus à /compte après 30 min).
-5. frontend-web/src/styles.css — lignes ajoutées en fin de fichier : tactile + bandeau.
-6. frontend-web/src/components/Reseau.jsx — nouveau : bandeau « Hors connexion ».
-7. frontend-web/public/sw.js — nouveau : coquille et polices en cache, API jamais cachée.
+Contenu exact (2 fichiers) :
+1. backend/app/main.py — 8 lignes ajoutées en fin de fichier : appel du bootstrap au démarrage.
+2. backend/app/auth/bootstrap.py — nouveau : si AUCUN compte staff (admin ou organisateur)
+   n'existe au démarrage, le compte yb752129@gmail.com passe admin, et c'est journalisé
+   dans la table audit_log. Si un staff existe déjà, ce code ne fait rien, pour toujours.
 
-Rien d'autre n'est touché. Aucune ligne supprimée hors la ligne viewport remplacée (correctif demandé).
+Aucune donnée n'est touchée d'avance : tout se passe au démarrage de Render, une seule fois.
 
 Montage (une seule commande) :
-cd ~/kivufoot && tar xzf /sdcard/Download/pack-pilote-2.tgz --strip-components=1 && git add -A && git commit -m "pack-pilote-2 : zoom verrouille, hors connexion, portes stables" && git push
+cd ~/kivufoot && tar xzf /sdcard/Download/pack-pilote-3.tgz --strip-components=1 && git add -A && git commit -m "pack-pilote-3 : bootstrap premier admin audit" && git push
+
+Après le push : attendre environ 2 minutes (Render redémarre), puis se connecter sur
+/compte : toutes les portes (/orga, /admin, /collecteur selon rôle, /club, /coach) s'ouvrent.
