@@ -1,4 +1,4 @@
-# Diffs pack-pilote-2 (déployé -> pack)
+# Diffs pack-pilote-2 (déployé -> pack, version 2)
 
 ## frontend-web/index.html
 @@ -2,7 +2,7 @@
@@ -42,7 +42,42 @@
          <Routes>
 
 ## frontend-web/src/api.js
-@@ -28,11 +28,23 @@
+@@ -21,18 +21,62 @@
+   return Boolean(getToken());
+ }
+ 
+-async function request(path, { method = "GET", body, auth = false } = {}) {
++let refreshEnCours = null;
++
++async function refreshSession() {
++  const rf = localStorage.getItem(REFRESH_KEY);
++  if (!rf) return false;
++  if (!refreshEnCours) {
++    refreshEnCours = (async () => {
++      try {
++        const r = await fetch(`${API}/auth/refresh`, {
++          method: "POST",
++          headers: { "Content-Type": "application/json", Accept: "application/json" },
++          body: JSON.stringify({ refresh_token: rf }),
++        });
++        if (!r.ok) return false;
++        const t = await r.json();
++        setTokens(t.access_token, t.refresh_token);
++        return true;
++      } catch {
++        return false;
++      } finally {
++        refreshEnCours = null;
++      }
++    })();
++  }
++  return refreshEnCours;
++}
++
++async function request(path, { method = "GET", body, auth = false } = {}, aDejaRetry = false) {
+   const headers = { Accept: "application/json" };
+   if (body !== undefined) headers["Content-Type"] = "application/json";
+   if (auth) {
      const t = getToken();
      if (t) headers.Authorization = `Bearer ${t}`;
    }
@@ -68,6 +103,11 @@
 +    throw err;
 +  }
 +  clearTimeout(timer);
++  if (res.status === 401 && auth && !aDejaRetry) {
++    const ok = await refreshSession();
++    if (ok) return request(path, { method, body, auth }, true);
++    clearTokens();
++  }
    if (res.status === 204) return null;
    const text = await res.text();
    let data = null;
