@@ -1,15 +1,16 @@
-# Pack pilote 3 — bootstrap du premier admin (une seule fois, audité)
+# Pack pilote 5 — session partagée survivant à la course de refresh entre onglets
 
-Contenu exact (2 fichiers) :
-1. backend/app/main.py — 8 lignes ajoutées en fin de fichier : appel du bootstrap au démarrage.
-2. backend/app/auth/bootstrap.py — nouveau : si AUCUN compte staff (admin ou organisateur)
-   n'existe au démarrage, le compte yb752129@gmail.com passe admin, et c'est journalisé
-   dans la table audit_log. Si un staff existe déjà, ce code ne fait rien, pour toujours.
+Contenu exact (1 fichier) : frontend-web/src/api.js — seule la fonction refreshSession change :
+en cas d'échec du renouvellement, elle relit le refresh token partagé (un autre onglet a pu
+le faire pivoter) et réessaie une fois avant de conclure à l'échec. clearTokens ne reste que
+pour un échec réel.
 
-Aucune donnée n'est touchée d'avance : tout se passe au démarrage de Render, une seule fois.
+Test local (backend réel + deux onglets Playwright, course forcée : onglet 2 envoie son
+refresh 900 ms après l'onglet 1 avec la clef déjà lue) :
+- SANS correctif : ONGLET 1 /admin, ONGLET 2 /admin, jeton final = STOCKAGE VIDE -> TEST ECHOUE
+  (la session commune est vidée : au rendu suivant, /compte partout = symptôme de production).
+- AVEC correctif (deux passages) : ONGLET 1 /admin, ONGLET 2 /admin, GET /auth/me = 200
+  -> TEST PASSE, les deux onglets restent connectés.
 
 Montage (une seule commande) :
-cd ~/kivufoot && tar xzf /sdcard/Download/pack-pilote-3.tgz --strip-components=1 && git add -A && git commit -m "pack-pilote-3 : bootstrap premier admin audit" && git push
-
-Après le push : attendre environ 2 minutes (Render redémarre), puis se connecter sur
-/compte : toutes les portes (/orga, /admin, /collecteur selon rôle, /club, /coach) s'ouvrent.
+cd ~/kivufoot && tar xzf /sdcard/Download/pack-pilote-5.tgz --strip-components=1 && git add -A && git commit -m "pack-pilote-5 : refresh resistant a la course entre onglets" && git push
