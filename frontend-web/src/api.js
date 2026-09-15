@@ -28,11 +28,23 @@ async function request(path, { method = "GET", body, auth = false } = {}) {
     const t = getToken();
     if (t) headers.Authorization = `Bearer ${t}`;
   }
-  const res = await fetch(`${API}${path}`, {
-    method,
-    headers,
-    body: body !== undefined ? JSON.stringify(body) : undefined,
-  });
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 12000);
+  let res;
+  try {
+    res = await fetch(`${API}${path}`, {
+      method,
+      headers,
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+      signal: ctrl.signal,
+    });
+  } catch (e) {
+    clearTimeout(timer);
+    const err = new Error("Réseau absent ou trop lent. Vérifiez la connexion, puis réessayez.");
+    err.status = 0;
+    throw err;
+  }
+  clearTimeout(timer);
   if (res.status === 204) return null;
   const text = await res.text();
   let data = null;

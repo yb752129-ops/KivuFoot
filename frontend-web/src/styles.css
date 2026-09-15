@@ -2562,3 +2562,33 @@ html[data-theme=light] .bulletin-row{background:var(--paper-2)}
 .compte-ligne-actions{display:flex;gap:.9rem;align-items:center;flex-shrink:0}
 .avenir-row .btn{width:auto;flex-shrink:0;padding:.55rem .9rem}
 .compte-mdp{margin-top:1.1rem}
+
+/* --- Pack pilote 2 : zoom verrouille + bandeau reseau --- */
+body,
+button,
+a,
+input,
+select,
+textarea {
+  touch-action: manipulation;
+}
+.reseau-perdu {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 90;
+  background: #8c2f2f;
+  color: #f6efe4;
+  font-family: "Source Sans 3", "Segoe UI", sans-serif;
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1.35;
+  text-align: center;
+  padding: calc(0.55rem + env(safe-area-inset-top)) 0.9rem 0.55rem;
+}
+html[data-theme="dark"] .reseau-perdu {
+  background: #a03c3c;
+  color: #14120e;
+}

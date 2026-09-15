@@ -43,6 +43,7 @@ import AdminComptes from "./pages/admin/Comptes.jsx";
 import Activation from "./pages/Activation.jsx";
 import { AuthProvider, useAuth } from "./auth.jsx";
 import { isAuthenticated } from "./api.js";
+import Reseau from "./components/Reseau.jsx";
 
 function PorteChargement({ children }) {
   const { loading, error, competitions, reessayer } = useKivu();
@@ -70,6 +71,7 @@ function Porte({ roles, children }) {
 export default function App() {
   return (
     <AuthProvider>
+      <Reseau />
       <KivuProvider>
         <PorteChargement>
         <Routes>
