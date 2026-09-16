@@ -199,6 +199,8 @@ export const api = {
   validerMatch: (id) => request(`/matchs/${id}/valider`, { method: "POST", auth: true }),
   creerMatch: (payload) => request("/matchs", { method: "POST", body: payload, auth: true }),
   majPhase: (id, phase, groupe) => request(`/matchs/${id}/phase`, { method: "PUT", body: { phase, groupe }, auth: true }),
+  modifierProgrammation: (id, payload) =>
+    request(`/matchs/${id}/programmation`, { method: "PUT", body: payload, auth: true }),
   staffClub: (clubId) => request(`/clubs/${clubId}/staff`),
   creerStaff: (clubId, payload) => request(`/clubs/${clubId}/staff`, { method: "POST", body: payload, auth: true }),
   modifierStaff: (staffId, payload) => request(`/clubs/staff/${staffId}`, { method: "PATCH", body: payload, auth: true }),

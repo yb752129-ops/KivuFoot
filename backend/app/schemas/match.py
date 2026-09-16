@@ -54,6 +54,11 @@ class MatchPhaseUpdate(BaseModel):
     groupe: str | None = None
 
 
+class MatchProgrammationUpdate(BaseModel):
+    date_heure: datetime
+    stade: str | None = None
+
+
 class MatchStatutUpdate(BaseModel):
     statut: StatutMatch
     forfait: bool = False

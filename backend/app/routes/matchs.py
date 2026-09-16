@@ -14,7 +14,7 @@ from app.models.enums import ActionAudit, EquipeConcernee, PeriodeMatch, RoleUti
 from app.models.joueur import Joueur
 from app.models.match import Match, MatchParticipation
 from app.models.user import User
-from app.schemas.match import MatchCreate, MatchOut, MatchPhaseUpdate, ParticipationCreate, ParticipationOut, ParticipationUpdate
+from app.schemas.match import MatchCreate, MatchOut, MatchPhaseUpdate, MatchProgrammationUpdate, ParticipationCreate, ParticipationOut, ParticipationUpdate
 from app.services.audit import log_audit
 from app.schemas.match import (
     CompositionEquipeIn,
@@ -184,6 +184,31 @@ async def changer_statut_match(
     old_statut = actuel
     match_.statut = nouveau_statut
     await log_audit(db, "matchs", match_.id, ActionAudit.UPDATE, current_user.id, {"statut": old_statut}, {"statut": nouveau_statut.value})
+    await db.commit()
+    await db.refresh(match_)
+    return match_
+
+
+@router.put("/{match_id}/programmation", response_model=MatchOut)
+async def modifier_programmation_match(
+    match_id: int,
+    payload: MatchProgrammationUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles(RoleUtilisateur.ADMIN, RoleUtilisateur.ORGANISATEUR)),
+):
+    """Modifie la date, l'heure et éventuellement le stade d'un match à venir."""
+    match_ = await verifier_organisateur_du_match(match_id, current_user, db)
+    if match_.locked:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Ce match est verrouillé.")
+    statut = match_.statut.value if hasattr(match_.statut, "value") else match_.statut
+    if statut != StatutMatch.PROGRAMME.value and statut != StatutMatch.PROGRAMME:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Seul un match programmé peut être replanifié.")
+    avant = {"date_heure": match_.date_heure.isoformat(), "stade": match_.stade}
+    match_.date_heure = payload.date_heure
+    if payload.stade is not None:
+        match_.stade = payload.stade.strip() or None
+    apres = {"date_heure": match_.date_heure.isoformat(), "stade": match_.stade}
+    await log_audit(db, "matchs", match_.id, ActionAudit.UPDATE, current_user.id, avant, apres)
     await db.commit()
     await db.refresh(match_)
     return match_
