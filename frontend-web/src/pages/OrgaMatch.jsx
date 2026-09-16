@@ -3,8 +3,8 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { api, clearTokens } from "../api.js";
 import Chrono from "../components/Chrono.jsx";
 import { clubName, useKivu } from "../context.jsx";
-import { clockFromMatch, formatMinute, grouperFaits, labelEvenement, MOTIF_REFUS, periodeLabel, splitMinute, stripDemo } from "../display.js";
-import { STATUT_MATCH } from "./orga/saison.js";
+import { civilDate, clockFromMatch, formatHeure, formatMinute, grouperFaits, labelEvenement, MOTIF_REFUS, periodeLabel, splitMinute, stripDemo } from "../display.js";
+import { isoDepuisDateHeure, STATUT_MATCH } from "./orga/saison.js";
 
 const LABELS = {
   but: "But",
@@ -60,6 +60,9 @@ export default function OrgaMatch({ backTo = "/orga/matchs", mode = "orga" } = {
   const [resultat, setResultat] = useState("marque");
   const [phaseSel, setPhaseSel] = useState("poule");
   const [groupeSel, setGroupeSel] = useState("");
+  const [dateProg, setDateProg] = useState("");
+  const [heureProg, setHeureProg] = useState("");
+  const [stadeProg, setStadeProg] = useState("");
   const [minute, setMinute] = useState("0");
   const [now, setNow] = useState(Date.now());
   const [compDraft, setCompDraft] = useState({});
@@ -82,8 +85,30 @@ export default function OrgaMatch({ backTo = "/orga/matchs", mode = "orga" } = {
     if (match) {
       setPhaseSel(match.phase || "poule");
       setGroupeSel(match.groupe || "");
+      setDateProg(civilDate(match.date_heure));
+      setHeureProg(formatHeure(match.date_heure));
+      setStadeProg(match.stade || "");
     }
   }, [match]);
+
+  async function enregistrerProgrammation(e) {
+    e.preventDefault();
+    setBusy(true);
+    setErr("");
+    setMsg("");
+    try {
+      const m = await api.modifierProgrammation(match.id, {
+        date_heure: isoDepuisDateHeure(dateProg, heureProg),
+        stade: stadeProg.trim() || null,
+      });
+      setMatch(m);
+      setMsg("Programmation modifiée.");
+    } catch (e) {
+      setErr(e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function enregistrerPhase() {
     setBusy(true);
@@ -406,6 +431,29 @@ export default function OrgaMatch({ backTo = "/orga/matchs", mode = "orga" } = {
         )}
         {match.locked && <p className="empty">Match verrouillé — plus aucune modification.</p>}
       </div>
+
+      {!collecteur && !match.locked && match.statut === "programme" && (
+        <form className="phase-box" onSubmit={enregistrerProgrammation}>
+          <p className="kicker">Programmation</p>
+          <div className="comp-grid">
+            <label className="field">
+              Date
+              <input type="date" value={dateProg} onChange={(e) => setDateProg(e.target.value)} required />
+            </label>
+            <label className="field">
+              Heure locale
+              <input type="time" value={heureProg} onChange={(e) => setHeureProg(e.target.value)} required />
+            </label>
+          </div>
+          <label className="field">
+            Stade
+            <input value={stadeProg} onChange={(e) => setStadeProg(e.target.value)} placeholder="à compléter" />
+          </label>
+          <button className="btn btn-primary" type="submit" disabled={busy}>
+            {busy ? "…" : "Enregistrer la programmation"}
+          </button>
+        </form>
+      )}
 
       {!collecteur && !match.locked && (
         <div className="phase-box">
