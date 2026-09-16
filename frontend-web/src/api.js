@@ -109,7 +109,7 @@ async function request(path, { method = "GET", body, auth = false } = {}, aDejaR
 export const api = {
   competitions: () => request("/competitions"),
   creerCompetition: (payload) => request("/competitions", { method: "POST", body: payload, auth: true }),
-  supprimerCompetition: (id) => request(`/competitions/${id}`, { method: "DELETE", auth: true }),
+  supprimerCompetition: (id, purger = false) => request(`/competitions/${id}${purger ? "?purger=true" : ""}`, { method: "DELETE", auth: true }),
   saisons: (competitionId) => request(`/saisons?competition_id=${competitionId}`),
   creerSaison: (payload) => request("/saisons", { method: "POST", body: payload, auth: true }),
   clubs: () => request("/clubs?limit=100"),

@@ -7,9 +7,10 @@ from app.auth.dependencies import get_current_user
 from app.auth.rbac import require_roles, verifier_organisateur_de_competition
 from app.database import get_db
 from app.models.club import Club
+from app.models.evenement import EvenementMatch
 from app.models.competition import Competition, OrganisateurCompetition, Saison, SaisonClub
 from app.models.enums import ActionAudit, RoleUtilisateur
-from app.models.match import Match
+from app.models.match import Match, MatchParticipation
 from app.models.stats import StatistiqueJoueur
 from app.models.user import User
 from app.schemas.competition import ClubOut, CompetitionCreate, CompetitionOut, SaisonClubCreate, SaisonCreate, SaisonOut
@@ -57,17 +58,18 @@ async def creer_competition(
 @router.delete("/competitions/{competition_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def supprimer_competition(
     competition_id: int,
+    purger: bool = False,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_roles(RoleUtilisateur.ADMIN)),
 ):
-    """Admin seulement. Les matchs (faits) bloquent. Les clubs restent."""
+    """Admin seulement. `purger=true` supprime aussi les données liées. Les clubs restent."""
     comp = await db.get(Competition, competition_id)
     if comp is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Compétition introuvable.")
     saison_ids = list(
         (await db.execute(select(Saison.id).where(Saison.competition_id == competition_id))).scalars().all()
     )
-    if saison_ids:
+    if saison_ids and not purger:
         joue = await db.execute(select(Match.id).where(Match.saison_id.in_(saison_ids)).limit(1))
         if joue.scalar_one_or_none() is not None:
             raise HTTPException(
@@ -80,7 +82,7 @@ async def supprimer_competition(
         comp.id,
         ActionAudit.DELETE,
         current_user.id,
-        {"nom": comp.nom, "est_demo": comp.est_demo},
+        {"nom": comp.nom, "est_demo": comp.est_demo, "purger": purger, "saison_ids": saison_ids},
         None,
     )
     try:
@@ -88,6 +90,14 @@ async def supprimer_competition(
             sql_delete(OrganisateurCompetition).where(OrganisateurCompetition.competition_id == competition_id)
         )
         await db.execute(sql_delete(StatistiqueJoueur).where(StatistiqueJoueur.competition_id == competition_id))
+        if saison_ids and purger:
+            match_ids = list(
+                (await db.execute(select(Match.id).where(Match.saison_id.in_(saison_ids)))).scalars().all()
+            )
+            if match_ids:
+                await db.execute(sql_delete(EvenementMatch).where(EvenementMatch.match_id.in_(match_ids)))
+                await db.execute(sql_delete(MatchParticipation).where(MatchParticipation.match_id.in_(match_ids)))
+                await db.execute(sql_delete(Match).where(Match.id.in_(match_ids)))
         if saison_ids:
             await db.execute(sql_delete(SaisonClub).where(SaisonClub.saison_id.in_(saison_ids)))
             await db.execute(sql_delete(Saison).where(Saison.competition_id == competition_id))

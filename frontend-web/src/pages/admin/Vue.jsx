@@ -28,14 +28,14 @@ export default function AdminVue() {
 
   async function supprimer(c) {
     const nom = c.est_demo ? `Démo — ${stripDemo(c.nom)}` : stripDemo(c.nom);
-    if (!window.confirm(`Supprimer « ${nom} » (#${c.id}) ? Les matchs déjà joués bloquent la suppression. Les clubs restent.`)) {
+    if (!window.confirm(`Supprimer définitivement « ${nom} » (#${c.id}) ? Les saisons, matchs, événements et statistiques liés seront supprimés. Les clubs, joueurs et comptes resteront.`)) {
       return;
     }
     setBusy(c.id);
     setErr("");
     setMsg("");
     try {
-      await api.supprimerCompetition(c.id);
+      await api.supprimerCompetition(c.id, true);
       const list = await rechargerCompetitions();
       if (competition?.id === c.id) {
         const next = (list || []).find((x) => x.id !== c.id);
