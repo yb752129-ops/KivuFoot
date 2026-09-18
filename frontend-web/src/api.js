@@ -106,14 +106,59 @@ async function request(path, { method = "GET", body, auth = false } = {}, aDejaR
   return data;
 }
 
+const LOGOS_LOCAUX = {
+  "g.c.v": "/logos-equipes/gcv.png",
+  "g.g.t 2025": "/logos-equipes/ggt-2025.png",
+  "g.g.t-2025": "/logos-equipes/ggt-2025.png",
+  "g.g.t grf": "/logos-equipes/ggt-grf.png",
+  "g.g.t-grf": "/logos-equipes/ggt-grf.png",
+  "g.g.t 2026": "/logos-equipes/ggt-2026.png",
+  "g.g.t-2026": "/logos-equipes/ggt-2026.png",
+  "+243 (sae)": "/logos-equipes/sae-243.png",
+  "+243(sae)": "/logos-equipes/sae-243.png",
+  "les champions": "/logos-equipes/les-champions.png",
+  "sante publique": "/logos-equipes/sante-publique.png",
+  "sante public": "/logos-equipes/sante-publique.png",
+  "fc espoir": "/logos-equipes/fc-espoir.png",
+  "nutrition + ophtalmologie": "/logos-equipes/nutrition-ophtalmologie.png",
+  "ega": "/logos-equipes/ega.png",
+  "anr": "/logos-equipes/anr.png",
+  "sif": "/logos-equipes/sif.png",
+  "info 24+25": "/logos-equipes/info-24-25.png",
+  "info-2024+2025": "/logos-equipes/info-24-25.png",
+  "droit": "/logos-equipes/droit.png",
+  "info 2026": "/logos-equipes/info-2026.png",
+  "info-2026": "/logos-equipes/info-2026.png",
+};
+
+function cleLogo(nom) {
+  return String(nom || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[—–]/g, "-")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function avecLogoLocal(club) {
+  if (!club || club.logo_url) return club;
+  const logo = LOGOS_LOCAUX[cleLogo(club.nom)];
+  return logo ? { ...club, logo_url: logo } : club;
+}
+
+function avecLogosLocaux(data) {
+  return Array.isArray(data) ? data.map(avecLogoLocal) : avecLogoLocal(data);
+}
+
 export const api = {
   competitions: () => request("/competitions"),
   creerCompetition: (payload) => request("/competitions", { method: "POST", body: payload, auth: true }),
   supprimerCompetition: (id, purger = false) => request(`/competitions/${id}${purger ? "?purger=true" : ""}`, { method: "DELETE", auth: true }),
   saisons: (competitionId) => request(`/saisons?competition_id=${competitionId}`),
   creerSaison: (payload) => request("/saisons", { method: "POST", body: payload, auth: true }),
-  clubs: () => request("/clubs?limit=100"),
-  club: (id) => request(`/clubs/${id}`),
+  clubs: () => request("/clubs?limit=100").then(avecLogosLocaux),
+  club: (id) => request(`/clubs/${id}`).then(avecLogoLocal),
   creerClub: (payload) => request("/clubs", { method: "POST", body: payload, auth: true }),
   modifierClub: (id, payload) => request(`/clubs/${id}`, { method: "PUT", body: payload, auth: true }),
   uploaderLogo: (id, file) => {
@@ -147,7 +192,7 @@ export const api = {
     });
   },
   supprimerClub: (id) => request(`/clubs/${id}`, { method: "DELETE", auth: true }),
-  clubsSaison: (saisonId) => request(`/saisons/${saisonId}/clubs`),
+  clubsSaison: (saisonId) => request(`/saisons/${saisonId}/clubs`).then(avecLogosLocaux),
   inscrireClub: (saisonId, clubId) =>
     request(`/saisons/${saisonId}/clubs`, { method: "POST", body: { club_id: clubId }, auth: true }),
   desinscrireClub: (saisonId, clubId) =>
