@@ -1,6 +1,6 @@
 from datetime import date, datetime
 
-from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Integer, String, func
+from sqlalchemy import Boolean, CheckConstraint, Date, DateTime, ForeignKey, Integer, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -49,9 +49,18 @@ class Saison(Base):
 
 class SaisonClub(Base):
     __tablename__ = "saison_clubs"
+    __table_args__ = (
+        CheckConstraint(
+            "groupe IS NULL OR groupe IN ('A','B','C','D')",
+            name="ck_saison_clubs_groupe",
+        ),
+    )
 
     saison_id: Mapped[int] = mapped_column(ForeignKey("saisons.id", ondelete="CASCADE"), primary_key=True)
     club_id: Mapped[int] = mapped_column(ForeignKey("clubs.id", ondelete="CASCADE"), primary_key=True)
+    # Source officielle de l'appartenance à une poule pour cette saison.
+    # NULL reste autorisé pour les anciennes saisons non reconstructibles.
+    groupe: Mapped[str | None] = mapped_column(String(1), nullable=True)
 
     saison = relationship("Saison", back_populates="clubs")
     club = relationship("Club")

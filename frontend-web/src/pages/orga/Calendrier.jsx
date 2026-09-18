@@ -7,6 +7,8 @@ import { stripDemo } from "../../display.js";
 import { AVenirLigne } from "../../components/LignesMatch.jsx";
 import { assurerSaison, isoDepuisDateHeure } from "./saison.js";
 
+const GROUPES = ["A", "B", "C", "D"];
+
 export default function OrgaCalendrier() {
   const { user } = useAuth();
   const {
@@ -44,6 +46,17 @@ export default function OrgaCalendrier() {
 
   if (!bureau) return <Navigate to="/orga/matchs" replace />;
 
+  const domicile = equipes.find((c) => String(c.id) === String(domId));
+  const exterieur = equipes.find((c) => String(c.id) === String(extId));
+  const groupeAuto =
+    phase === "poule" && domicile?.groupe && domicile.groupe === exterieur?.groupe
+      ? domicile.groupe
+      : "";
+  const groupesDifferents =
+    phase === "poule" && domicile?.groupe && exterieur?.groupe && domicile.groupe !== exterieur.groupe;
+  const groupeIncomplet =
+    phase === "poule" && domicile && exterieur && (!domicile.groupe || !exterieur.groupe);
+
   async function programmer(e) {
     e.preventDefault();
     setBusy(true);
@@ -57,14 +70,20 @@ export default function OrgaCalendrier() {
       const x = Number(extId);
       if (!d || !x) throw new Error("Choisissez les deux équipes.");
       if (d === x) throw new Error("Une équipe ne peut pas jouer contre elle-même.");
-      const domicile = equipes.find((c) => c.id === d) || clubsById[d];
+      if (phase === "poule" && groupesDifferents) {
+        throw new Error("Un match de poule doit opposer deux équipes du même groupe officiel.");
+      }
+      if (phase === "poule" && !groupeAuto) {
+        throw new Error("Affectez d'abord un groupe officiel aux deux équipes.");
+      }
+      const equipeDomicile = equipes.find((c) => c.id === d) || clubsById[d];
       await api.creerMatch({
         saison_id: s.id,
         journee: journee.trim().slice(0, 20) || null,
         phase: phase || "poule",
-        groupe: groupe || null,
+        groupe: phase === "poule" ? groupeAuto : groupe || null,
         date_heure: isoDepuisDateHeure(dateMatch, heureMatch),
-        stade: stadeMatch.trim() || domicile?.stade || null,
+        stade: stadeMatch.trim() || equipeDomicile?.stade || null,
         equipe_domicile_id: d,
         equipe_exterieur_id: x,
       });
@@ -73,6 +92,7 @@ export default function OrgaCalendrier() {
       setExtId("");
       setStadeMatch("");
       setJournee("");
+      setGroupe("");
       await load();
     } catch (ex) {
       setErr(ex.message);
@@ -129,7 +149,7 @@ export default function OrgaCalendrier() {
             <input
               value={stadeMatch}
               onChange={(e) => setStadeMatch(e.target.value)}
-              placeholder={equipes.find((c) => String(c.id) === String(domId))?.stade || "à compléter"}
+              placeholder={domicile?.stade || "à compléter"}
             />
           </label>
           <label className="field">
@@ -143,14 +163,23 @@ export default function OrgaCalendrier() {
           </label>
           <label className="field">
             Groupe
-            <select value={groupe} onChange={(e) => setGroupe(e.target.value)}>
-              <option value="">Sans groupe</option>
-              <option value="A">Groupe A</option>
-              <option value="B">Groupe B</option>
-              <option value="C">Groupe C</option>
-              <option value="D">Groupe D</option>
+            <select
+              value={phase === "poule" ? groupeAuto : groupe}
+              onChange={(e) => setGroupe(e.target.value)}
+              disabled={phase === "poule"}
+            >
+              {phase === "poule" ? (
+                <option value="">{groupeAuto ? `Groupe ${groupeAuto} — déduit` : "Affecter les deux équipes"}</option>
+              ) : (
+                <>
+                  <option value="">Sans groupe</option>
+                  {GROUPES.map((g) => <option key={g} value={g}>Groupe {g}</option>)}
+                </>
+              )}
             </select>
           </label>
+          {groupesDifferents && <p className="erreur">Les deux équipes sont dans des groupes officiels différents.</p>}
+          {groupeIncomplet && <p className="erreur">Un groupe officiel manque pour l’une des équipes.</p>}
           <label className="field">
             Journée
             <input value={journee} onChange={(e) => setJournee(e.target.value)} maxLength={20} placeholder="ex. J1" />

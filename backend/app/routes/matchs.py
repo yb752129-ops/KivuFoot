@@ -16,6 +16,7 @@ from app.models.match import Match, MatchParticipation
 from app.models.user import User
 from app.schemas.match import MatchCreate, MatchOut, MatchPhaseUpdate, MatchProgrammationUpdate, ParticipationCreate, ParticipationOut, ParticipationUpdate
 from app.services.audit import log_audit
+from app.services.groupes_saison import determiner_groupe_match
 from app.schemas.match import (
     CompositionEquipeIn,
     CompositionEquipeOut,
@@ -114,17 +115,17 @@ async def creer_match(
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Saison introuvable.")
     await verifier_organisateur_de_competition(saison.competition_id, current_user, db)
 
-    inscrits = await db.execute(
-        select(SaisonClub.club_id).where(SaisonClub.saison_id == payload.saison_id)
+    groupe_officiel = await determiner_groupe_match(
+        db,
+        payload.saison_id,
+        payload.equipe_domicile_id,
+        payload.equipe_exterieur_id,
+        payload.phase,
+        payload.groupe,
     )
-    club_ids = {row[0] for row in inscrits.all()}
-    if payload.equipe_domicile_id not in club_ids or payload.equipe_exterieur_id not in club_ids:
-        raise HTTPException(
-            status.HTTP_400_BAD_REQUEST,
-            "Les deux équipes doivent être inscrites à cette saison.",
-        )
-
-    match_ = Match(**payload.model_dump())
+    donnees = payload.model_dump()
+    donnees["groupe"] = groupe_officiel
+    match_ = Match(**donnees)
     db.add(match_)
     await db.flush()
     await log_audit(db, "matchs", match_.id, ActionAudit.INSERT, current_user.id, None, {"saison_id": payload.saison_id})
@@ -335,19 +336,36 @@ async def changer_phase_match(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_roles(RoleUtilisateur.ADMIN, RoleUtilisateur.ORGANISATEUR)),
 ):
-    match_ = await db.get(Match, match_id)
-    if match_ is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Match introuvable.")
+    match_ = await verifier_organisateur_du_match(match_id, current_user, db)
     if match_.locked:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Match verrouillé : phase non modifiable.")
     if payload.phase not in PHASES_VALIDES:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Phase inconnue : poule, quart, demi ou finale.")
-    if payload.groupe is not None and len(payload.groupe) > 2:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Groupe : une ou deux lettres.")
+    if payload.phase == "poule":
+        if match_.equipe_domicile_id is None or match_.equipe_exterieur_id is None:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "Les deux équipes sont nécessaires pour une poule.")
+        groupe_officiel = await determiner_groupe_match(
+            db,
+            match_.saison_id,
+            match_.equipe_domicile_id,
+            match_.equipe_exterieur_id,
+            payload.phase,
+            payload.groupe,
+        )
+    else:
+        groupe_officiel = getattr(payload.groupe, "value", payload.groupe)
     avant = {"phase": match_.phase, "groupe": match_.groupe}
     match_.phase = payload.phase
-    match_.groupe = payload.groupe
-    await log_audit(db, "matchs", match_.id, ActionAudit.UPDATE, current_user.id, avant, payload.model_dump())
+    match_.groupe = groupe_officiel
+    await log_audit(
+        db,
+        "matchs",
+        match_.id,
+        ActionAudit.UPDATE,
+        current_user.id,
+        avant,
+        {"phase": payload.phase, "groupe": groupe_officiel},
+    )
     await db.commit()
     await db.refresh(match_)
     return match_

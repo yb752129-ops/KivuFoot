@@ -2,7 +2,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, field_validator
 
-from app.models.enums import EquipeConcernee, PeriodeMatch, StatutMatch, StatutParticipation
+from app.models.enums import EquipeConcernee, GroupePoule, PeriodeMatch, StatutMatch, StatutParticipation
 
 
 class MatchOut(BaseModel):
@@ -38,7 +38,15 @@ class MatchCreate(BaseModel):
     equipe_domicile_id: int
     equipe_exterieur_id: int
     phase: str = "poule"
-    groupe: str | None = None
+    groupe: GroupePoule | None = None
+
+    @field_validator("groupe", mode="before")
+    @classmethod
+    def groupe_normalise(cls, v):
+        if v is None:
+            return None
+        valeur = str(v).strip().upper()
+        return valeur or None
 
     @field_validator("equipe_exterieur_id")
     @classmethod
@@ -51,7 +59,15 @@ class MatchCreate(BaseModel):
 
 class MatchPhaseUpdate(BaseModel):
     phase: str = "poule"
-    groupe: str | None = None
+    groupe: GroupePoule | None = None
+
+    @field_validator("groupe", mode="before")
+    @classmethod
+    def groupe_normalise(cls, v):
+        if v is None:
+            return None
+        valeur = str(v).strip().upper()
+        return valeur or None
 
 
 class MatchProgrammationUpdate(BaseModel):

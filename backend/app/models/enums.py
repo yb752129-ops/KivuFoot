@@ -22,6 +22,13 @@ class TypeCompetition(str, enum.Enum):
     TOURNOI = "tournoi"
 
 
+class GroupePoule(str, enum.Enum):
+    A = "A"
+    B = "B"
+    C = "C"
+    D = "D"
+
+
 class PosteJoueur(str, enum.Enum):
     GARDIEN = "gardien"
     DEFENSEUR = "defenseur"

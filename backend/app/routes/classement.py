@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
+from app.models.enums import GroupePoule
 from app.schemas.sync import ClassementLigne
 from app.services.calcul_classement import calculer_classement
 
@@ -12,7 +13,7 @@ router = APIRouter(prefix="/classement", tags=["Classement"])
 async def classement_saison(
     saison_id: int,
     db: AsyncSession = Depends(get_db),
-    groupe: str | None = None,
+    groupe: GroupePoule | None = None,
 ):
     lignes = await calculer_classement(db, saison_id, groupe=groupe)
     return [
@@ -37,7 +38,7 @@ async def position_club(
     club_id: int,
     saison_id: int,
     db: AsyncSession = Depends(get_db),
-    groupe: str | None = None,
+    groupe: GroupePoule | None = None,
 ):
     lignes = await calculer_classement(db, saison_id, groupe=groupe)
     for position, ligne in enumerate(lignes, start=1):

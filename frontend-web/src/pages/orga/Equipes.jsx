@@ -6,6 +6,8 @@ import { useKivu } from "../../context.jsx";
 import { stripDemo } from "../../display.js";
 import { assurerSaison } from "./saison.js";
 
+const GROUPES = ["A", "B", "C", "D"];
+
 export default function OrgaEquipes() {
   const { user } = useAuth();
   const nav = useNavigate();
@@ -18,9 +20,11 @@ export default function OrgaEquipes() {
   const [nom, setNom] = useState("");
   const [ville, setVille] = useState("");
   const [stade, setStade] = useState("");
+  const [groupe, setGroupe] = useState("");
   const [ouvert, setOuvert] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
+  const [msg, setMsg] = useState("");
 
   const list = useMemo(() => {
     const rows = saisonClubs ?? [];
@@ -37,20 +41,38 @@ export default function OrgaEquipes() {
     e.preventDefault();
     setBusy(true);
     setErr("");
+    setMsg("");
     try {
       const s = await assurerSaison({
         saison, competition, api, rechargerCompetitions, choisirCompetition, chargerClubsSaison,
       });
       if (!nom.trim() || !ville.trim()) throw new Error("Nom et ville / département sont obligatoires.");
       const club = await api.creerClub({ nom: nom.trim(), ville: ville.trim(), stade: stade.trim() || null });
-      await api.inscrireClub(s.id, club.id);
+      await api.inscrireClub(s.id, club.id, groupe || null);
       await rechargerClubs();
       await chargerClubsSaison(s.id);
       setNom("");
       setVille("");
       setStade("");
+      setGroupe("");
       setOuvert(false);
       nav(`/orga/equipes/${club.id}`);
+    } catch (ex) {
+      setErr(ex.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function changerGroupe(club, value) {
+    if (!saison) return;
+    setBusy(true);
+    setErr("");
+    setMsg("");
+    try {
+      await api.modifierGroupeSaison(saison.id, club.id, value || null);
+      await chargerClubsSaison(saison.id);
+      setMsg(`Groupe de ${stripDemo(club.nom)} enregistré.`);
     } catch (ex) {
       setErr(ex.message);
     } finally {
@@ -67,6 +89,7 @@ export default function OrgaEquipes() {
         </button>
       </div>
       {err && <p className="erreur">{err}</p>}
+      {msg && <p className="empty">{msg}</p>}
       <label className="field">
         Rechercher
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Nom ou ville" />
@@ -85,6 +108,13 @@ export default function OrgaEquipes() {
             Stade
             <input value={stade} onChange={(e) => setStade(e.target.value)} placeholder="à compléter" />
           </label>
+          <label className="field">
+            Groupe officiel de la saison
+            <select value={groupe} onChange={(e) => setGroupe(e.target.value)}>
+              <option value="">À affecter plus tard</option>
+              {GROUPES.map((g) => <option key={g} value={g}>Groupe {g}</option>)}
+            </select>
+          </label>
           <button className="btn btn-primary" type="submit" disabled={busy}>
             {busy ? "…" : "Inscrire l’équipe"}
           </button>
@@ -92,7 +122,7 @@ export default function OrgaEquipes() {
       )}
       {list.length === 0 && <p className="empty">Aucune équipe inscrite.</p>}
       {list.map((c) => (
-        <Link key={c.id} to={`/orga/equipes/${c.id}`} className="avenir-row">
+        <div key={c.id} className="avenir-row saison-club-row">
           {c.logo_url ? (
             <img className="logo-libre" src={c.logo_url} alt="" />
           ) : (
@@ -100,11 +130,23 @@ export default function OrgaEquipes() {
               {(stripDemo(c.nom) || "?").charAt(0)}
             </span>
           )}
-          <span className="avenir-noms">
+          <Link to={`/orga/equipes/${c.id}`} className="avenir-noms">
             <span>{stripDemo(c.nom)}</span>
             <span className="meta-line">{[c.ville, c.stade].filter(Boolean).join(" — ") || "à compléter"}</span>
-          </span>
-        </Link>
+          </Link>
+          <label className="saison-groupe">
+            <span>Groupe</span>
+            <select
+              value={c.groupe || ""}
+              onChange={(e) => changerGroupe(c, e.target.value)}
+              disabled={busy}
+              aria-label={`Groupe de ${stripDemo(c.nom)}`}
+            >
+              <option value="">À affecter</option>
+              {GROUPES.map((g) => <option key={g} value={g}>{g}</option>)}
+            </select>
+          </label>
+        </div>
       ))}
     </section>
   );

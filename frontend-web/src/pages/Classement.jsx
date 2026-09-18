@@ -4,35 +4,34 @@ import { api } from "../api.js";
 import { useKivu } from "../context.jsx";
 import { stripDemo } from "../display.js";
 
+const GROUPES = ["A", "B", "C", "D"];
+
 export default function Classement() {
-  const { saison } = useKivu();
+  const { saison, saisonClubs } = useKivu();
   const [lignes, setLignes] = useState([]);
   const [groupes, setGroupes] = useState([]);
   const [groupe, setGroupe] = useState("");
   const [err, setErr] = useState("");
 
   useEffect(() => {
-    if (!saison) return;
-    let stop = false;
-    api.matchs(saison.id)
-      .then((rows) => {
-        if (stop) return;
-        const gs = [...new Set((rows || []).map((m) => m.groupe).filter(Boolean))].sort();
-        setGroupes(gs);
-      })
-      .catch(() => { if (!stop) setGroupes([]); });
-    return () => { stop = true; };
-  }, [saison]);
+    const configured = new Set((saisonClubs || []).map((club) => club.groupe).filter(Boolean));
+    const available = GROUPES.filter((g) => configured.has(g));
+    setGroupes(available);
+    if (groupe && !available.includes(groupe)) setGroupe("");
+  }, [saisonClubs, groupe]);
 
   useEffect(() => {
-    if (!saison) return;
+    if (!saison) {
+      setLignes([]);
+      return undefined;
+    }
     let stop = false;
     setErr("");
     api.classement(saison.id, groupe || undefined)
-      .then((l) => { if (!stop) setLignes(l); })
+      .then((l) => { if (!stop) setLignes(l || []); })
       .catch((e) => { if (!stop) setErr(e.message); });
     return () => { stop = true; };
-  }, [saison, groupe]);
+  }, [saison, groupe, saisonClubs]);
 
   return (
     <section className="hero">
@@ -54,7 +53,7 @@ export default function Classement() {
       )}
       {err && <p className="erreur">{err}</p>}
       <div className="table-wrap">
-        {lignes.length === 0 && <p className="empty">Le classement se calcule sur les matchs validés.</p>}
+        {lignes.length === 0 && <p className="empty">Aucune équipe ou aucun résultat pour ce filtre.</p>}
         {lignes.length > 0 && (
           <table className="table table-accueil">
             <thead>

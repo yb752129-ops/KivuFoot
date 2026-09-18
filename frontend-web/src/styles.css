@@ -944,6 +944,11 @@ footer.site a.orga-entry {
   color: inherit;
 }
 .avenir-row:last-child { border-bottom: 0; }
+.saison-club-row { align-items: center; }
+.saison-club-row .avenir-noms { flex: 1 1 auto; text-decoration: none; }
+.saison-groupe { display: flex; flex-direction: column; gap: 0.15rem; flex: 0 0 5.5rem; }
+.saison-groupe span { color: var(--ink-soft); font-size: 0.66rem; letter-spacing: 0.08em; text-transform: uppercase; }
+.saison-groupe select { min-width: 0; padding: 0.35rem 1.4rem 0.35rem 0.45rem; font-size: 0.82rem; }
 .avenir-heure {
   font-family: var(--score);
   font-weight: 700;

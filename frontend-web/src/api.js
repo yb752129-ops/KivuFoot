@@ -193,8 +193,18 @@ export const api = {
   },
   supprimerClub: (id) => request(`/clubs/${id}`, { method: "DELETE", auth: true }),
   clubsSaison: (saisonId) => request(`/saisons/${saisonId}/clubs`).then(avecLogosLocaux),
-  inscrireClub: (saisonId, clubId) =>
-    request(`/saisons/${saisonId}/clubs`, { method: "POST", body: { club_id: clubId }, auth: true }),
+  inscrireClub: (saisonId, clubId, groupe = null) =>
+    request(`/saisons/${saisonId}/clubs`, {
+      method: "POST",
+      body: { club_id: clubId, groupe: groupe || null },
+      auth: true,
+    }),
+  modifierGroupeSaison: (saisonId, clubId, groupe) =>
+    request(`/saisons/${saisonId}/clubs/${clubId}`, {
+      method: "PATCH",
+      body: { groupe: groupe || null },
+      auth: true,
+    }),
   desinscrireClub: (saisonId, clubId) =>
     request(`/saisons/${saisonId}/clubs/${clubId}`, { method: "DELETE", auth: true }),
   joueurs: (clubId) => request(`/joueurs?limit=100${clubId ? `&club_id=${clubId}` : ""}`),

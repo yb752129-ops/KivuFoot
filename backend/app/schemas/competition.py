@@ -1,8 +1,8 @@
 from datetime import date, datetime
 
-from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from app.models.enums import TypeCompetition
+from app.models.enums import GroupePoule, TypeCompetition
 
 
 class ClubOut(BaseModel):
@@ -62,8 +62,37 @@ class ClubUpdate(BaseModel):
         return s or None
 
 
+class SaisonClubOut(ClubOut):
+    """Équipe inscrite avec sa configuration propre à la saison."""
+
+    saison_id: int
+    club_id: int
+    groupe: GroupePoule | None = None
+
+
 class SaisonClubCreate(BaseModel):
     club_id: int
+    groupe: GroupePoule | None = None
+
+    @field_validator("groupe", mode="before")
+    @classmethod
+    def groupe_normalise(cls, v):
+        if v is None:
+            return None
+        valeur = str(v).strip().upper()
+        return valeur or None
+
+
+class SaisonClubGroupeUpdate(BaseModel):
+    groupe: GroupePoule | None = None
+
+    @field_validator("groupe", mode="before")
+    @classmethod
+    def groupe_normalise(cls, v):
+        if v is None:
+            return None
+        valeur = str(v).strip().upper()
+        return valeur or None
 
 
 class CompetitionOut(BaseModel):
@@ -106,4 +135,4 @@ class SaisonCreate(BaseModel):
     nom: str | None = None
     date_debut: date | None = None
     date_fin: date | None = None
-    club_ids: list[int] = []
+    club_ids: list[int] = Field(default_factory=list)

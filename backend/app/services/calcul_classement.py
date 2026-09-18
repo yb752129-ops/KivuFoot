@@ -1,21 +1,17 @@
-"""
-Calcul du classement d'une saison.
+"""Calcul du classement d'une saison.
 
-Règle §3.5 de la spécification :
-- Calculé UNIQUEMENT à partir des matchs `statut = 'valide'` (jamais les
-  matchs bruts/en_attente/contestés).
-- Points : victoire = 3, nul = 1, défaite = 0.
-- Tri : points desc, puis différence de buts desc, puis buts marqués desc.
-- Forfait : le score 3-0 est appliqué et compté normalement dans le
-  classement, mais le match reste marqué `forfait=True` pour la
-  traçabilité (affichage public distinct, voir routes/matchs.py).
+Règles :
+- toutes les inscriptions ``saison_clubs`` créent une ligne, initialisée à 0 ;
+- seuls les matchs ``statut = valide`` modifient le classement ;
+- un filtre de groupe lit ``saison_clubs.groupe``, jamais ``matchs.groupe`` ;
+- points : victoire = 3, nul = 1, défaite = 0.
 """
-from collections import defaultdict
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.club import Club
+from app.models.competition import SaisonClub
 from app.models.enums import StatutMatch
 from app.models.match import Match
 
@@ -45,46 +41,66 @@ async def calculer_classement(
     saison_id: int,
     groupe: str | None = None,
 ) -> list[LigneClassement]:
-    query = select(Match).where(Match.saison_id == saison_id, Match.statut == StatutMatch.VALIDE)
-    if groupe:
-        query = query.where(Match.groupe == groupe)
-    result = await db.execute(query)
-    matchs_valides = result.scalars().all()
+    """Construit le classement depuis les inscriptions, puis applique les matchs valides."""
+    inscriptions = await db.execute(
+        select(SaisonClub, Club)
+        .join(Club, Club.id == SaisonClub.club_id)
+        .where(SaisonClub.saison_id == saison_id)
+        .order_by(Club.nom, Club.id)
+    )
+    inscrits = inscriptions.all()
 
-    club_ids: set[int] = set()
-    for m in matchs_valides:
-        if m.equipe_domicile_id:
-            club_ids.add(m.equipe_domicile_id)
-        if m.equipe_exterieur_id:
-            club_ids.add(m.equipe_exterieur_id)
-
-    if not club_ids:
-        return []
-
-    clubs_result = await db.execute(select(Club).where(Club.id.in_(club_ids)))
-    clubs_par_id = {c.id: c for c in clubs_result.scalars().all()}
+    groupe_value = getattr(groupe, "value", groupe)
+    groupe_par_club = {lien.club_id: getattr(lien.groupe, "value", lien.groupe) for lien, _ in inscrits}
+    if groupe_value:
+        lignes_clubs = [(lien, club) for lien, club in inscrits if groupe_par_club.get(lien.club_id) == groupe_value]
+    else:
+        lignes_clubs = inscrits
 
     lignes: dict[int, LigneClassement] = {
-        cid: LigneClassement(cid, clubs_par_id[cid].nom) for cid in club_ids if cid in clubs_par_id
+        lien.club_id: LigneClassement(lien.club_id, club.nom)
+        for lien, club in lignes_clubs
     }
+    if not lignes:
+        return []
 
-    for m in matchs_valides:
-        if m.equipe_domicile_id not in lignes or m.equipe_exterieur_id not in lignes:
+    result = await db.execute(
+        select(Match).where(
+            Match.saison_id == saison_id,
+            Match.statut == StatutMatch.VALIDE,
+        )
+    )
+    matchs_valides = result.scalars().all()
+
+    for match_ in matchs_valides:
+        domicile_id = match_.equipe_domicile_id
+        exterieur_id = match_.equipe_exterieur_id
+        if domicile_id not in lignes or exterieur_id not in lignes:
             continue
-        dom = lignes[m.equipe_domicile_id]
-        ext = lignes[m.equipe_exterieur_id]
+
+        # En mode groupe, les deux équipes doivent appartenir à ce groupe
+        # officiel. Match.groupe n'est volontairement jamais consulté ici.
+        if groupe_value:
+            if (
+                groupe_par_club.get(domicile_id) != groupe_value
+                or groupe_par_club.get(exterieur_id) != groupe_value
+            ):
+                continue
+
+        dom = lignes[domicile_id]
+        ext = lignes[exterieur_id]
 
         dom.matchs_joues += 1
         ext.matchs_joues += 1
-        dom.buts_marques += m.score_domicile
-        dom.buts_encaisses += m.score_exterieur
-        ext.buts_marques += m.score_exterieur
-        ext.buts_encaisses += m.score_domicile
+        dom.buts_marques += match_.score_domicile
+        dom.buts_encaisses += match_.score_exterieur
+        ext.buts_marques += match_.score_exterieur
+        ext.buts_encaisses += match_.score_domicile
 
-        if m.score_domicile > m.score_exterieur:
+        if match_.score_domicile > match_.score_exterieur:
             dom.victoires += 1
             ext.defaites += 1
-        elif m.score_domicile < m.score_exterieur:
+        elif match_.score_domicile < match_.score_exterieur:
             ext.victoires += 1
             dom.defaites += 1
         else:
@@ -92,5 +108,5 @@ async def calculer_classement(
             ext.nuls += 1
 
     classement = list(lignes.values())
-    classement.sort(key=lambda l: (-l.points, -l.difference_buts, -l.buts_marques))
+    classement.sort(key=lambda ligne: (-ligne.points, -ligne.difference_buts, -ligne.buts_marques, ligne.club_nom))
     return classement

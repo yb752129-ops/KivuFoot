@@ -13,10 +13,33 @@ from app.models.enums import ActionAudit, RoleUtilisateur
 from app.models.match import Match, MatchParticipation
 from app.models.stats import StatistiqueJoueur
 from app.models.user import User
-from app.schemas.competition import ClubOut, CompetitionCreate, CompetitionOut, SaisonClubCreate, SaisonCreate, SaisonOut
+from app.schemas.competition import (
+    ClubOut,
+    CompetitionCreate,
+    CompetitionOut,
+    SaisonClubCreate,
+    SaisonClubGroupeUpdate,
+    SaisonClubOut,
+    SaisonCreate,
+    SaisonOut,
+)
 from app.services.audit import log_audit
 
 router = APIRouter(tags=["Compétitions"])
+
+
+def _saison_club_out(lien: SaisonClub, club: Club) -> SaisonClubOut:
+    return SaisonClubOut(
+        id=club.id,
+        nom=club.nom,
+        stade=club.stade,
+        ville=club.ville,
+        logo_url=club.logo_url,
+        coach_nom=None,
+        saison_id=lien.saison_id,
+        club_id=lien.club_id,
+        groupe=lien.groupe,
+    )
 
 
 @router.get("/competitions", response_model=list[CompetitionOut])
@@ -144,21 +167,21 @@ async def lister_saisons(competition_id: int, db: AsyncSession = Depends(get_db)
     return result.scalars().all()
 
 
-@router.get("/saisons/{saison_id}/clubs", response_model=list[ClubOut])
+@router.get("/saisons/{saison_id}/clubs", response_model=list[SaisonClubOut])
 async def lister_clubs_saison(saison_id: int, db: AsyncSession = Depends(get_db)):
     saison = await db.get(Saison, saison_id)
     if saison is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Saison introuvable.")
     result = await db.execute(
-        select(Club)
-        .join(SaisonClub, SaisonClub.club_id == Club.id)
+        select(SaisonClub, Club)
+        .join(Club, SaisonClub.club_id == Club.id)
         .where(SaisonClub.saison_id == saison_id)
-        .order_by(Club.nom)
+        .order_by(Club.nom, Club.id)
     )
-    return result.scalars().all()
+    return [_saison_club_out(lien, club) for lien, club in result.all()]
 
 
-@router.post("/saisons/{saison_id}/clubs", response_model=ClubOut, status_code=status.HTTP_201_CREATED)
+@router.post("/saisons/{saison_id}/clubs", response_model=SaisonClubOut, status_code=status.HTTP_201_CREATED)
 async def inscrire_club_saison(
     saison_id: int,
     payload: SaisonClubCreate,
@@ -177,7 +200,8 @@ async def inscrire_club_saison(
     )
     if deja.scalar_one_or_none() is not None:
         raise HTTPException(status.HTTP_409_CONFLICT, "Cette équipe est déjà inscrite à cette saison.")
-    db.add(SaisonClub(saison_id=saison_id, club_id=payload.club_id))
+    lien = SaisonClub(saison_id=saison_id, club_id=payload.club_id, groupe=payload.groupe)
+    db.add(lien)
     await log_audit(
         db,
         "saison_clubs",
@@ -185,11 +209,77 @@ async def inscrire_club_saison(
         ActionAudit.INSERT,
         current_user.id,
         None,
-        {"saison_id": saison_id, "club_id": payload.club_id},
+        {
+            "saison_id": saison_id,
+            "club_id": payload.club_id,
+            "groupe": getattr(payload.groupe, "value", payload.groupe),
+        },
     )
     await db.commit()
+    await db.refresh(lien)
     await db.refresh(club)
-    return club
+    return _saison_club_out(lien, club)
+
+
+@router.patch("/saisons/{saison_id}/clubs/{club_id}", response_model=SaisonClubOut)
+async def modifier_groupe_club_saison(
+    saison_id: int,
+    club_id: int,
+    payload: SaisonClubGroupeUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles(RoleUtilisateur.ADMIN, RoleUtilisateur.ORGANISATEUR)),
+):
+    saison = await db.get(Saison, saison_id)
+    if saison is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Saison introuvable.")
+    await verifier_organisateur_de_competition(saison.competition_id, current_user, db)
+    result = await db.execute(
+        select(SaisonClub, Club)
+        .join(Club, SaisonClub.club_id == Club.id)
+        .where(SaisonClub.saison_id == saison_id, SaisonClub.club_id == club_id)
+    )
+    row = result.one_or_none()
+    if row is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Équipe non inscrite.")
+    lien, club = row
+    ancien = getattr(lien.groupe, "value", lien.groupe)
+    nouveau = getattr(payload.groupe, "value", payload.groupe)
+    if ancien == nouveau:
+        return _saison_club_out(lien, club)
+
+    # Changer une affectation après programmation rendrait les matchs de
+    # poule historiques incohérents. On bloque sans supprimer ni réécrire.
+    from sqlalchemy import or_
+
+    match_existant = await db.execute(
+        select(Match.id)
+        .where(
+            Match.saison_id == saison_id,
+            Match.phase == "poule",
+            or_(Match.equipe_domicile_id == club_id, Match.equipe_exterieur_id == club_id),
+        )
+        .limit(1)
+    )
+    if match_existant.scalar_one_or_none() is not None:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "Groupe non modifiable : cette équipe a déjà un match de poule.",
+        )
+
+    lien.groupe = payload.groupe
+    await log_audit(
+        db,
+        "saison_clubs",
+        saison_id,
+        ActionAudit.UPDATE,
+        current_user.id,
+        {"saison_id": saison_id, "club_id": club_id, "groupe": ancien},
+        {"saison_id": saison_id, "club_id": club_id, "groupe": nouveau},
+    )
+    await db.commit()
+    await db.refresh(lien)
+    await db.refresh(club)
+    return _saison_club_out(lien, club)
 
 
 @router.delete("/saisons/{saison_id}/clubs/{club_id}", status_code=status.HTTP_204_NO_CONTENT)
