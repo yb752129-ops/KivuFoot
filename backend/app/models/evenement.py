@@ -35,6 +35,10 @@ class EvenementMatch(Base):
       idempotente : un retry réseau ne peut pas dupliquer un événement.
     - `conflit` matérialise le flag mentionné en §6.3 mais absent du
       schéma original.
+    - `score_comptabilise` distingue les événements qui ont déjà servi à
+      construire le score des buteurs ajoutés après une correction
+      rétrospective ; ces derniers alimentent les stats mais ne doublent
+      jamais le score officiel.
     - `locked` empêche toute modification d'un événement déjà validé
       (le principe "donnée validée non modifiable" ne s'appliquait
       jusqu'ici qu'au niveau match - point A3 du rapport).
@@ -47,6 +51,7 @@ class EvenementMatch(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     match_id: Mapped[int] = mapped_column(ForeignKey("matchs.id", ondelete="CASCADE"), nullable=False)
     minute: Mapped[int] = mapped_column(Integer, nullable=False)
+    minute_connue: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     minute_additionnelle: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     periode: Mapped[str | None] = mapped_column(String(12))
     type: Mapped[TypeEvenement] = mapped_column(String(30), nullable=False)
@@ -66,6 +71,7 @@ class EvenementMatch(Base):
 
     conflit: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     locked: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    score_comptabilise: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
     source: Mapped[str] = mapped_column(String(50), default="collecteur_mobile", nullable=False)
     temp_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), unique=True, index=True)

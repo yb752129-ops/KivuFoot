@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import Boolean, CheckConstraint, DateTime, ForeignKey, Integer, String, func
+from sqlalchemy import Boolean, CheckConstraint, DateTime, ForeignKey, Integer, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -42,6 +42,14 @@ class Match(Base):
     valide_par: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
     date_validation: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     locked: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+
+    # Résultat saisi après coup par l'organisation lorsque le match a bien
+    # été joué mais n'a pas suivi le flux live normal. Le score est alors
+    # officiel sans fabriquer de buts, de minutes ou de buteurs.
+    resultat_retroactif: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    motif_resultat_retroactif: Mapped[str | None] = mapped_column(String(500))
+    note_officielle: Mapped[str | None] = mapped_column(Text)
+    buteurs_a_verifier: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     # Composition (pack 11 sept) : formation et entraîneur par équipe,
     # colonnes additives, jamais destructives.

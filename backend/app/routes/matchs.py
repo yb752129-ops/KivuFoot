@@ -1,3 +1,4 @@
+import uuid
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -10,11 +11,31 @@ from app.auth.rbac import require_roles, verifier_organisateur_de_competition, v
 from app.config import settings
 from app.database import get_db
 from app.models.competition import Saison, SaisonClub
-from app.models.enums import ActionAudit, EquipeConcernee, PeriodeMatch, RoleUtilisateur, StatutMatch
+from app.models.enums import (
+    ActionAudit,
+    EquipeConcernee,
+    PeriodeMatch,
+    RoleUtilisateur,
+    StatutMatch,
+    StatutValidationEvenement,
+    TypeEvenement,
+)
+from app.models.evenement import EvenementMatch
 from app.models.joueur import Joueur
 from app.models.match import Match, MatchParticipation
 from app.models.user import User
-from app.schemas.match import MatchCreate, MatchOut, MatchPhaseUpdate, MatchProgrammationUpdate, ParticipationCreate, ParticipationOut, ParticipationUpdate
+from app.schemas.evenement import EvenementOut
+from app.schemas.match import (
+    ButeursVerifiesCreate,
+    MatchCreate,
+    MatchOut,
+    MatchPhaseUpdate,
+    MatchProgrammationUpdate,
+    MatchResultatRetroactif,
+    ParticipationCreate,
+    ParticipationOut,
+    ParticipationUpdate,
+)
 from app.services.audit import log_audit
 from app.services.groupes_saison import determiner_groupe_match
 from app.schemas.match import (
@@ -27,6 +48,7 @@ from app.schemas.match import (
 from app.models.club import Club
 from app.models.competition import Competition
 from app.models.staff import Staff
+from app.services.calcul_stats import appliquer_evenement_valide
 from app.services.validation import valider_match
 
 router = APIRouter(prefix="/matchs", tags=["Matchs"])
@@ -277,6 +299,177 @@ async def valider_match_route(
     await db.commit()
     await db.refresh(match_)
     return match_
+
+
+
+@router.post("/{match_id}/resultat-retroactif", response_model=MatchOut)
+async def enregistrer_resultat_retroactif(
+    match_id: int,
+    payload: MatchResultatRetroactif,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles(RoleUtilisateur.ADMIN, RoleUtilisateur.ORGANISATEUR)),
+):
+    """Publie un résultat officiel saisi après coup, sans inventer le live."""
+    match_ = await verifier_organisateur_du_match(match_id, current_user, db)
+    if match_.locked:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Ce match est déjà verrouillé.")
+
+    statut = match_.statut.value if hasattr(match_.statut, "value") else match_.statut
+    if statut != StatutMatch.PROGRAMME.value and statut != StatutMatch.PROGRAMME:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "Le résultat rétrospectif s'applique uniquement à un match encore programmé.",
+        )
+
+    deja = await db.execute(select(EvenementMatch.id).where(EvenementMatch.match_id == match_id).limit(1))
+    if deja.first() is not None:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "Ce match possède déjà des événements : utilisez le flux normal de validation.",
+        )
+
+    ancien = {
+        "statut": statut,
+        "score_domicile": match_.score_domicile,
+        "score_exterieur": match_.score_exterieur,
+        "resultat_retroactif": match_.resultat_retroactif,
+    }
+    match_.score_domicile = payload.score_domicile
+    match_.score_exterieur = payload.score_exterieur
+    match_.statut = StatutMatch.TERMINE
+    match_.resultat_retroactif = True
+    match_.motif_resultat_retroactif = payload.motif
+    match_.note_officielle = payload.note_officielle
+    match_.buteurs_a_verifier = payload.score_domicile + payload.score_exterieur > 0
+    await db.flush()
+
+    await log_audit(
+        db,
+        "matchs",
+        match_.id,
+        ActionAudit.UPDATE,
+        current_user.id,
+        ancien,
+        {
+            "statut": "termine",
+            "score_domicile": match_.score_domicile,
+            "score_exterieur": match_.score_exterieur,
+            "resultat_retroactif": True,
+            "buteurs_a_verifier": match_.buteurs_a_verifier,
+            "motif": payload.motif,
+        },
+    )
+
+    match_ = await valider_match(db, match_id, current_user.id)
+    await db.commit()
+    await db.refresh(match_)
+    return match_
+
+
+@router.post("/{match_id}/buteurs-verifies", response_model=list[EvenementOut])
+async def ajouter_buteurs_verifies(
+    match_id: int,
+    payload: ButeursVerifiesCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles(RoleUtilisateur.ADMIN, RoleUtilisateur.ORGANISATEUR)),
+):
+    """Ajoute les buteurs vérifiés d'un résultat rétroactif sans doubler le score."""
+    match_ = await verifier_organisateur_du_match(match_id, current_user, db)
+    if not match_.locked or not match_.resultat_retroactif:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "Cette action est réservée à un résultat rétroactif déjà validé.",
+        )
+    if not match_.buteurs_a_verifier:
+        raise HTTPException(status.HTTP_409_CONFLICT, "Les buteurs de ce match sont déjà enregistrés.")
+
+    existants = (
+        await db.execute(
+            select(EvenementMatch).where(
+                EvenementMatch.match_id == match_id,
+                EvenementMatch.source == "buteur_verifie",
+                EvenementMatch.statut_validation == StatutValidationEvenement.VALIDE,
+            )
+        )
+    ).scalars().all()
+    if existants:
+        raise HTTPException(status.HTTP_409_CONFLICT, "Des buteurs vérifiés existent déjà pour ce match.")
+
+    total_attendu = match_.score_domicile + match_.score_exterieur
+    if len(payload.buteurs) != total_attendu:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            f"Il faut enregistrer exactement {total_attendu} buteur(s) pour le score officiel.",
+        )
+    nb_dom = sum(b.equipe_concernee == EquipeConcernee.DOMICILE for b in payload.buteurs)
+    nb_ext = sum(b.equipe_concernee == EquipeConcernee.EXTERIEUR for b in payload.buteurs)
+    if nb_dom != match_.score_domicile or nb_ext != match_.score_exterieur:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "La répartition des buteurs ne correspond pas au score officiel.",
+        )
+
+    ajoutes = []
+    for buteur in payload.buteurs:
+        joueur = await db.get(Joueur, buteur.joueur_id)
+        if joueur is None:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "Un joueur indiqué est introuvable.")
+        club_id = (
+            match_.equipe_exterieur_id
+            if buteur.equipe_concernee == EquipeConcernee.EXTERIEUR
+            else match_.equipe_domicile_id
+        )
+        if joueur.club_actuel_id and club_id and joueur.club_actuel_id != club_id:
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                f"Le joueur {joueur.nom_complet} n'appartient pas à l'équipe indiquée.",
+            )
+
+        evenement = EvenementMatch(
+            match_id=match_id,
+            minute=buteur.minute or 0,
+            minute_connue=buteur.minute is not None,
+            periode=None,
+            type=TypeEvenement.BUT,
+            joueur_id=buteur.joueur_id,
+            equipe_concernee=buteur.equipe_concernee,
+            statut_validation=StatutValidationEvenement.VALIDE,
+            valide_par=current_user.id,
+            date_validation=datetime.now(timezone.utc),
+            locked=True,
+            score_comptabilise=False,
+            source="buteur_verifie",
+            temp_id=uuid.uuid4(),
+            cree_par_id=current_user.id,
+        )
+        db.add(evenement)
+        await db.flush()
+        await appliquer_evenement_valide(db, evenement, match_)
+        await log_audit(
+            db,
+            "evenements_match",
+            evenement.id,
+            ActionAudit.VALIDATE,
+            current_user.id,
+            None,
+            {"source": "buteur_verifie", "score_comptabilise": False, "joueur_id": buteur.joueur_id},
+        )
+        ajoutes.append(evenement)
+
+    match_.buteurs_a_verifier = False
+    await log_audit(
+        db,
+        "matchs",
+        match_.id,
+        ActionAudit.UPDATE,
+        current_user.id,
+        {"buteurs_a_verifier": True},
+        {"buteurs_a_verifier": False},
+    )
+    await db.commit()
+    for evenement in ajoutes:
+        await db.refresh(evenement)
+    return ajoutes
 
 
 @router.post("/{match_id}/forfait", response_model=MatchOut)

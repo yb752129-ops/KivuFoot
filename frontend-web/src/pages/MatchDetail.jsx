@@ -99,6 +99,19 @@ export default function MatchDetail() {
       )}
       {match.statut === "valide" && <p className="stamp">Validé</p>}
       {match.forfait && <p className="lead">Forfait</p>}
+      {match.note_officielle && (
+        <aside className="match-note" aria-label="Note officielle">
+          <p className="kicker">Note officielle</p>
+          <p>{match.note_officielle}</p>
+          {match.resultat_retroactif && (
+            <p className="match-note-followup">
+              {match.buteurs_a_verifier
+                ? "Les buteurs sont enregistrés auprès des organisateurs et seront ajoutés après vérification."
+                : "Les buteurs vérifiés ont été ajoutés à la fiche du match sans modifier le score officiel."}
+            </p>
+          )}
+        </aside>
+      )}
 
       <div className="mc-tabs" role="tablist">
         {ONGLETS.map((t) => (

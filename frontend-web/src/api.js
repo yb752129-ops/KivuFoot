@@ -252,6 +252,10 @@ export const api = {
       body: commentaire ? { motif, commentaire } : { motif },
     }),
   validerMatch: (id) => request(`/matchs/${id}/valider`, { method: "POST", auth: true }),
+  resultatRetroactif: (id, payload) =>
+    request(`/matchs/${id}/resultat-retroactif`, { method: "POST", body: payload, auth: true }),
+  buteursVerifies: (id, payload) =>
+    request(`/matchs/${id}/buteurs-verifies`, { method: "POST", body: payload, auth: true }),
   creerMatch: (payload) => request("/matchs", { method: "POST", body: payload, auth: true }),
   majPhase: (id, phase, groupe) => request(`/matchs/${id}/phase`, { method: "PUT", body: { phase, groupe }, auth: true }),
   modifierProgrammation: (id, payload) =>

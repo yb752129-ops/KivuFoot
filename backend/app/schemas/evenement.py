@@ -86,6 +86,7 @@ class EvenementOut(BaseModel):
     id: int
     match_id: int
     minute: int
+    minute_connue: bool = True
     minute_additionnelle: int = 0
     periode: str | None = None
     type: TypeEvenement
@@ -96,6 +97,7 @@ class EvenementOut(BaseModel):
     statut_validation: StatutValidationEvenement
     conflit: bool
     locked: bool
+    score_comptabilise: bool = True
     commentaire_rejet: str | None
     refuse: bool = False
     motif_refus: str | None = None

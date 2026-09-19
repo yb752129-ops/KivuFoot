@@ -2597,3 +2597,22 @@ html[data-theme="dark"] .reseau-perdu {
   background: #a03c3c;
   color: #14120e;
 }
+
+
+.match-note {
+  margin: 1rem 0;
+  padding: 1rem 1.1rem;
+  border: 1px solid rgba(117, 190, 143, 0.55);
+  border-left: 4px solid #75be8f;
+  border-radius: 0.8rem;
+  background: rgba(117, 190, 143, 0.08);
+}
+
+.match-note p {
+  margin: 0.35rem 0 0;
+}
+
+.match-note-followup {
+  color: #75be8f;
+  font-weight: 600;
+}

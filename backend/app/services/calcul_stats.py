@@ -128,6 +128,9 @@ async def appliquer_evenement_valide(db: AsyncSession, evenement: EvenementMatch
                     )
                 )
 
+    if not evenement.score_comptabilise:
+        return
+
     if but_marque_pour == EquipeConcernee.DOMICILE:
         match_.score_domicile += 1
     elif but_marque_pour == EquipeConcernee.EXTERIEUR:
@@ -174,6 +177,9 @@ async def retirer_evenement_valide(db: AsyncSession, evenement: EvenementMatch, 
         if evenement.joueur_id and competition_id:
             stat = await _get_or_create_stat(db, evenement.joueur_id, competition_id, match_.saison_id)
             _dec(stat, "cartons_rouges")
+
+    if not evenement.score_comptabilise:
+        return
 
     if but_pour == EquipeConcernee.DOMICILE:
         match_.score_domicile = max(0, match_.score_domicile - 1)

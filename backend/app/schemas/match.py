@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.models.enums import EquipeConcernee, GroupePoule, PeriodeMatch, StatutMatch, StatutParticipation
 
@@ -28,6 +28,10 @@ class MatchOut(BaseModel):
     forfait: bool
     forfait_equipe: EquipeConcernee | None
     locked: bool
+    resultat_retroactif: bool = False
+    motif_resultat_retroactif: str | None = None
+    note_officielle: str | None = None
+    buteurs_a_verifier: bool = False
 
 
 class MatchCreate(BaseModel):
@@ -79,6 +83,33 @@ class MatchStatutUpdate(BaseModel):
     statut: StatutMatch
     forfait: bool = False
     forfait_equipe: EquipeConcernee | None = None
+
+
+class MatchResultatRetroactif(BaseModel):
+    """Résultat officiel d'un match joué hors du flux live normal."""
+
+    score_domicile: int = Field(ge=0, le=99)
+    score_exterieur: int = Field(ge=0, le=99)
+    motif: str = Field(min_length=10, max_length=500)
+    note_officielle: str = Field(min_length=10, max_length=2000)
+
+    @field_validator("motif", "note_officielle")
+    @classmethod
+    def texte_normalise(cls, v: str) -> str:
+        valeur = v.strip()
+        if not valeur:
+            raise ValueError("Ce texte est obligatoire.")
+        return valeur
+
+
+class ButeurVerifieCreate(BaseModel):
+    joueur_id: int
+    equipe_concernee: EquipeConcernee
+    minute: int | None = Field(default=None, ge=0, le=130)
+
+
+class ButeursVerifiesCreate(BaseModel):
+    buteurs: list[ButeurVerifieCreate] = Field(min_length=1, max_length=99)
 
 
 class ParticipationCreate(BaseModel):

@@ -76,7 +76,7 @@ export default function FeuilleApercu({ faits, nom, match }) {
       return (
         <li key={e.id} className="feuille-row">
           <div className="feuille-dom">{away ? null : <Texte e={e} nom={nom} />}</div>
-          <span className="feuille-min">{formatMinute(e.minute, e.minute_additionnelle)}</span>
+          <span className="feuille-min">{e.minute_connue === false ? "—" : formatMinute(e.minute, e.minute_additionnelle)}</span>
           <div className="feuille-ext">{away ? <Texte e={e} nom={nom} /> : null}</div>
         </li>
       );

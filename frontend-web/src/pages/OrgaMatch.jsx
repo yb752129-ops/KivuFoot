@@ -31,6 +31,14 @@ const TYPES = [
   { value: "remplacement", label: "Remplacement" },
 ];
 
+const NOTE_RETROACTIVE_DEFAULT =
+  "Match joué après confirmation de l’administration alors qu’il avait initialement été annoncé comme annulé. "
+  + "Résultat officiel : le score saisi ci-dessus. Les buteurs sont bien enregistrés auprès des organisateurs.";
+
+function noteRetroactiveAvecScore(scoreDom, scoreExt) {
+  return NOTE_RETROACTIVE_DEFAULT.replace("le score saisi ci-dessus", `${scoreDom}–${scoreExt}`);
+}
+
 const TYPE_SENS = {
   but: "But de jeu. Tête ou coup franc : encore un but. Passeur optionnel. 47 = 45+2, 94 = 90+4.",
   but_contre_son_camp: "CSC. Crédité à l’adversaire. Pas au joueur.",
@@ -63,6 +71,11 @@ export default function OrgaMatch({ backTo = "/orga/matchs", mode = "orga" } = {
   const [dateProg, setDateProg] = useState("");
   const [heureProg, setHeureProg] = useState("");
   const [stadeProg, setStadeProg] = useState("");
+  const [retroScoreDom, setRetroScoreDom] = useState("");
+  const [retroScoreExt, setRetroScoreExt] = useState("");
+  const [retroMotif, setRetroMotif] = useState("");
+  const [retroNote, setRetroNote] = useState(NOTE_RETROACTIVE_DEFAULT);
+  const [buteursRetro, setButeursRetro] = useState([]);
   const [minute, setMinute] = useState("0");
   const [now, setNow] = useState(Date.now());
   const [compDraft, setCompDraft] = useState({});
@@ -88,6 +101,22 @@ export default function OrgaMatch({ backTo = "/orga/matchs", mode = "orga" } = {
       setDateProg(civilDate(match.date_heure));
       setHeureProg(formatHeure(match.date_heure));
       setStadeProg(match.stade || "");
+      setRetroScoreDom(String(match.score_domicile ?? ""));
+      setRetroScoreExt(String(match.score_exterieur ?? ""));
+      setRetroMotif(match.motif_resultat_retroactif || "");
+      setRetroNote(match.note_officielle || NOTE_RETROACTIVE_DEFAULT);
+      if (match.resultat_retroactif && match.buteurs_a_verifier) {
+        const total = (match.score_domicile || 0) + (match.score_exterieur || 0);
+        setButeursRetro(
+          Array.from({ length: total }, (_, index) => ({
+            equipe_concernee: index < (match.score_domicile || 0) ? "domicile" : "exterieur",
+            joueur_id: "",
+            minute: "",
+          })),
+        );
+      } else {
+        setButeursRetro([]);
+      }
     }
   }, [match]);
 
@@ -108,6 +137,67 @@ export default function OrgaMatch({ backTo = "/orga/matchs", mode = "orga" } = {
     } finally {
       setBusy(false);
     }
+  }
+
+  async function enregistrerResultatRetroactif(e) {
+    e.preventDefault();
+    setBusy(true);
+    setErr("");
+    setMsg("");
+    try {
+      const scoreDom = Number(retroScoreDom);
+      const scoreExt = Number(retroScoreExt);
+      if (!Number.isInteger(scoreDom) || scoreDom < 0 || !Number.isInteger(scoreExt) || scoreExt < 0) {
+        throw new Error("Saisissez deux scores entiers positifs ou nuls.");
+      }
+      const resultat = await api.resultatRetroactif(id, {
+        score_domicile: scoreDom,
+        score_exterieur: scoreExt,
+        motif: retroMotif,
+        note_officielle: retroNote.includes("le score saisi ci-dessus")
+          ? noteRetroactiveAvecScore(scoreDom, scoreExt)
+          : retroNote,
+      });
+      setMatch(resultat);
+      setMsg("Résultat rétrospectif enregistré et validé. Le match est verrouillé.");
+      await load();
+    } catch (e) {
+      setErr(e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function enregistrerButeursVerifies(e) {
+    e.preventDefault();
+    setBusy(true);
+    setErr("");
+    setMsg("");
+    try {
+      const buteurs = buteursRetro.map((buteur) => {
+        if (!buteur.joueur_id) throw new Error("Sélectionnez tous les buteurs vérifiés.");
+        return {
+          joueur_id: Number(buteur.joueur_id),
+          equipe_concernee: buteur.equipe_concernee,
+          minute: buteur.minute === "" ? null : Number(buteur.minute),
+        };
+      });
+      await api.buteursVerifies(id, { buteurs });
+      setMsg("Les buteurs vérifiés ont été ajoutés sans modifier le score officiel.");
+      await load();
+    } catch (e) {
+      setErr(e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function modifierButeur(index, champ, valeur) {
+    setButeursRetro((liste) => liste.map((buteur, i) => (
+      i === index
+        ? { ...buteur, [champ]: valeur, ...(champ === "equipe_concernee" ? { joueur_id: "" } : {}) }
+        : buteur
+    )));
   }
 
   async function enregistrerPhase() {
@@ -433,6 +523,37 @@ export default function OrgaMatch({ backTo = "/orga/matchs", mode = "orga" } = {
       </div>
 
       {!collecteur && !match.locked && match.statut === "programme" && (
+        <form className="phase-box" onSubmit={enregistrerResultatRetroactif}>
+          <p className="kicker">Correction exceptionnelle</p>
+          <p className="lead">
+            À utiliser uniquement lorsqu’un match a réellement été joué sans suivre le flux live.
+            Cette action valide le score sans inventer de buteurs ni de minutes.
+          </p>
+          <div className="comp-grid">
+            <label className="field">
+              Score {home}
+              <input type="number" min="0" max="99" value={retroScoreDom} onChange={(e) => setRetroScoreDom(e.target.value)} required />
+            </label>
+            <label className="field">
+              Score {away}
+              <input type="number" min="0" max="99" value={retroScoreExt} onChange={(e) => setRetroScoreExt(e.target.value)} required />
+            </label>
+          </div>
+          <label className="field">
+            Motif interne de la correction
+            <textarea value={retroMotif} onChange={(e) => setRetroMotif(e.target.value)} minLength="10" maxLength="500" required placeholder="Expliquez pourquoi le match est saisi après coup." />
+          </label>
+          <label className="field">
+            Note visible par le public
+            <textarea value={retroNote} onChange={(e) => setRetroNote(e.target.value)} minLength="10" maxLength="2000" required />
+          </label>
+          <button className="btn btn-primary" type="submit" disabled={busy}>
+            {busy ? "…" : "Enregistrer le résultat rétrospectif"}
+          </button>
+        </form>
+      )}
+
+      {!collecteur && !match.locked && match.statut === "programme" && (
         <form className="phase-box" onSubmit={enregistrerProgrammation}>
           <p className="kicker">Programmation</p>
           <div className="comp-grid">
@@ -483,6 +604,44 @@ export default function OrgaMatch({ backTo = "/orga/matchs", mode = "orga" } = {
             </button>
           </div>
         </div>
+      )}
+
+      {!collecteur && match.resultat_retroactif && match.locked && match.buteurs_a_verifier && (
+        <form className="phase-box" onSubmit={enregistrerButeursVerifies}>
+          <p className="kicker">Buteurs vérifiés</p>
+          <p className="lead">
+            Les buteurs sont enregistrés chez les organisateurs. Après vérification, renseignez-les ici.
+            Le score officiel ne sera pas recalculé.
+          </p>
+          {buteursRetro.map((buteur, index) => {
+            const liste = buteur.equipe_concernee === "exterieur" ? joueursExt : joueursDom;
+            return (
+              <div className="comp-grid" key={`${buteur.equipe_concernee}-${index}`}>
+                <label className="field">
+                  Équipe du buteur {index + 1}
+                  <select value={buteur.equipe_concernee} onChange={(e) => modifierButeur(index, "equipe_concernee", e.target.value)}>
+                    <option value="domicile">{home}</option>
+                    <option value="exterieur">{away}</option>
+                  </select>
+                </label>
+                <label className="field">
+                  Joueur
+                  <select value={buteur.joueur_id} onChange={(e) => modifierButeur(index, "joueur_id", e.target.value)} required>
+                    <option value="">—</option>
+                    {liste.map((joueur) => <option key={joueur.id} value={joueur.id}>{joueur.nom_complet}</option>)}
+                  </select>
+                </label>
+                <label className="field">
+                  Minute connue (facultatif)
+                  <input type="number" min="0" max="130" value={buteur.minute} onChange={(e) => modifierButeur(index, "minute", e.target.value)} placeholder="non précisée" />
+                </label>
+              </div>
+            );
+          })}
+          <button className="btn btn-primary" type="submit" disabled={busy}>
+            {busy ? "…" : "Ajouter les buteurs vérifiés"}
+          </button>
+        </form>
       )}
 
       {formOk && (
@@ -590,7 +749,7 @@ export default function OrgaMatch({ backTo = "/orga/matchs", mode = "orga" } = {
       <ul className="timeline">
         {feuille.map((e) => (
           <li key={e.id}>
-            {formatMinute(e.minute, e.minute_additionnelle)} · {labelEvenement(e)}
+            {(e.minute_connue === false ? "Minute non précisée" : formatMinute(e.minute, e.minute_additionnelle))} · {labelEvenement(e)}
             {e.type === "remplacement"
               ? ` · Sort : ${nomJoueur(e.joueur_id)} → Entre : ${nomJoueur(e.joueur_secondaire_id)}`
               : e.type === "passe_decisive"
