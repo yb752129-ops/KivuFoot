@@ -9,7 +9,7 @@ const CHAMP_LIBELLE = {
   poste: "Poste",
 };
 
-export default function ClubJoueur() {
+export default function ClubJoueur({ basePath = "/club" }) {
   const { id } = useParams();
   const [j, setJ] = useState(null);
   const [propsEnAttente, setPropsEnAttente] = useState([]);
@@ -100,7 +100,7 @@ export default function ClubJoueur() {
 
   return (
     <section className="hero">
-      <p className="kicker"><Link to="/club/effectif">← Effectif</Link></p>
+      <p className="kicker"><Link to={`${basePath}/effectif`}>← Effectif</Link></p>
       <h1>{j.nom_complet}</h1>
       {j.statut_verification === "doublon_suspecte" && (
         <p className="erreur">Doublon possible. Pas de fusion automatique.</p>
@@ -127,7 +127,7 @@ export default function ClubJoueur() {
             accept="image/jpeg,image/png,image/webp"
             onChange={(e) => choisir(e.target.files?.[0] || null)}
           />
-          <p className="meta-line">Portrait net, visage visible. JPG, PNG ou WEBP, 2 Mo maximum.</p>
+          <p className="meta-line">Portrait net, visage visible. JPG, PNG ou WEBP, 10 Mo maximum.</p>
           {apercu && (
             <button className="btn btn-primary" type="button" disabled={busy} onClick={proposerPhoto}>
               Proposer cette photo

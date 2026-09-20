@@ -10,7 +10,7 @@ from app.config import settings
 
 BUCKET = "photos-kivufoot"
 MIMES = {"image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp"}
-MAX_OCTETS = 2 * 1024 * 1024
+MAX_OCTETS = 10 * 1024 * 1024
 
 
 class DepotRefus(Exception):
@@ -44,7 +44,7 @@ async def uploader_photo(sujet_type: str, sujet_id: int, version: int, mime: str
     if mime not in MIMES:
         raise DepotRefus("Format refusé : JPG, PNG ou WEBP seulement.")
     if len(data) > MAX_OCTETS:
-        raise DepotRefus("Fichier trop lourd : 2 Mo maximum.")
+        raise DepotRefus("Fichier trop lourd : 10 Mo maximum.")
     if len(data) == 0:
         raise DepotRefus("Fichier vide.")
     base = settings.supabase_url.rstrip("/")
