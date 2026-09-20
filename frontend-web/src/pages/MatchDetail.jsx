@@ -27,15 +27,17 @@ export default function MatchDetail() {
 
   async function load() {
     const m = await api.match(id);
-    const [e, js, p] = await Promise.all([
+    const [e, joueursDom, joueursExt, p] = await Promise.all([
       api.evenementsPublics(id).catch(() => []),
-      api.joueurs().catch(() => []),
+      api.joueurs(m.equipe_domicile_id).catch(() => []),
+      api.joueurs(m.equipe_exterieur_id).catch(() => []),
       api.composition(id).catch(() => null),
     ]);
+    const js = [...(joueursDom || []), ...(joueursExt || [])];
     setErr("");
     setMatch(m);
     setEvts(e || []);
-    setJoueurs(Object.fromEntries((js || []).map((j) => [j.id, j])));
+    setJoueurs(Object.fromEntries(js.map((j) => [j.id, j])));
     setCompo(p || null);
     api.me().then(setMoi).catch(() => setMoi(null));
   }
