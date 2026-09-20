@@ -21,8 +21,17 @@ from app.models.joueur import Joueur
 from app.models.match import Match, MatchParticipation
 from app.models.stats import StatistiqueJoueur
 from app.models.user import User
-from app.routes.matchs import ajouter_buteurs_verifies, enregistrer_resultat_retroactif
-from app.schemas.match import ButeurVerifieCreate, ButeursVerifiesCreate, MatchResultatRetroactif
+from app.routes.matchs import (
+    ajouter_buteurs_verifies,
+    annuler_resultat_retroactif,
+    enregistrer_resultat_retroactif,
+)
+from app.schemas.match import (
+    AnnulationResultatRetroactif,
+    ButeurVerifieCreate,
+    ButeursVerifiesCreate,
+    MatchResultatRetroactif,
+)
 
 pytestmark = pytest.mark.asyncio
 
@@ -107,6 +116,40 @@ async def test_resultat_retroactif_valide_et_verrouille_sans_evenement(db_sessio
         await db_session.execute(select(EvenementMatch).where(EvenementMatch.match_id == match_.id))
     ).scalars().all()
     assert events == []
+
+
+async def test_resultat_retroactif_peut_etre_revoque_sans_evenement(db_session):
+    match_, _, _, admin = await contexte_match(db_session)
+    await enregistrer_resultat_retroactif(
+        match_.id,
+        MatchResultatRetroactif(
+            score_domicile=1,
+            score_exterieur=1,
+            motif="Le match avait été déclaré joué par erreur.",
+            note_officielle="Le résultat sera retiré après nouvelle vérification.",
+        ),
+        db_session,
+        admin,
+    )
+
+    resultat = await annuler_resultat_retroactif(
+        match_.id,
+        AnnulationResultatRetroactif(
+            motif="L'organisateur confirme que le match doit être reprogrammé aujourd'hui."
+        ),
+        db_session,
+        admin,
+    )
+
+    assert resultat.score_domicile == 0
+    assert resultat.score_exterieur == 0
+    assert resultat.statut == StatutMatch.PROGRAMME
+    await db_session.refresh(match_)
+    assert match_.locked is False
+    assert match_.resultat_retroactif is False
+    assert match_.note_officielle is None
+    assert match_.motif_resultat_retroactif is None
+    assert match_.buteurs_a_verifier is False
 
 
 async def test_buteurs_verifies_alimentent_stats_sans_doubler_score(db_session):

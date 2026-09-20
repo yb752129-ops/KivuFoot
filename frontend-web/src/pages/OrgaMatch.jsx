@@ -54,6 +54,7 @@ export default function OrgaMatch({ backTo = "/orga/matchs", mode = "orga" } = {
   const { clubsById } = useKivu();
   const collecteur = mode === "collecteur";
   const [match, setMatch] = useState(null);
+  const [controleEffectif, setControleEffectif] = useState(null);
   const [evts, setEvts] = useState([]);
   const [joueursDom, setJoueursDom] = useState([]);
   const [joueursExt, setJoueursExt] = useState([]);
@@ -160,6 +161,31 @@ export default function OrgaMatch({ backTo = "/orga/matchs", mode = "orga" } = {
       });
       setMatch(resultat);
       setMsg("Résultat rétrospectif enregistré et validé. Le match est verrouillé.");
+      await load();
+    } catch (e) {
+      setErr(e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function annulerResultatRetroactif() {
+    const motif = window.prompt(
+      "Motif obligatoire : pourquoi le résultat rétroactif doit-il être révoqué ?",
+      "Le match a finalement été déclaré non joué et doit être reprogrammé aujourd'hui.",
+    );
+    if (motif === null) return;
+    if (motif.trim().length < 10) {
+      setErr("Le motif doit contenir au moins 10 caractères.");
+      return;
+    }
+    if (!window.confirm("Révoquer le 1–1 publié et déverrouiller ce match ? Cette action sera auditée.")) return;
+    setBusy(true);
+    setErr("");
+    setMsg("");
+    try {
+      await api.annulerResultatRetroactif(id, { motif: motif.trim() });
+      setMsg("Résultat rétroactif révoqué. Le match est de nouveau programmable ; reprogrammez-le ensuite.");
       await load();
     } catch (e) {
       setErr(e.message);
@@ -520,6 +546,11 @@ export default function OrgaMatch({ backTo = "/orga/matchs", mode = "orga" } = {
           <p className="empty">Match sifflé. L’organisateur valide pour le classement.</p>
         )}
         {match.locked && <p className="empty">Match verrouillé — plus aucune modification.</p>}
+        {!collecteur && match.locked && match.resultat_retroactif && (
+          <button className="btn btn-danger" type="button" disabled={busy} onClick={annulerResultatRetroactif}>
+            Révoquer le résultat rétroactif et reprogrammer
+          </button>
+        )}
       </div>
 
       {!collecteur && !match.locked && match.statut === "programme" && (

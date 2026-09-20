@@ -208,6 +208,12 @@ export const api = {
   desinscrireClub: (saisonId, clubId) =>
     request(`/saisons/${saisonId}/clubs/${clubId}`, { method: "DELETE", auth: true }),
   joueurs: (clubId) => request(`/joueurs?limit=100${clubId ? `&club_id=${clubId}` : ""}`),
+  effectifMonClub: (saisonId) => request(`/effectifs/saisons/${saisonId}/mon-club`, { auth: true }),
+  soumettreEffectif: (saisonId) => request(`/effectifs/saisons/${saisonId}/mon-club/soumettre`, { method: "POST", auth: true }),
+  effectifsSaison: (saisonId) => request(`/effectifs/saisons/${saisonId}/clubs`, { auth: true }),
+  validerEffectif: (saisonId, clubId) => request(`/effectifs/saisons/${saisonId}/clubs/${clubId}/valider`, { method: "POST", auth: true }),
+  retourEffectif: (saisonId, clubId, motif) => request(`/effectifs/saisons/${saisonId}/clubs/${clubId}/retour`, { method: "POST", body: { motif }, auth: true }),
+  controleEffectifMatch: (matchId) => request(`/effectifs/matchs/${matchId}`, { auth: true }),
   creerJoueur: (payload) => request("/joueurs", { method: "POST", body: payload, auth: true }),
   joueur: (id) => request(`/joueurs/${id}`),
   joueurDetail: (id) => request(`/joueurs/${id}/detail`, { auth: true }),
@@ -254,6 +260,8 @@ export const api = {
   validerMatch: (id) => request(`/matchs/${id}/valider`, { method: "POST", auth: true }),
   resultatRetroactif: (id, payload) =>
     request(`/matchs/${id}/resultat-retroactif`, { method: "POST", body: payload, auth: true }),
+  annulerResultatRetroactif: (id, payload) =>
+    request(`/matchs/${id}/annuler-resultat-retroactif`, { method: "POST", body: payload, auth: true }),
   buteursVerifies: (id, payload) =>
     request(`/matchs/${id}/buteurs-verifies`, { method: "POST", body: payload, auth: true }),
   creerMatch: (payload) => request("/matchs", { method: "POST", body: payload, auth: true }),

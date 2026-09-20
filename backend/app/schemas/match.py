@@ -102,6 +102,24 @@ class MatchResultatRetroactif(BaseModel):
         return valeur
 
 
+class AnnulationResultatRetroactif(BaseModel):
+    """Révoque exceptionnellement un résultat rétroactif verrouillé.
+
+    Cette action est réservée à l'organisateur et ne supprime jamais un
+    événement : elle est refusée si le match possède déjà des événements.
+    """
+
+    motif: str = Field(min_length=10, max_length=500)
+
+    @field_validator("motif")
+    @classmethod
+    def motif_normalise(cls, v: str) -> str:
+        valeur = v.strip()
+        if not valeur:
+            raise ValueError("Le motif est obligatoire.")
+        return valeur
+
+
 class ButeurVerifieCreate(BaseModel):
     joueur_id: int
     equipe_concernee: EquipeConcernee

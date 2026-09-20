@@ -26,6 +26,7 @@ from app.models.match import Match, MatchParticipation
 from app.models.user import User
 from app.schemas.evenement import EvenementOut
 from app.schemas.match import (
+    AnnulationResultatRetroactif,
     ButeursVerifiesCreate,
     MatchCreate,
     MatchOut,
@@ -361,6 +362,91 @@ async def enregistrer_resultat_retroactif(
     )
 
     match_ = await valider_match(db, match_id, current_user.id)
+    await db.commit()
+    await db.refresh(match_)
+    return match_
+
+
+@router.post("/{match_id}/annuler-resultat-retroactif", response_model=MatchOut)
+async def annuler_resultat_retroactif(
+    match_id: int,
+    payload: AnnulationResultatRetroactif,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles(RoleUtilisateur.ADMIN, RoleUtilisateur.ORGANISATEUR)),
+):
+    """Révoque une correction rétroactive erronée, avec audit obligatoire.
+
+    Le match revient à l'état programmé et peut ensuite être reprogrammé
+    via la route normale. La révocation est refusée si des événements ou
+    des participations existent : aucune suppression silencieuse.
+    """
+    match_ = await verifier_organisateur_du_match(match_id, current_user, db)
+    if not match_.locked or not match_.resultat_retroactif:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "Ce match n'est pas un résultat rétroactif verrouillé à révoquer.",
+        )
+
+    evenement = await db.execute(
+        select(EvenementMatch.id).where(EvenementMatch.match_id == match_id).limit(1)
+    )
+    if evenement.first() is not None:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "Révocation bloquée : ce match possède déjà des événements validés.",
+        )
+    participation = await db.execute(
+        select(MatchParticipation.id).where(MatchParticipation.match_id == match_id).limit(1)
+    )
+    if participation.first() is not None:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "Révocation bloquée : ce match possède déjà une feuille de match.",
+        )
+
+    ancien = {
+        "statut": getattr(match_.statut, "value", match_.statut),
+        "score_domicile": match_.score_domicile,
+        "score_exterieur": match_.score_exterieur,
+        "locked": match_.locked,
+        "resultat_retroactif": match_.resultat_retroactif,
+        "motif_resultat_retroactif": match_.motif_resultat_retroactif,
+        "note_officielle": match_.note_officielle,
+        "buteurs_a_verifier": match_.buteurs_a_verifier,
+    }
+    match_.score_domicile = 0
+    match_.score_exterieur = 0
+    match_.statut = StatutMatch.PROGRAMME
+    match_.started_at = None
+    match_.ended_at = None
+    match_.periode = None
+    match_.periode_started_at = None
+    match_.paused_at = None
+    match_.forfait = False
+    match_.forfait_equipe = None
+    match_.valide_par = None
+    match_.date_validation = None
+    match_.locked = False
+    match_.resultat_retroactif = False
+    match_.motif_resultat_retroactif = None
+    match_.note_officielle = None
+    match_.buteurs_a_verifier = False
+    await log_audit(
+        db,
+        "matchs",
+        match_.id,
+        ActionAudit.UPDATE,
+        current_user.id,
+        ancien,
+        {
+            "statut": StatutMatch.PROGRAMME.value,
+            "score_domicile": 0,
+            "score_exterieur": 0,
+            "locked": False,
+            "resultat_retroactif": False,
+            "motif_annulation": payload.motif,
+        },
+    )
     await db.commit()
     await db.refresh(match_)
     return match_
