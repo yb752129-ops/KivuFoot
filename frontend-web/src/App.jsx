@@ -8,6 +8,8 @@ import Home from "./pages/Home.jsx";
 import Classement from "./pages/Classement.jsx";
 import Matchs from "./pages/Matchs.jsx";
 import MatchDetail from "./pages/MatchDetail.jsx";
+import Actualites from "./pages/Actualites.jsx";
+import ActualiteDetail from "./pages/ActualiteDetail.jsx";
 import Clubs from "./pages/Clubs.jsx";
 import ClubDetail from "./pages/ClubDetail.jsx";
 import Joueur from "./pages/Joueur.jsx";
@@ -22,6 +24,8 @@ import OrgaCalendrier from "./pages/orga/Calendrier.jsx";
 import OrgaMatchsListe from "./pages/orga/MatchsListe.jsx";
 import OrgaMatch from "./pages/OrgaMatch.jsx";
 import OrgaValidation from "./pages/orga/Validation.jsx";
+import OrgaEffectifs from "./pages/orga/Effectifs.jsx";
+import OrgaActualites from "./pages/orga/Actualites.jsx";
 import CollecteurMatchs from "./pages/collecteur/Matchs.jsx";
 import CollecteurMatch from "./pages/collecteur/Match.jsx";
 import ClubLayout from "./components/ClubLayout.jsx";
@@ -80,6 +84,8 @@ export default function App() {
             <Route path="/classement" element={<Classement />} />
             <Route path="/matchs" element={<Matchs />} />
             <Route path="/matchs/:id" element={<MatchDetail />} />
+            <Route path="/actualites" element={<Actualites />} />
+            <Route path="/actualites/:id" element={<ActualiteDetail />} />
             <Route path="/clubs" element={<Clubs />} />
             <Route path="/clubs/:id" element={<ClubDetail />} />
             <Route path="/joueurs/:id" element={<Joueur />} />
@@ -101,6 +107,9 @@ export default function App() {
             <Route path="equipes" element={<OrgaEquipes />} />
             <Route path="equipes/:id" element={<OrgaEquipe />} />
             <Route path="calendrier" element={<OrgaCalendrier />} />
+            <Route path="effectifs" element={<OrgaEffectifs />} />
+            <Route path="actualites" element={<OrgaActualites />} />
+            <Route path="actualites/:id/previsualiser" element={<ActualiteDetail preview />} />
             <Route path="matchs" element={<OrgaMatchsListe />} />
             <Route path="matchs/:id" element={<OrgaMatch />} />
             <Route path="validation" element={<OrgaValidation />} />
@@ -125,8 +134,8 @@ export default function App() {
             }
           >
             <Route index element={<ClubVue />} />
-            <Route path="effectif" element={<ClubEffectif />} />
-            <Route path="effectif/:id" element={<ClubJoueur />} />
+            <Route path="effectif" element={<ClubEffectif basePath="/club" />} />
+            <Route path="effectif/:id" element={<ClubJoueur basePath="/club" />} />
             <Route path="matchs/:matchId/composition" element={<ClubComposition />} />
             <Route path="coach" element={<ClubCoach />} />
             <Route path="matchs" element={<ClubMatchs />} />
@@ -140,6 +149,8 @@ export default function App() {
             }
           >
             <Route index element={<CoachVue />} />
+            <Route path="effectif" element={<ClubEffectif basePath="/coach" />} />
+            <Route path="effectif/:id" element={<ClubJoueur basePath="/coach" />} />
             <Route path="staff" element={<ClubCoach />} />
             <Route path="matchs" element={<CoachMatchs />} />
             <Route path="matchs/:id" element={<CoachMatch />} />

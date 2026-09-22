@@ -114,6 +114,9 @@ export default function Layout() {
                 : ""}
             </p>
           )}
+          <div className="masthead-raccourcis">
+            <NavLink to="/actualites" className={({ isActive }) => isActive ? "actif" : ""}>Actualités</NavLink>
+          </div>
           {competition?.est_demo && (
             <p className="demo-line">Données de démonstration</p>
           )}

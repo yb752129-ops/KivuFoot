@@ -62,6 +62,14 @@ class RoleStaff(str, enum.Enum):
     AUTRE = "autre"
 
 
+class StatutEffectif(str, enum.Enum):
+    A_COMPLETER = "a_completer"
+    EN_COURS = "en_cours"
+    SOUMIS = "soumis"
+    A_CORRIGER = "a_corriger"
+    VALIDE = "valide"
+
+
 class StatutPhoto(str, enum.Enum):
     EN_ATTENTE = "en_attente"
     VALIDEE = "validee"
@@ -161,6 +169,23 @@ class StatutSync(str, enum.Enum):
 class StatutConflit(str, enum.Enum):
     EN_ATTENTE = "en_attente"
     RESOLU = "resolu"
+
+
+class CategorieActualite(str, enum.Enum):
+    ANNONCE = "annonce"
+    MATCH_COMPETITION = "match_competition"
+    RETOUR_JOURNEE = "retour_journee"
+    HOMME_DU_MATCH = "homme_du_match"
+    PERFORMANCE = "performance"
+    PHOTO_MOMENT = "photo_moment"
+    FAIR_PLAY = "fair_play"
+    INFORMATION_IMPORTANTE = "information_importante"
+
+
+class StatutActualite(str, enum.Enum):
+    BROUILLON = "brouillon"
+    PUBLIE = "publie"
+    ARCHIVE = "archive"
 
 
 class ActionAudit(str, enum.Enum):

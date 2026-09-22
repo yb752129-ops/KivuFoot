@@ -21,6 +21,18 @@ export function isAuthenticated() {
   return Boolean(getToken());
 }
 
+const ACTUALITE_TOKEN_KEY = "kivufoot_actualite_like_token";
+export function getActualiteClientToken() {
+  let token = localStorage.getItem(ACTUALITE_TOKEN_KEY);
+  if (!token) {
+    const bytes = new Uint8Array(24);
+    crypto.getRandomValues(bytes);
+    token = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+    localStorage.setItem(ACTUALITE_TOKEN_KEY, token);
+  }
+  return token;
+}
+
 let refreshEnCours = null;
 
 async function refreshSession() {
@@ -229,6 +241,47 @@ export const api = {
   approuverProposition: (id) =>
     request(`/joueurs/propositions/${id}/approuver`, { method: "PUT", auth: true }),
   audit: () => request("/audit", { auth: true }),
+  actualites: ({ categorie = "", competitionId = "", offset = 0, limit = 20, clientToken = "" } = {}) => {
+    const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
+    if (categorie) params.set("categorie", categorie);
+    if (competitionId) params.set("competition_id", String(competitionId));
+    if (clientToken) params.set("client_token", clientToken);
+    return request(`/actualites?${params.toString()}`);
+  },
+  actualite: (id, clientToken = "") => request(`/actualites/${id}${clientToken ? `?client_token=${encodeURIComponent(clientToken)}` : ""}`),
+  actualitesGestion: ({ statut = "", competitionId = "" } = {}) => {
+    const params = new URLSearchParams();
+    if (statut) params.set("statut", statut);
+    if (competitionId) params.set("competition_id", String(competitionId));
+    const suffix = params.toString() ? `?${params.toString()}` : "";
+    return request(`/actualites/gestion${suffix}`, { auth: true });
+  },
+  actualiteGestion: (id) => request(`/actualites/gestion/${id}`, { auth: true }),
+  previsualiserActualite: (id, clientToken = "") =>
+    request(`/actualites/gestion/${id}/previsualiser${clientToken ? `?client_token=${encodeURIComponent(clientToken)}` : ""}`, { auth: true }),
+  creerActualite: (payload) => request("/actualites", { method: "POST", body: payload, auth: true }),
+  modifierActualite: (id, payload) => request(`/actualites/${id}`, { method: "PUT", body: payload, auth: true }),
+  publierActualite: (id) => request(`/actualites/${id}/publier`, { method: "POST", auth: true }),
+  archiverActualite: (id) => request(`/actualites/${id}/archiver`, { method: "POST", auth: true }),
+  aimerActualite: (id, clientToken) => request(`/actualites/${id}/like`, { method: "POST", body: { client_token: clientToken } }),
+  ajouterImageActualite: (id, file, principale = false) => {
+    const fd = new FormData();
+    fd.append("file", file);
+    const t = getToken();
+    return fetch(`${API}/actualites/${id}/images?principale=${principale ? "true" : "false"}`, {
+      method: "POST",
+      headers: { Accept: "application/json", ...(t ? { Authorization: `Bearer ${t}` } : {}) },
+      body: fd,
+    }).then(async (res) => {
+      const text = await res.text();
+      let data = null;
+      try { data = text ? JSON.parse(text) : null; } catch { data = { detail: text }; }
+      if (!res.ok) throw new Error(typeof data?.detail === "string" ? data.detail : `Erreur ${res.status}`);
+      return data;
+    });
+  },
+  supprimerImageActualite: (id, imageId) => request(`/actualites/${id}/images/${imageId}`, { method: "DELETE", auth: true }),
+  designerHommeDuMatch: (matchId, joueurId) => request(`/actualites/matchs/${matchId}/homme-du-match`, { method: "POST", body: { joueur_id: Number(joueurId) }, auth: true }),
   matchs: (saisonId) => request(`/matchs?limit=100${saisonId ? `&saison_id=${saisonId}` : ""}`),
   match: (id) => request(`/matchs/${id}`),
   composition: (matchId) => request(`/matchs/${matchId}/composition`),

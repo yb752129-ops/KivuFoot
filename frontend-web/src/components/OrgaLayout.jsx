@@ -31,6 +31,8 @@ export default function OrgaLayout() {
       <nav className="orga-nav" aria-label="Organisation">
         {bureau && <NavLink to="/orga" end>Vue</NavLink>}
         {bureau && <NavLink to="/orga/equipes">Équipes</NavLink>}
+        {bureau && <NavLink to="/orga/effectifs">Effectifs</NavLink>}
+        {bureau && <NavLink to="/orga/actualites">Actualités</NavLink>}
         {bureau && <NavLink to="/orga/calendrier">Calendrier</NavLink>}
         <NavLink to="/orga/matchs">Matchs</NavLink>
         {bureau && <NavLink to="/orga/validation">Validation</NavLink>}

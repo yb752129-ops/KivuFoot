@@ -10,11 +10,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.middlewares.error_handler import register_error_handlers
 from app.routes import (
+    actualites,
     audit,
     auth,
     classement,
     clubs,
     competitions,
+    effectifs,
     evenements,
     joueurs,
     matchs,
@@ -49,7 +51,9 @@ register_error_handlers(app)
 
 PREFIX = settings.api_v1_prefix
 app.include_router(auth.router, prefix=PREFIX)
+app.include_router(actualites.router, prefix=PREFIX)
 app.include_router(competitions.router, prefix=PREFIX)
+app.include_router(effectifs.router, prefix=PREFIX)
 app.include_router(clubs.router, prefix=PREFIX)
 app.include_router(joueurs.router, prefix=PREFIX)
 app.include_router(matchs.router, prefix=PREFIX)
