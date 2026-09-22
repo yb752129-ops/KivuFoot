@@ -134,6 +134,7 @@ async def _serialize_list(actualite: Actualite, db: AsyncSession) -> ActualiteLi
         titre=actualite.titre,
         categorie=actualite.categorie,
         statut=actualite.statut,
+        mise_en_avant=actualite.mise_en_avant,
         image_principale_url=url_publique(principale.storage_key) if principale else None,
         date_creation=actualite.date_creation,
         date_publication=actualite.date_publication,
@@ -282,7 +283,7 @@ async def lister_actualites_publiques(
         select(Actualite)
         .where(Actualite.statut == StatutActualite.PUBLIE)
         .options(*_options())
-        .order_by(Actualite.date_publication.desc(), Actualite.id.desc())
+        .order_by(Actualite.mise_en_avant.desc(), Actualite.date_publication.desc(), Actualite.id.desc())
         .limit(limit)
         .offset(offset)
     )
@@ -355,6 +356,7 @@ async def creer_actualite(
         texte=payload.texte,
         statut=StatutActualite.BROUILLON,
         telechargement_autorise=payload.telechargement_autorise,
+        mise_en_avant=payload.mise_en_avant,
         auteur_id=current_user.id,
         competition_id=comp_id,
         saison_id=season_id,
@@ -369,6 +371,7 @@ async def creer_actualite(
         "titre": actualite.titre,
         "categorie": _value(actualite.categorie),
         "statut": StatutActualite.BROUILLON.value,
+        "mise_en_avant": actualite.mise_en_avant,
         "competition_id": comp_id,
         "match_id": match_id,
     })
@@ -397,7 +400,7 @@ async def modifier_actualite(
         data.get("joueur_id", actualite.joueur_id),
     )
     old = {key: getattr(actualite, key) for key in data if hasattr(actualite, key)}
-    for key in ("titre", "categorie", "texte", "telechargement_autorise", "journee"):
+    for key in ("titre", "categorie", "texte", "telechargement_autorise", "mise_en_avant", "journee"):
         if key in data:
             setattr(actualite, key, data[key])
     actualite.competition_id = comp_id
@@ -408,6 +411,7 @@ async def modifier_actualite(
     await log_audit(db, "actualites", actualite.id, ActionAudit.UPDATE, current_user.id, old, {
         "titre": actualite.titre,
         "categorie": _value(actualite.categorie),
+        "mise_en_avant": actualite.mise_en_avant,
         "competition_id": comp_id,
         "match_id": match_id,
     })

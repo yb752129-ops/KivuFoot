@@ -101,6 +101,41 @@ async def test_brouillon_publicement_invisible_puis_publication_et_like(db_sessi
     assert unliked.liked is False and unliked.like_count == 0
 
 
+async def test_actualite_mise_en_avant_prioritaire_dans_le_flux(db_session):
+    admin, _, _, match = await contexte(db_session)
+    normale = await creer_actualite(
+        ActualiteCreate(
+            titre="Information normale",
+            categorie=CategorieActualite.ANNONCE,
+            texte="Une information éditoriale normale est conservée.",
+            competition_id=10,
+            saison_id=20,
+            match_id=match.id,
+        ),
+        db_session,
+        admin,
+    )
+    une = await creer_actualite(
+        ActualiteCreate(
+            titre="Information importante",
+            categorie=CategorieActualite.INFORMATION_IMPORTANTE,
+            texte="Une information importante est mise en avant.",
+            competition_id=10,
+            saison_id=20,
+            match_id=match.id,
+            mise_en_avant=True,
+        ),
+        db_session,
+        admin,
+    )
+    await publier_actualite(normale.id, db_session, admin)
+    await publier_actualite(une.id, db_session, admin)
+    listed = await lister_actualites_publiques(None, 10, 20, 0, db_session)
+    assert listed[0].id == une.id
+    assert listed[0].mise_en_avant is True
+    assert normale.id in [item.id for item in listed]
+
+
 async def test_organisateur_limite_a_sa_competition(db_session):
     _, orga, autre, match = await contexte(db_session)
     with pytest.raises(HTTPException) as erreur:

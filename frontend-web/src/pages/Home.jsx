@@ -19,6 +19,18 @@ function fusionner(a, b) {
   return [...map.values()];
 }
 
+function dateEditoriale(value) {
+  if (!value) return "";
+  return new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium" }).format(new Date(value));
+}
+
+function prioriteEditoriale(item) {
+  if (item.mise_en_avant) return "À la une";
+  const age = item.date_publication ? Date.now() - new Date(item.date_publication).getTime() : -1;
+  if (age >= 0 && age <= 7 * 24 * 60 * 60 * 1000) return "Récent";
+  return "Actualité";
+}
+
 export default function Home() {
   const { saison, clubsById, competition } = useKivu();
   const { user } = useAuth();
@@ -26,7 +38,16 @@ export default function Home() {
   const [classement, setClassement] = useState([]);
   const [matchs, setMatchs] = useState([]);
   const [evtsById, setEvtsById] = useState({});
+  const [actualites, setActualites] = useState([]);
   const [jourOffset, setJourOffset] = useState(0);
+
+  useEffect(() => {
+    let stop = false;
+    api.actualites({ competitionId: competition?.id || "", limit: 3 })
+      .then((rows) => { if (!stop) setActualites(rows || []); })
+      .catch(() => { if (!stop) setActualites([]); });
+    return () => { stop = true; };
+  }, [competition?.id]);
 
   useEffect(() => {
     if (!saison) return;
@@ -74,6 +95,7 @@ export default function Home() {
     .sort((a, b) => new Date(a.date_heure) - new Date(b.date_heure));
   const apercu = classement.slice(0, 5);
   const nomComp = competition ? stripDemo(competition.nom) : "";
+  const actualiteAccueil = actualites[0] || null;
   const numJ =
     lives[0]?.journee
     || aVenir[0]?.journee
@@ -100,6 +122,34 @@ export default function Home() {
       {lives.map((m) => (
         <LiveUne key={m.id} match={m} clubsById={clubsById} evt={evtsById[m.id] || null} />
       ))}
+
+      {actualiteAccueil && (
+        <section className="actualite-accueil" aria-labelledby="actualite-accueil-titre">
+          <div className="actualite-accueil-en-tete">
+            <div>
+              <p className="kicker">📰 Actualités</p>
+              <h2 id="actualite-accueil-titre">Une information est disponible</h2>
+            </div>
+            <span className={`actualite-priorite ${actualiteAccueil.mise_en_avant ? "actualite-priorite-une" : ""}`}>
+              {prioriteEditoriale(actualiteAccueil)}
+            </span>
+          </div>
+          <Link to={`/actualites/${actualiteAccueil.id}`} className="actualite-accueil-carte">
+            {actualiteAccueil.image_principale_url ? (
+              <img src={actualiteAccueil.image_principale_url} alt="" />
+            ) : (
+              <div className="actualite-accueil-image-vide">KivuFoot</div>
+            )}
+            <div>
+              <p className="actualite-accueil-date">{dateEditoriale(actualiteAccueil.date_publication)}</p>
+              <h3>{actualiteAccueil.titre}</h3>
+              {actualiteAccueil.competition_nom && <p>{actualiteAccueil.competition_nom}</p>}
+              <strong>Lire l’actualité →</strong>
+            </div>
+          </Link>
+          <Link className="actualite-accueil-toutes" to="/actualites">Voir toutes les actualités</Link>
+        </section>
+      )}
 
       <section>
         <div className="jour-barre">

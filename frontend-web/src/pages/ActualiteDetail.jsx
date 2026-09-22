@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { api, getActualiteClientToken } from "../api.js";
-import { CATEGORIES, dateTexte } from "./Actualites.jsx";
+import { CATEGORIES, dateTexte, libellePriorite } from "./Actualites.jsx";
 
 function MatchLien({ match }) {
   if (!match) return null;
@@ -62,6 +62,9 @@ export default function ActualiteDetail({ preview = false }) {
       <p className="kicker"><Link to={preview ? "/orga/actualites" : "/actualites"}>← {preview ? "Gestion des actualités" : "Actualités"}</Link></p>
       {preview && <p className="actualite-preview-bandeau">Prévisualisation — cette actualité n’est pas encore visible du public.</p>}
       <p className="actualite-detail-categorie">{CATEGORIES[item.categorie] || item.categorie}</p>
+      <span className={`actualite-priorite actualite-priorite-detail ${item.mise_en_avant ? "actualite-priorite-une" : ""}`}>
+        {libellePriorite(item)}
+      </span>
       <h1>{item.titre}</h1>
       <p className="actualite-detail-date">Publié le {dateTexte(item.date_publication || item.date_creation)} · {item.auteur_nom || "KivuFoot"}</p>
       {(item.competition_nom || item.saison_nom || item.journee) && (

@@ -11,7 +11,7 @@ const CATEGORIES = {
   performance: "Performance",
   photo_moment: "Photo / moment",
   fair_play: "Fair-play",
-  information_importante: "Information importante",
+  information_importante: "Information importante / incident",
 };
 
 function dateTexte(value) {
@@ -19,7 +19,19 @@ function dateTexte(value) {
   return new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium" }).format(new Date(value));
 }
 
-export { CATEGORIES, dateTexte };
+function estRecente(value) {
+  if (!value) return false;
+  const age = Date.now() - new Date(value).getTime();
+  return age >= 0 && age <= 7 * 24 * 60 * 60 * 1000;
+}
+
+function libellePriorite(item) {
+  if (item.mise_en_avant) return "À la une";
+  if (estRecente(item.date_publication)) return "Récent";
+  return "Actualité";
+}
+
+export { CATEGORIES, dateTexte, estRecente, libellePriorite };
 
 export default function Actualites() {
   const { competition } = useKivu();
@@ -77,6 +89,9 @@ export default function Actualites() {
                 <span>{CATEGORIES[item.categorie] || item.categorie}</span>
                 <time>{dateTexte(item.date_publication)}</time>
               </p>
+              <span className={`actualite-priorite ${item.mise_en_avant ? "actualite-priorite-une" : ""}`}>
+                {libellePriorite(item)}
+              </span>
               <h2><Link to={`/actualites/${item.id}`}>{item.titre}</Link></h2>
               {item.competition_nom && <p className="actualite-contexte">{item.competition_nom}{item.saison_nom ? ` · ${item.saison_nom}` : ""}</p>}
               <p className="actualite-bas">❤️ {item.like_count || 0} · <Link to={`/actualites/${item.id}`}>Lire l’actualité →</Link></p>

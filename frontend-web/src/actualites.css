@@ -74,3 +74,28 @@
   .actualite-actions { align-items: flex-start; flex-direction: column; }
   .actualite-actions small { text-align: left; }
 }
+
+.actualite-priorite { display: inline-block; width: max-content; margin: .1rem 0 .35rem; padding: .16rem .42rem; border: 1px solid var(--rule-strong); color: var(--ink-soft); font-size: .62rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.actualite-priorite-une { border-color: var(--stamp); color: var(--stamp); }
+.actualite-priorite-detail { margin: .8rem 0 .55rem; }
+
+.actualite-accueil { margin: 1.1rem 0 1.35rem; padding: 1rem; border: 1px solid var(--stamp); background: color-mix(in srgb, var(--paper-2) 58%, transparent); }
+.actualite-accueil-en-tete { display: flex; align-items: flex-start; justify-content: space-between; gap: .8rem; margin-bottom: .75rem; }
+.actualite-accueil-en-tete h2 { margin: 0; font-family: var(--serif); font-size: clamp(1.25rem, 5vw, 1.7rem); }
+.actualite-accueil-en-tete .kicker { margin: 0 0 .2rem; }
+.actualite-accueil-carte { display: grid; grid-template-columns: 6.2rem 1fr; gap: .8rem; align-items: stretch; color: inherit; }
+.actualite-accueil-carte img, .actualite-accueil-image-vide { width: 6.2rem; height: 6.2rem; object-fit: cover; background: var(--stamp-2); border-radius: .35rem; }
+.actualite-accueil-image-vide { display: grid; place-items: center; color: var(--paper); font-family: var(--serif); }
+.actualite-accueil-carte h3 { margin: .15rem 0 .3rem; font-family: var(--serif); font-size: 1.15rem; line-height: 1.15; }
+.actualite-accueil-carte p { margin: .15rem 0; color: var(--ink-soft); font-size: .78rem; }
+.actualite-accueil-carte strong { display: inline-block; margin-top: .5rem; color: var(--stamp); font-size: .82rem; }
+.actualite-accueil-date { color: var(--stamp) !important; font-weight: 700; }
+.actualite-accueil-toutes { display: inline-block; margin-top: .8rem; color: var(--ink-soft); font-size: .78rem; }
+.actualite-admin-une { width: max-content; color: var(--stamp); font-size: .65rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+
+@media (max-width: 520px) {
+  .actualite-accueil-carte { grid-template-columns: 5.4rem 1fr; gap: .65rem; }
+  .actualite-accueil-carte img, .actualite-accueil-image-vide { width: 5.4rem; height: 5.4rem; }
+  .actualite-accueil-en-tete { display: block; }
+  .actualite-accueil-en-tete .actualite-priorite { margin-top: .45rem; }
+}

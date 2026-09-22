@@ -34,6 +34,8 @@ class Actualite(Base):
         String(20), default=StatutActualite.BROUILLON, nullable=False, index=True
     )
     telechargement_autorise: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    # Priorité éditoriale : les brouillons et archives restent toujours hors du flux public.
+    mise_en_avant: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, index=True)
 
     auteur_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), index=True)
     competition_id: Mapped[int | None] = mapped_column(ForeignKey("competitions.id", ondelete="SET NULL"), index=True)

@@ -5,7 +5,7 @@ import { useKivu } from "../../context.jsx";
 import { CATEGORIES, dateTexte } from "../Actualites.jsx";
 
 const STATUS = { brouillon: "Brouillons", publie: "Publiées", archive: "Archivées" };
-const EMPTY = { titre: "", categorie: "annonce", texte: "", match_id: "", journee: "", club_id: "", joueur_id: "", telechargement_autorise: true };
+const EMPTY = { titre: "", categorie: "annonce", texte: "", match_id: "", journee: "", club_id: "", joueur_id: "", telechargement_autorise: true, mise_en_avant: false };
 
 export default function OrgaActualites() {
   const { competition, saison } = useKivu();
@@ -54,6 +54,7 @@ export default function OrgaActualites() {
       club_id: item.club_id || "",
       joueur_id: item.joueur_id || "",
       telechargement_autorise: item.telechargement_autorise !== false,
+      mise_en_avant: item.mise_en_avant === true,
     });
     setFiles([]);
     setErr("");
@@ -83,6 +84,7 @@ export default function OrgaActualites() {
         club_id: form.club_id ? Number(form.club_id) : null,
         joueur_id: form.joueur_id ? Number(form.joueur_id) : null,
         telechargement_autorise: form.telechargement_autorise,
+        mise_en_avant: form.mise_en_avant,
       };
       const saved = selectedId ? await api.modifierActualite(selectedId, payload) : await api.creerActualite(payload);
       if (files.length) {
@@ -144,7 +146,7 @@ export default function OrgaActualites() {
       <div className="actualites-gestion-liste">
         {items.map((item) => (
           <div className="actualite-admin-ligne" key={item.id}>
-            <div><span className={`statut-pastille statut-${item.statut}`}>{STATUS[item.statut] || item.statut}</span><strong>{item.titre}</strong><small>{CATEGORIES[item.categorie] || item.categorie} · {dateTexte(item.date_publication || item.date_creation)} · ❤️ {item.like_count || 0}</small></div>
+            <div><span className={`statut-pastille statut-${item.statut}`}>{STATUS[item.statut] || item.statut}</span>{item.mise_en_avant && <span className="actualite-admin-une">À la une sur l’accueil</span>}<strong>{item.titre}</strong><small>{CATEGORIES[item.categorie] || item.categorie} · {dateTexte(item.date_publication || item.date_creation)} · ❤️ {item.like_count || 0}</small></div>
             <div className="file-actions">
               <button type="button" className="btn" onClick={() => edit(item)}>Modifier</button>
               <Link className="btn" to={`/orga/actualites/${item.id}/previsualiser`}>Prévisualiser</Link>
@@ -166,6 +168,7 @@ export default function OrgaActualites() {
         <label className="field">Texte éditorial<textarea value={form.texte} onChange={(e) => change("texte", e.target.value)} required minLength={10} rows={8} /></label>
         <label className="field">Photos <input type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={(e) => setFiles(Array.from(e.target.files || []))} /><small>La première image devient l’image principale. 10 Mo maximum par image.</small></label>
         <label className="checkbox-line"><input type="checkbox" checked={form.telechargement_autorise} onChange={(e) => change("telechargement_autorise", e.target.checked)} /> Téléchargement public autorisé</label>
+        <label className="checkbox-line"><input type="checkbox" checked={form.mise_en_avant} onChange={(e) => change("mise_en_avant", e.target.checked)} /> Mettre en avant sur l’accueil public</label>
         <div className="file-actions"><button className="btn btn-primary" type="submit" disabled={busy}>{busy ? "Enregistrement…" : "Enregistrer le brouillon"}</button>{selectedId && <Link className="btn" to={`/orga/actualites/${selectedId}/previsualiser`}>Prévisualiser</Link>}</div>
       </form>
 

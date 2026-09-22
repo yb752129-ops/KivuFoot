@@ -16,6 +16,7 @@ class ActualiteCreate(BaseModel):
     club_id: int | None = None
     joueur_id: int | None = None
     telechargement_autorise: bool = True
+    mise_en_avant: bool = False
 
     @field_validator("titre", "texte", "journee")
     @classmethod
@@ -37,6 +38,7 @@ class ActualiteUpdate(BaseModel):
     club_id: int | None = None
     joueur_id: int | None = None
     telechargement_autorise: bool | None = None
+    mise_en_avant: bool | None = None
 
     @field_validator("titre", "texte", "journee")
     @classmethod
@@ -99,6 +101,7 @@ class ActualiteListOut(BaseModel):
     titre: str
     categorie: CategorieActualite
     statut: StatutActualite
+    mise_en_avant: bool
     image_principale_url: str | None = None
     date_creation: datetime
     date_publication: datetime | None
