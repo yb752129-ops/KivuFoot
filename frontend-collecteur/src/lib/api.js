@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api/v1";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://kivufoot.onrender.com/api/v1";
 
 function getAccessToken() {
   return localStorage.getItem("kivufoot_access_token");
@@ -46,6 +46,21 @@ export async function fetchMatchsDisponibles() {
   return request("/matchs?limit=50");
 }
 
+export async function fetchMatch(matchId) {
+  return request(`/matchs/${matchId}`);
+}
+
+export async function fetchPossessionGestion(matchId) {
+  return request(`/matchs/${matchId}/possession/gestion`);
+}
+
+export async function transitionPossession(matchId, etat, operationId = crypto.randomUUID()) {
+  return request(`/matchs/${matchId}/possession/transition`, {
+    method: "POST",
+    body: JSON.stringify({ operation_id: operationId, etat, correction: false }),
+  });
+}
+
 export async function pushEvenements(items) {
   return request("/sync/push", { method: "POST", body: JSON.stringify({ items }) });
 }
@@ -55,4 +70,14 @@ export async function pullMiseAJour(depuis) {
   return request(`/sync/pull${qs}`);
 }
 
-export default { login, fetchMatchsDisponibles, pushEvenements, pullMiseAJour, isAuthenticated, clearTokens };
+export default {
+  login,
+  fetchMatchsDisponibles,
+  fetchMatch,
+  fetchPossessionGestion,
+  transitionPossession,
+  pushEvenements,
+  pullMiseAJour,
+  isAuthenticated,
+  clearTokens,
+};

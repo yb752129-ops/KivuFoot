@@ -11,6 +11,7 @@ import { dernierFaitLive, formatJour, grouperFaits, journeeTitre, statsDesFaits,
 const ONGLETS = [
   { id: "apercu", label: "Aperçu" },
   { id: "stats", label: "Statistiques" },
+  { id: "possession", label: "Possession" },
   { id: "compo", label: "Compositions" },
 ];
 
@@ -21,17 +22,19 @@ export default function MatchDetail() {
   const [evts, setEvts] = useState([]);
   const [joueurs, setJoueurs] = useState({});
   const [compo, setCompo] = useState(null);
+  const [possession, setPossession] = useState(null);
   const [moi, setMoi] = useState(null);
   const [onglet, setOnglet] = useState("apercu");
   const [err, setErr] = useState("");
 
   async function load() {
     const m = await api.match(id);
-    const [e, joueursDom, joueursExt, p] = await Promise.all([
+    const [e, joueursDom, joueursExt, p, possessionPublique] = await Promise.all([
       api.evenementsPublics(id).catch(() => []),
       api.joueurs(m.equipe_domicile_id).catch(() => []),
       api.joueurs(m.equipe_exterieur_id).catch(() => []),
       api.composition(id).catch(() => null),
+      api.possession(id).catch(() => ({ disponible: false, message: "Possession non disponible" })),
     ]);
     const js = [...(joueursDom || []), ...(joueursExt || [])];
     setErr("");
@@ -39,6 +42,7 @@ export default function MatchDetail() {
     setEvts(e || []);
     setJoueurs(Object.fromEntries(js.map((j) => [j.id, j])));
     setCompo(p || null);
+    setPossession(possessionPublique || null);
     api.me().then(setMoi).catch(() => setMoi(null));
   }
 
@@ -166,6 +170,38 @@ export default function MatchDetail() {
             </tr>
           </tbody>
         </table>
+      )}
+
+      {onglet === "possession" && (
+        <section className="sheet possession-public" aria-label="Possession du match">
+          <div className="possession-public-head">
+            <div>
+              <p className="kicker">Protocole KIVUFOOT POSSESSION V1</p>
+              <h2>Temps de contrôle observé</h2>
+            </div>
+            {possession?.disponible && <span className="stamp">Officielle</span>}
+          </div>
+          {!possession?.disponible ? (
+            <p className="empty">Possession non disponible</p>
+          ) : (
+            <>
+              <div className="possession-scoreline">
+                <strong>{possession.equipe_a_nom || stripDemo(home?.nom) || "Domicile"}</strong>
+                <strong>{possession.pourcentage_a}%</strong>
+                <span>contre</span>
+                <strong>{possession.pourcentage_b}%</strong>
+                <strong>{possession.equipe_b_nom || stripDemo(away?.nom) || "Extérieur"}</strong>
+              </div>
+              <div className="possession-bars" aria-label="Répartition de la possession">
+                <span style={{ width: `${possession.pourcentage_a}%` }} />
+                <span style={{ width: `${possession.pourcentage_b}%` }} />
+              </div>
+              <p className="muted small">
+                Temps mesuré : {Math.round((possession.temps_mesure_ms || 0) / 1000)} s. Le temps en pause ou non attribué n'entre pas dans le dénominateur.
+              </p>
+            </>
+          )}
+        </section>
       )}
 
       {onglet === "compo" && (

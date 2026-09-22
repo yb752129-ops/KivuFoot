@@ -51,6 +51,7 @@ from app.models.competition import Competition
 from app.models.staff import Staff
 from app.services.calcul_stats import appliquer_evenement_valide
 from app.services.validation import valider_match
+from app.services.possession import officialiser_possession, suspendre_possession, terminer_possession
 
 router = APIRouter(prefix="/matchs", tags=["Matchs"])
 
@@ -207,6 +208,10 @@ async def changer_statut_match(
         match_.ended_at = now
     old_statut = actuel
     match_.statut = nouveau_statut
+    # Couche additive : la fin du match ferme uniquement l'intervalle de
+    # possession éventuel. Elle ne lit ni ne modifie aucun événement sportif.
+    if nouveau_statut == StatutMatch.TERMINE:
+        await terminer_possession(db, match_.id, current_user.id, now=now)
     await log_audit(db, "matchs", match_.id, ActionAudit.UPDATE, current_user.id, {"statut": old_statut}, {"statut": nouveau_statut.value})
     await db.commit()
     await db.refresh(match_)
@@ -275,6 +280,10 @@ async def changer_periode_match(
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "La première période démarre avec le coup d'envoi.")
     else:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Période inconnue.")
+    # La mi-temps suspend automatiquement la capture. La reprise ne
+    # redémarre jamais A/B toute seule : le collecteur doit choisir.
+    if periode == PeriodeMatch.MI_TEMPS:
+        await suspendre_possession(db, match_.id, current_user.id, now=now)
     await log_audit(
         db,
         "matchs",
@@ -576,6 +585,15 @@ async def declarer_forfait(
     else:
         match_.score_domicile, match_.score_exterieur = 3, 0
     match_.statut = StatutMatch.TERMINE
+    # Un forfait n'est pas une durée de jeu normale : la capture éventuelle
+    # est fermée pour audit mais exclue de toute publication officielle.
+    await terminer_possession(
+        db,
+        match_.id,
+        current_user.id,
+        now=datetime.now(timezone.utc),
+        exclusion_reason="forfait",
+    )
     await log_audit(db, "matchs", match_.id, ActionAudit.UPDATE, current_user.id, None, {"forfait": True, "forfait_equipe": equipe_forfait.value})
     await db.commit()
     await db.refresh(match_)

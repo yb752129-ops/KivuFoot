@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { api, clearTokens } from "../api.js";
 import Chrono from "../components/Chrono.jsx";
+import PossessionControle from "../components/PossessionControle.jsx";
 import { clubName, useKivu } from "../context.jsx";
 import { civilDate, clockFromMatch, formatHeure, formatMinute, grouperFaits, labelEvenement, MOTIF_REFUS, periodeLabel, splitMinute, stripDemo } from "../display.js";
 import { isoDepuisDateHeure, STATUT_MATCH } from "./orga/saison.js";
@@ -55,6 +56,7 @@ export default function OrgaMatch({ backTo = "/orga/matchs", mode = "orga" } = {
   const collecteur = mode === "collecteur";
   const [match, setMatch] = useState(null);
   const [controleEffectif, setControleEffectif] = useState(null);
+  const [possession, setPossession] = useState(null);
   const [evts, setEvts] = useState([]);
   const [joueursDom, setJoueursDom] = useState([]);
   const [joueursExt, setJoueursExt] = useState([]);
@@ -243,12 +245,14 @@ export default function OrgaMatch({ backTo = "/orga/matchs", mode = "orga" } = {
 
   async function load() {
     try {
-      const [m, e, p] = await Promise.all([
+      const [m, e, p, possessionGestion] = await Promise.all([
         collecteur ? api.match(id) : api.matchGestion(id),
         api.evenementsStaff(id),
         api.participations(id).catch(() => []),
+        api.possessionGestion(id),
       ]);
       setMatch(m);
+      setPossession(possessionGestion || null);
       setEvts(e || []);
       setParts(p || []);
       const [jd, je] = await Promise.all([
@@ -552,6 +556,13 @@ export default function OrgaMatch({ backTo = "/orga/matchs", mode = "orga" } = {
           </button>
         )}
       </div>
+
+      <PossessionControle
+        match={match}
+        possession={possession}
+        onChange={setPossession}
+        mode={collecteur ? "collecteur" : "organisateur"}
+      />
 
       {!collecteur && !match.locked && match.statut === "programme" && (
         <form className="phase-box" onSubmit={enregistrerResultatRetroactif}>

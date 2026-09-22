@@ -21,6 +21,7 @@ from app.routes import (
     joueurs,
     matchs,
     public,
+    possession,
     stats,
     sync,
     utilisateurs,
@@ -57,6 +58,7 @@ app.include_router(effectifs.router, prefix=PREFIX)
 app.include_router(clubs.router, prefix=PREFIX)
 app.include_router(joueurs.router, prefix=PREFIX)
 app.include_router(matchs.router, prefix=PREFIX)
+app.include_router(possession.router, prefix=PREFIX)
 app.include_router(evenements.router, prefix=PREFIX)
 app.include_router(public.router, prefix=PREFIX)
 app.include_router(validation.router, prefix=PREFIX)

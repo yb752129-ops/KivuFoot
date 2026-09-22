@@ -92,6 +92,29 @@ class StatutMatch(str, enum.Enum):
     CONTESTE = "conteste"
 
 
+class EtatPossession(str, enum.Enum):
+    """État instantané du chronomètre de possession V1."""
+
+    TEAM_A = "TEAM_A"
+    TEAM_B = "TEAM_B"
+    PAUSE = "PAUSE"
+    NOT_STARTED = "NOT_STARTED"
+    FINISHED = "FINISHED"
+
+
+class StatutPossession(str, enum.Enum):
+    PROVISOIRE = "PROVISOIRE"
+    OFFICIELLE = "OFFICIELLE"
+
+
+class MethodePossession(str, enum.Enum):
+    TIME_BASED = "TIME_BASED"
+
+
+class ProtocolePossession(str, enum.Enum):
+    KIVUFOOT_POSSESSION_V1 = "KIVUFOOT_POSSESSION_V1"
+
+
 class PeriodeMatch(str, enum.Enum):
     """Phase de jeu — distincte du statut C5. Un match EN COURS a une période."""
     PREMIERE = "1"

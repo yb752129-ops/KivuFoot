@@ -284,6 +284,16 @@ export const api = {
   designerHommeDuMatch: (matchId, joueurId) => request(`/actualites/matchs/${matchId}/homme-du-match`, { method: "POST", body: { joueur_id: Number(joueurId) }, auth: true }),
   matchs: (saisonId) => request(`/matchs?limit=100${saisonId ? `&saison_id=${saisonId}` : ""}`),
   match: (id) => request(`/matchs/${id}`),
+  possession: (matchId) => request(`/matchs/${matchId}/possession`),
+  possessionGestion: (matchId) => request(`/matchs/${matchId}/possession/gestion`, { auth: true }),
+  transitionPossession: (matchId, etat, { correction = false, operationId = crypto.randomUUID() } = {}) =>
+    request(`/matchs/${matchId}/possession/transition`, {
+      method: "POST",
+      body: { operation_id: operationId, etat, correction },
+      auth: true,
+    }),
+  correctionPossession: (matchId, payload) =>
+    request(`/matchs/${matchId}/possession/correction`, { method: "POST", body: payload, auth: true }),
   composition: (matchId) => request(`/matchs/${matchId}/composition`),
   enregistrerComposition: (matchId, payload) =>
     request(`/matchs/${matchId}/composition`, { method: "PUT", body: payload, auth: true }),

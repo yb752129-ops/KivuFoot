@@ -4,6 +4,8 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "../lib/db";
 import { synchroniser } from "../lib/sync";
 import IndicateurSync from "../components/IndicateurSync";
+import PossessionControle from "../components/PossessionControle";
+import { fetchMatch } from "../lib/api";
 
 const TYPES_EVENEMENT = [
   { value: "but", label: "But", requiertSecondaire: false, requiertResultat: false },
@@ -28,6 +30,7 @@ export default function SaisieEvenement() {
   const [resultat, setResultat] = useState("marque");
   const [equipeConcernee, setEquipeConcernee] = useState("domicile");
   const [confirmation, setConfirmation] = useState(null);
+  const [match, setMatch] = useState(null);
 
   const evenementsDuMatch = useLiveQuery(
     () => db.evenementsLocaux.where("matchId").equals(Number(matchId)).reverse().toArray(),
@@ -36,9 +39,19 @@ export default function SaisieEvenement() {
 
   const typeConfig = TYPES_EVENEMENT.find((t) => t.value === type);
 
+  async function rechargerMatch() {
+    try {
+      setMatch(await fetchMatch(matchId));
+    } catch {
+      // La saisie locale d'événements reste disponible même si le réseau tombe.
+    }
+  }
+
   useEffect(() => {
     synchroniser();
-  }, []);
+    rechargerMatch();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [matchId]);
 
   async function onSubmit(e) {
     e.preventDefault();
@@ -73,6 +86,10 @@ export default function SaisieEvenement() {
         <h1>Match #{matchId} — Saisie</h1>
         <IndicateurSync />
       </header>
+
+      {match && (
+        <PossessionControle matchId={matchId} match={match} onMatchReload={rechargerMatch} />
+      )}
 
       <form onSubmit={onSubmit} className="form-evenement">
         <label>

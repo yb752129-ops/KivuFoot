@@ -46,3 +46,34 @@ button:disabled { opacity: 0.6; }
 .statut-rejete { color: #c0392b; }
 .statut-conflit { color: #e67e22; }
 .message-serveur { font-style: italic; font-size: 0.8rem; }
+
+/* Possession V1 : commandes larges, état explicite, aucune déduction d'événement. */
+.bloc-possession {
+  margin: 0 0 1.2rem;
+  padding: 1rem;
+  background: #102f25;
+  color: #f6fbf8;
+  border-radius: 14px;
+}
+.possession-titre { display: flex; justify-content: space-between; gap: 0.7rem; align-items: flex-start; }
+.possession-titre h2 { margin: 0.1rem 0 0; font-size: 1.2rem; }
+.eyebrow { margin: 0; color: #b9e8c9; font-size: 0.68rem; font-weight: 800; letter-spacing: 0.12em; }
+.possession-etat { border: 1px solid currentColor; padding: 0.2rem 0.35rem; font-size: 0.66rem; letter-spacing: 0.04em; }
+.possession-compteurs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.35rem; margin: 0.85rem 0; }
+.possession-compteurs div { background: rgba(255,255,255,0.08); padding: 0.55rem 0.2rem; text-align: center; border-radius: 8px; }
+.possession-compteurs span { display: block; font-size: 0.62rem; color: #b9e8c9; line-height: 1.15; }
+.possession-compteurs strong { display: block; margin-top: 0.15rem; font-size: 1.2rem; font-variant-numeric: tabular-nums; }
+.possession-note { margin: 0.55rem 0; color: #d5e8dd; font-size: 0.78rem; }
+.possession-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 0.45rem; }
+.possession-actions button { min-height: 3.3rem; background: #f6fbf8; color: #102f25; border: 2px solid transparent; font-weight: 800; }
+.possession-actions button:nth-child(1) { border-color: #8de6a7; }
+.possession-actions button:nth-child(2) { border-color: #f0af7c; }
+.possession-actions button:nth-child(3) { border-color: #f1d26b; }
+.possession-actions button:nth-child(6) { grid-column: 1 / -1; background: transparent; color: #ffb3a9; border-color: #ff8e80; }
+.possession-actions button:disabled { opacity: 0.4; }
+.possession-meta { margin: 0.7rem 0 0; padding-top: 0.6rem; border-top: 1px solid rgba(255,255,255,0.18); color: #b9e8c9; font-size: 0.68rem; }
+@media (max-width: 360px) {
+  .possession-compteurs strong { font-size: 1rem; }
+  .possession-actions button { font-size: 0.82rem; }
+}
+.possession-actions .possession-terminer { grid-column: 1 / -1; background: transparent; color: #ffb3a9; border-color: #ff8e80; }

@@ -25,6 +25,7 @@ from app.models.match import Match
 from app.services.audit import log_audit
 from app.services.calcul_stats import appliquer_evenement_valide, retirer_evenement_valide
 from app.services.feuille_de_match import appliquer_feuille_de_match
+from app.services.possession import officialiser_possession
 
 
 def _val(x):
@@ -401,6 +402,10 @@ async def valider_match(db: AsyncSession, match_id: int, valide_par_id: int) -> 
     match_.valide_par = valide_par_id
     match_.date_validation = datetime.now(timezone.utc)
     match_.locked = True
+
+    # La possession reste une statistique additive : sa publication est
+    # liée à la validation du match, sans toucher au score ni aux événements.
+    await officialiser_possession(db, match_id, valide_par_id)
 
     await log_audit(
         db,

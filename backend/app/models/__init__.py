@@ -11,6 +11,7 @@ from app.models.effectif import EffectifClub
 from app.models.evenement import EvenementMatch
 from app.models.joueur import Joueur, JoueurModificationProposee
 from app.models.photo import Photo
+from app.models.possession import PossessionCorrection, PossessionIntervalle, PossessionMatch, PossessionOperation
 from app.models.staff import Staff
 from app.models.match import Match, MatchParticipation
 from app.models.stats import Consentement, StatistiqueJoueur
@@ -33,6 +34,10 @@ __all__ = [
     "Joueur",
     "JoueurModificationProposee",
     "Photo",
+    "PossessionMatch",
+    "PossessionIntervalle",
+    "PossessionOperation",
+    "PossessionCorrection",
     "Staff",
     "Match",
     "MatchParticipation",
