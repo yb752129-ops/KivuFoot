@@ -18,6 +18,7 @@ class Club(Base):
 
     joueurs = relationship("Joueur", back_populates="club_actuel", foreign_keys="Joueur.club_actuel_id")
     managers = relationship("User", back_populates="club")
+    effectifs = relationship("EffectifClub", back_populates="club", cascade="all, delete-orphan")
 
     def __repr__(self) -> str:
         return f"<Club {self.nom}>"

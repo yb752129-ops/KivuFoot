@@ -45,6 +45,7 @@ class Saison(Base):
     competition = relationship("Competition", back_populates="saisons")
     clubs = relationship("SaisonClub", back_populates="saison", cascade="all, delete-orphan")
     matchs = relationship("Match", back_populates="saison")
+    effectifs = relationship("EffectifClub", back_populates="saison", cascade="all, delete-orphan")
 
 
 class SaisonClub(Base):
