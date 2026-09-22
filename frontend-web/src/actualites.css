@@ -1,7 +1,8 @@
 /* Module Actualités — identité éditoriale KivuFoot, mobile d'abord. */
 .masthead-raccourcis { width: 100%; display: flex; justify-content: flex-end; }
-.masthead-raccourcis a { color: var(--stamp); font-size: .72rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
-.masthead-raccourcis a.actif { text-decoration: underline; text-underline-offset: .25rem; }
+.masthead-raccourcis .masthead-actualites-link { display: inline-flex; align-items: center; gap: .45rem; color: var(--stamp); border: 1px solid var(--stamp); background: color-mix(in srgb, var(--stamp) 9%, transparent); padding: .42rem .68rem; border-radius: 999px; font-size: .72rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; text-decoration: none; }
+.masthead-raccourcis .masthead-actualites-link:hover, .masthead-raccourcis .masthead-actualites-link.actif { background: var(--stamp); color: var(--paper); }
+.masthead-actualites-badge { padding-left: .45rem; border-left: 1px solid currentColor; font-size: .58rem; letter-spacing: .06em; white-space: nowrap; }
 
 .actualites-page h1, .actualites-gestion h1 { margin-bottom: .25rem; }
 .actualites-en-tete { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; border-bottom: 1px solid var(--rule); padding-bottom: 1rem; }

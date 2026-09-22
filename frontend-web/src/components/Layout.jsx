@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, NavLink, Outlet } from "react-router-dom";
 import { api } from "../api.js";
 import { useAuth } from "../auth.jsx";
@@ -87,6 +88,18 @@ function Cloche() {
 export default function Layout() {
   const { competition, competitions, choisirCompetition, error } = useKivu();
   const { prenom } = useAuth();
+  const [actualites, setActualites] = useState([]);
+
+  useEffect(() => {
+    let stop = false;
+    api.actualites({ competitionId: competition?.id || "", limit: 3 })
+      .then((rows) => { if (!stop) setActualites(rows || []); })
+      .catch(() => { if (!stop) setActualites([]); });
+    return () => { stop = true; };
+  }, [competition?.id]);
+
+  const actualiteUne = actualites.find((item) => item.mise_en_avant) || actualites[0];
+
   return (
     <>
       <header className="masthead">
@@ -115,7 +128,15 @@ export default function Layout() {
             </p>
           )}
           <div className="masthead-raccourcis">
-            <NavLink to="/actualites" className={({ isActive }) => isActive ? "actif" : ""}>Actualités</NavLink>
+            <NavLink
+              to="/actualites"
+              className={({ isActive }) => `masthead-actualites-link${isActive ? " actif" : ""}`}
+              aria-label={actualiteUne ? `Actualités : ${actualiteUne.titre}` : "Actualités"}
+            >
+              <span aria-hidden="true">📰</span>
+              <span>Actualités</span>
+              {actualiteUne && <span className="masthead-actualites-badge">{actualiteUne.mise_en_avant ? "À la une" : "Nouvelle"}</span>}
+            </NavLink>
           </div>
           {competition?.est_demo && (
             <p className="demo-line">Données de démonstration</p>
