@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { api, getActualiteClientToken } from "../api.js";
+import { marquerActualiteLue } from "../actualitesRead.js";
 import { CATEGORIES, dateTexte, libellePriorite } from "./Actualites.jsx";
 
 function MatchLien({ match }) {
@@ -41,6 +42,13 @@ export default function ActualiteDetail({ preview = false }) {
   }
 
   useEffect(() => { load(); }, [id, preview]);
+
+  useEffect(() => {
+    if (!preview && item?.id) {
+      marquerActualiteLue(item.id);
+      api.marquerActualiteLue(item.id, token).catch(() => {});
+    }
+  }, [item?.id, preview, token]);
 
   async function aimer() {
     setBusy(true);

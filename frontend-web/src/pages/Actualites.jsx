@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api, getActualiteClientToken } from "../api.js";
+import { useActualitesLues } from "../actualitesRead.js";
 import { useKivu } from "../context.jsx";
 
 const CATEGORIES = {
@@ -16,7 +17,7 @@ const CATEGORIES = {
 
 function dateTexte(value) {
   if (!value) return "";
-  return new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium" }).format(new Date(value));
+  return new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
 }
 
 function estRecente(value) {
@@ -39,6 +40,7 @@ export default function Actualites() {
   const [categorie, setCategorie] = useState("");
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(true);
+  const actualitesLues = useActualitesLues();
 
   async function load() {
     setLoading(true);
@@ -78,7 +80,7 @@ export default function Actualites() {
       {!loading && items.length === 0 && <p className="empty">Aucune actualité publiée pour l’instant.</p>}
       <div className="actualites-liste">
         {items.map((item) => (
-          <article className="actualite-carte" key={item.id}>
+          <article className={`actualite-carte${(item.lu || actualitesLues.has(Number(item.id))) ? "" : " actualite-non-lue"}`} key={item.id}>
             {item.image_principale_url ? (
               <img className="actualite-vignette" src={item.image_principale_url} alt="" />
             ) : (
@@ -92,6 +94,7 @@ export default function Actualites() {
               <span className={`actualite-priorite ${item.mise_en_avant ? "actualite-priorite-une" : ""}`}>
                 {libellePriorite(item)}
               </span>
+              {!(item.lu || actualitesLues.has(Number(item.id))) && <span className="actualite-non-lue-label">Non lue</span>}
               <h2><Link to={`/actualites/${item.id}`}>{item.titre}</Link></h2>
               {item.competition_nom && <p className="actualite-contexte">{item.competition_nom}{item.saison_nom ? ` · ${item.saison_nom}` : ""}</p>}
               <p className="actualite-bas">❤️ {item.like_count || 0} · <Link to={`/actualites/${item.id}`}>Lire l’actualité →</Link></p>

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, NavLink, Outlet } from "react-router-dom";
-import { api } from "../api.js";
+import { api, getActualiteClientToken } from "../api.js";
+import { useActualitesLues } from "../actualitesRead.js";
 import { useAuth } from "../auth.jsx";
 import { clubName, useKivu } from "../context.jsx";
 import { stripDemo } from "../display.js";
@@ -88,16 +89,21 @@ export default function Layout() {
   const { competition, competitions, choisirCompetition, error } = useKivu();
   const { prenom } = useAuth();
   const [actualites, setActualites] = useState([]);
+  const actualitesLues = useActualitesLues();
 
   useEffect(() => {
     let stop = false;
-    api.actualites({ competitionId: competition?.id || "", limit: 3 })
-      .then((rows) => { if (!stop) setActualites(rows || []); })
-      .catch(() => { if (!stop) setActualites([]); });
-    return () => { stop = true; };
+    function chargeActualites() {
+      api.actualites({ competitionId: competition?.id || "", limit: 50, clientToken: getActualiteClientToken() })
+        .then((rows) => { if (!stop) setActualites(rows || []); })
+        .catch(() => { if (!stop) setActualites([]); });
+    }
+    chargeActualites();
+    const timer = setInterval(chargeActualites, 30000);
+    return () => { stop = true; clearInterval(timer); };
   }, [competition?.id]);
 
-  const actualiteUne = actualites.find((item) => item.mise_en_avant) || actualites[0];
+  const actualitesNonLues = actualites.filter((item) => !item.lu && !actualitesLues.has(Number(item.id)));
 
   return (
     <>
@@ -130,11 +136,15 @@ export default function Layout() {
             <NavLink
               to="/actualites"
               className={({ isActive }) => `masthead-actualites-link${isActive ? " actif" : ""}`}
-              aria-label={actualiteUne ? `Actualités : ${actualiteUne.titre}` : "Actualités"}
+              aria-label={actualitesNonLues.length ? `Actualités : ${actualitesNonLues.length} non lue${actualitesNonLues.length > 1 ? "s" : ""}` : "Actualités"}
             >
               <span aria-hidden="true">📰</span>
               <span>Actualités</span>
-              {actualiteUne && <span className="masthead-actualites-badge">{actualiteUne.mise_en_avant ? "À la une" : "Nouvelle"}</span>}
+              {actualitesNonLues.length > 0 && (
+                <span className="masthead-actualites-badge" aria-label={`${actualitesNonLues.length} actualité${actualitesNonLues.length > 1 ? "s" : ""} non lue${actualitesNonLues.length > 1 ? "s" : ""}`}>
+                  {actualitesNonLues.length > 99 ? "99+" : actualitesNonLues.length}
+                </span>
+              )}
             </NavLink>
           </div>
           {competition?.est_demo && (

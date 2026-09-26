@@ -3,7 +3,7 @@ Regroupe tous les modèles pour garantir qu'ils sont enregistrés auprès de
 Base.metadata avant toute génération de migration Alembic ou création de
 tables. Importer `app.models` suffit à charger l'intégralité du schéma.
 """
-from app.models.actualite import Actualite, ActualiteImage, ActualiteLike, HommeMatch
+from app.models.actualite import Actualite, ActualiteImage, ActualiteLecture, ActualiteLike, HommeMatch
 from app.models.audit import AuditLog
 from app.models.club import Club
 from app.models.competition import Competition, OrganisateurCompetition, Saison, SaisonClub
@@ -22,6 +22,7 @@ __all__ = [
     "Actualite",
     "ActualiteImage",
     "ActualiteLike",
+    "ActualiteLecture",
     "HommeMatch",
     "AuditLog",
     "Club",

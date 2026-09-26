@@ -4,10 +4,11 @@ import pytest
 import pytest_asyncio
 from fastapi import HTTPException
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from app.database import Base
-from app.models.actualite import Actualite, ActualiteImage, ActualiteLike, HommeMatch
+from app.models.actualite import Actualite, ActualiteImage, ActualiteLecture, ActualiteLike, HommeMatch
 from app.models.club import Club
 from app.models.competition import Competition, OrganisateurCompetition, Saison, SaisonClub
 from app.models.enums import CategorieActualite, RoleUtilisateur, StatutActualite, StatutMatch, TypeCompetition
@@ -21,6 +22,7 @@ from app.routes.actualites import (
     creer_actualite,
     detail_actualite_publique,
     designer_homme_du_match,
+    marquer_actualite_lue,
     lister_actualites_publiques,
     publier_actualite,
 )
@@ -40,7 +42,7 @@ async def db_session(monkeypatch):
         User.__table__, Club.__table__, Competition.__table__, Saison.__table__, SaisonClub.__table__,
         OrganisateurCompetition.__table__, Photo.__table__, Staff.__table__, Joueur.__table__,
         Match.__table__, MatchParticipation.__table__, Actualite.__table__, ActualiteImage.__table__,
-        ActualiteLike.__table__, HommeMatch.__table__,
+        ActualiteLike.__table__, ActualiteLecture.__table__, HommeMatch.__table__,
     ]
     async with engine.begin() as connection:
         await connection.run_sync(lambda sync: Base.metadata.create_all(sync, tables=tables))
@@ -99,6 +101,42 @@ async def test_brouillon_publicement_invisible_puis_publication_et_like(db_sessi
     assert liked.liked is True and liked.like_count == 1
     unliked = await aimer_actualite(article.id, LikePayload(client_token="client-token-000001"), db_session)
     assert unliked.liked is False and unliked.like_count == 0
+
+
+async def test_lecture_anonyme_marquee_au_detail_et_refletee_dans_le_flux(db_session):
+    admin, _, _, match = await contexte(db_session)
+    article = await creer_actualite(
+        ActualiteCreate(
+            titre="Lecture anonyme",
+            categorie=CategorieActualite.ANNONCE,
+            texte="Cette actualité est marquée comme lue à son ouverture.",
+            competition_id=10,
+            saison_id=20,
+            match_id=match.id,
+        ),
+        db_session,
+        admin,
+    )
+    await publier_actualite(article.id, db_session, admin)
+    token = "client-token-lecture-000001"
+
+    avant = await lister_actualites_publiques(None, 10, 20, 0, db_session, token)
+    assert avant[0].lu is False
+
+    detail = await detail_actualite_publique(article.id, token, db_session)
+    assert detail.lu is False
+
+    marque = await marquer_actualite_lue(article.id, token, db_session)
+    assert marque.lu is True
+    apres = await lister_actualites_publiques(None, 10, 20, 0, db_session, token)
+    assert apres[0].lu is True
+    total = await db_session.scalar(select(func.count(ActualiteLecture.id)))
+    assert total == 1
+
+    # Une seconde ouverture ne crée pas de doublon.
+    await marquer_actualite_lue(article.id, token, db_session)
+    total_apres = await db_session.scalar(select(func.count(ActualiteLecture.id)))
+    assert total_apres == 1
 
 
 async def test_actualite_mise_en_avant_prioritaire_dans_le_flux(db_session):

@@ -249,6 +249,7 @@ export const api = {
     return request(`/actualites?${params.toString()}`);
   },
   actualite: (id, clientToken = "") => request(`/actualites/${id}${clientToken ? `?client_token=${encodeURIComponent(clientToken)}` : ""}`),
+  marquerActualiteLue: (id, clientToken = "") => request(`/actualites/${id}/lecture${clientToken ? `?client_token=${encodeURIComponent(clientToken)}` : ""}`, { method: "POST" }),
   actualitesGestion: ({ statut = "", competitionId = "" } = {}) => {
     const params = new URLSearchParams();
     if (statut) params.set("statut", statut);

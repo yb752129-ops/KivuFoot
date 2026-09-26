@@ -16,7 +16,7 @@ from sqlalchemy.orm import selectinload
 
 from app.auth.rbac import require_roles, verifier_organisateur_de_competition
 from app.database import get_db
-from app.models.actualite import Actualite, ActualiteImage, ActualiteLike, HommeMatch
+from app.models.actualite import Actualite, ActualiteImage, ActualiteLecture, ActualiteLike, HommeMatch
 from app.models.club import Club
 from app.models.competition import Competition, Saison
 from app.models.enums import ActionAudit, CategorieActualite, RoleUtilisateur, StatutActualite, StatutMatch
@@ -33,6 +33,7 @@ from app.schemas.actualite import (
     ActualiteUpdate,
     HommeMatchCreate,
     HommeMatchOut,
+    LectureOut,
     LikeOut,
     LikePayload,
 )
@@ -89,6 +90,38 @@ async def _like_state(actualite_id: int, client_token: str | None, db: AsyncSess
     return result.scalar_one_or_none() is not None
 
 
+async def _lecture_state(actualite_id: int, client_token: str | None, db: AsyncSession) -> bool:
+    if not client_token:
+        return False
+    result = await db.execute(
+        select(ActualiteLecture.id).where(
+            ActualiteLecture.actualite_id == actualite_id,
+            ActualiteLecture.token_hash == _token_hash(client_token),
+        )
+    )
+    return result.scalar_one_or_none() is not None
+
+
+async def _marquer_lue(actualite_id: int, client_token: str | None, db: AsyncSession) -> None:
+    if not client_token:
+        return
+    token_hash = _token_hash(client_token)
+    deja_lue = await db.execute(
+        select(ActualiteLecture.id).where(
+            ActualiteLecture.actualite_id == actualite_id,
+            ActualiteLecture.token_hash == token_hash,
+        )
+    )
+    if deja_lue.scalar_one_or_none() is not None:
+        return
+    db.add(ActualiteLecture(actualite_id=actualite_id, token_hash=token_hash))
+    try:
+        await db.commit()
+    except IntegrityError:
+        # Deux onglets peuvent ouvrir la même actualité simultanément.
+        await db.rollback()
+
+
 async def _match_out(match_: Match, db: AsyncSession) -> ActualiteMatchOut:
     home = await db.get(Club, match_.equipe_domicile_id) if match_.equipe_domicile_id else None
     away = await db.get(Club, match_.equipe_exterieur_id) if match_.equipe_exterieur_id else None
@@ -126,7 +159,11 @@ async def _homme_out(homme: HommeMatch | None, db: AsyncSession) -> HommeMatchOu
     )
 
 
-async def _serialize_list(actualite: Actualite, db: AsyncSession) -> ActualiteListOut:
+async def _serialize_list(
+    actualite: Actualite,
+    db: AsyncSession,
+    client_token: str | None = None,
+) -> ActualiteListOut:
     images = actualite.images or []
     principale = next((image for image in images if image.principale), images[0] if images else None)
     return ActualiteListOut(
@@ -146,11 +183,12 @@ async def _serialize_list(actualite: Actualite, db: AsyncSession) -> ActualiteLi
         joueur_id=actualite.joueur_id,
         joueur_nom=actualite.joueur.nom_complet if actualite.joueur else None,
         like_count=await _like_count(actualite.id, db),
+        lu=await _lecture_state(actualite.id, client_token, db),
     )
 
 
 async def _serialize_detail(actualite: Actualite, db: AsyncSession, client_token: str | None = None) -> ActualiteDetailOut:
-    base = await _serialize_list(actualite, db)
+    base = await _serialize_list(actualite, db, client_token)
     images = [
         ActualiteImageOut(
             id=image.id,
@@ -278,6 +316,7 @@ async def lister_actualites_publiques(
     limit: int = Query(20, ge=1, le=50),
     offset: int = Query(0, ge=0),
     db: AsyncSession = Depends(get_db),
+    client_token: str | None = None,
 ):
     query = (
         select(Actualite)
@@ -292,7 +331,7 @@ async def lister_actualites_publiques(
     if competition_id is not None:
         query = query.where(Actualite.competition_id == competition_id)
     result = await db.execute(query)
-    return [await _serialize_list(item, db) for item in result.scalars().all()]
+    return [await _serialize_list(item, db, client_token) for item in result.scalars().all()]
 
 
 @router.get("/gestion", response_model=list[ActualiteDetailOut])
@@ -612,6 +651,19 @@ async def designer_homme_du_match(
         select(HommeMatch).where(HommeMatch.id == homme.id).options(selectinload(HommeMatch.joueur).selectinload(Joueur.photo_actuelle_rel), selectinload(HommeMatch.club))
     )
     return await _homme_out(result.scalar_one(), db)
+
+
+@router.post("/{actualite_id}/lecture", response_model=LectureOut)
+async def marquer_actualite_lue(
+    actualite_id: int,
+    client_token: str | None = None,
+    db: AsyncSession = Depends(get_db),
+):
+    actualite = await _load_actualite(actualite_id, db)
+    if actualite.statut != StatutActualite.PUBLIE:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Actualité introuvable.")
+    await _marquer_lue(actualite.id, client_token, db)
+    return LectureOut(actualite_id=actualite.id, lu=await _lecture_state(actualite.id, client_token, db))
 
 
 @router.get("/{actualite_id}", response_model=ActualiteDetailOut)

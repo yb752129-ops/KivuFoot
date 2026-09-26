@@ -21,7 +21,7 @@ function fusionner(a, b) {
 
 function dateEditoriale(value) {
   if (!value) return "";
-  return new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium" }).format(new Date(value));
+  return new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
 }
 
 function prioriteEditoriale(item) {
@@ -40,14 +40,24 @@ export default function Home() {
   const [evtsById, setEvtsById] = useState({});
   const [actualites, setActualites] = useState([]);
   const [jourOffset, setJourOffset] = useState(0);
+  const [maintenant, setMaintenant] = useState(() => Date.now());
 
   useEffect(() => {
     let stop = false;
-    api.actualites({ competitionId: competition?.id || "", limit: 3 })
-      .then((rows) => { if (!stop) setActualites(rows || []); })
-      .catch(() => { if (!stop) setActualites([]); });
-    return () => { stop = true; };
+    function chargeActualites() {
+      api.actualites({ competitionId: competition?.id || "", limit: 50 })
+        .then((rows) => { if (!stop) setActualites(rows || []); })
+        .catch(() => { if (!stop) setActualites([]); });
+    }
+    chargeActualites();
+    const timer = setInterval(chargeActualites, 30000);
+    return () => { stop = true; clearInterval(timer); };
   }, [competition?.id]);
+
+  useEffect(() => {
+    const timer = setInterval(() => setMaintenant(Date.now()), 30000);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     if (!saison) return;
@@ -95,7 +105,11 @@ export default function Home() {
     .sort((a, b) => new Date(a.date_heure) - new Date(b.date_heure));
   const apercu = classement.slice(0, 5);
   const nomComp = competition ? stripDemo(competition.nom) : "";
-  const actualiteAccueil = actualites[0] || null;
+  const actualiteAccueil = actualites.find((item) => {
+    if (!item.date_publication) return false;
+    const age = maintenant - new Date(item.date_publication).getTime();
+    return age >= 0 && age < 10 * 60 * 1000;
+  }) || null;
   const numJ =
     lives[0]?.journee
     || aVenir[0]?.journee

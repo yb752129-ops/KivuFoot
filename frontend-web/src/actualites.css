@@ -2,7 +2,8 @@
 .masthead-raccourcis { width: 100%; display: flex; justify-content: flex-end; }
 .masthead-raccourcis .masthead-actualites-link { display: inline-flex; align-items: center; gap: .45rem; color: var(--stamp); border: 1px solid var(--stamp); background: color-mix(in srgb, var(--stamp) 9%, transparent); padding: .42rem .68rem; border-radius: 999px; font-size: .72rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; text-decoration: none; }
 .masthead-raccourcis .masthead-actualites-link:hover, .masthead-raccourcis .masthead-actualites-link.actif { background: var(--stamp); color: var(--paper); }
-.masthead-actualites-badge { padding-left: .45rem; border-left: 1px solid currentColor; font-size: .58rem; letter-spacing: .06em; white-space: nowrap; }
+.masthead-actualites-badge { display: inline-grid; min-width: 1.25rem; height: 1.25rem; place-items: center; padding: 0 .22rem; border-radius: 999px; background: var(--stamp); color: var(--paper); font-size: .64rem; line-height: 1; letter-spacing: 0; white-space: nowrap; }
+.masthead-raccourcis .masthead-actualites-link:hover .masthead-actualites-badge, .masthead-raccourcis .masthead-actualites-link.actif .masthead-actualites-badge { background: var(--paper); color: var(--stamp); }
 
 .actualites-page h1, .actualites-gestion h1 { margin-bottom: .25rem; }
 .actualites-en-tete { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; border-bottom: 1px solid var(--rule); padding-bottom: 1rem; }
@@ -12,6 +13,8 @@
 .actualites-filtres button.actif, .actualites-gestion-filtres button.actif { background: var(--stamp); border-color: var(--stamp); color: #fff; }
 .actualites-liste { display: grid; gap: .8rem; }
 .actualite-carte { display: grid; grid-template-columns: 6.2rem 1fr; gap: .8rem; padding: .7rem; border: 1px solid var(--rule); background: color-mix(in srgb, var(--paper-2) 45%, transparent); }
+.actualite-carte.actualite-non-lue { border-color: var(--stamp); box-shadow: inset .18rem 0 0 var(--stamp); }
+.actualite-non-lue-label { display: inline-block; width: max-content; margin: .1rem 0 .35rem .35rem; padding: .16rem .42rem; border-radius: 999px; background: var(--stamp); color: var(--paper); font-size: .62rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
 .actualite-vignette { width: 6.2rem; height: 6.2rem; object-fit: cover; background: var(--stamp-2); border-radius: .35rem; }
 .actualite-vignette-vide { display: grid; place-items: center; color: var(--paper); font-family: var(--serif); font-size: 1rem; }
 .actualite-carte-corps { min-width: 0; }

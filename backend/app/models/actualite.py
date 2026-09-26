@@ -62,6 +62,7 @@ class Actualite(Base):
         order_by="ActualiteImage.ordre, ActualiteImage.id",
     )
     likes = relationship("ActualiteLike", back_populates="actualite", cascade="all, delete-orphan")
+    lectures = relationship("ActualiteLecture", back_populates="actualite", cascade="all, delete-orphan")
 
 
 class ActualiteImage(Base):
@@ -93,6 +94,21 @@ class ActualiteLike(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     actualite = relationship("Actualite", back_populates="likes")
+
+
+class ActualiteLecture(Base):
+    __tablename__ = "actualite_lectures"
+    __table_args__ = (
+        UniqueConstraint("actualite_id", "token_hash", name="uq_actualite_lectures_actualite_token"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    actualite_id: Mapped[int] = mapped_column(ForeignKey("actualites.id", ondelete="CASCADE"), nullable=False, index=True)
+    # Le jeton anonyme est haché, comme pour les likes : aucune valeur client brute n'est persistée.
+    token_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    date_lecture: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    actualite = relationship("Actualite", back_populates="lectures")
 
 
 class HommeMatch(Base):

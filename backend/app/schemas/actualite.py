@@ -113,6 +113,7 @@ class ActualiteListOut(BaseModel):
     joueur_id: int | None
     joueur_nom: str | None
     like_count: int = 0
+    lu: bool = False
 
 
 class ActualiteDetailOut(ActualiteListOut):
@@ -138,6 +139,11 @@ class LikeOut(BaseModel):
     actualite_id: int
     liked: bool
     like_count: int
+
+
+class LectureOut(BaseModel):
+    actualite_id: int
+    lu: bool = True
 
 
 class HommeMatchCreate(BaseModel):
