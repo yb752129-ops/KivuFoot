@@ -77,7 +77,7 @@ export default function Home() {
         if (stop) return;
         const rows = fusionner(p, g);
         setMatchs(rows);
-        const lives = rows.filter((m) => m.statut === "en_cours");
+        const lives = rows.filter((m) => m.statut === "en_cours" && !m.ended_at);
         if (!lives.length) {
           setEvtsById({});
           return;
@@ -100,7 +100,7 @@ export default function Home() {
     };
   }, [saison, staff]);
 
-  const lives = matchs.filter((m) => m.statut === "en_cours");
+  const lives = matchs.filter((m) => m.statut === "en_cours" && !m.ended_at);
   const jour = jourOffset === 0 ? todayCivil() : addCivilDays(todayCivil(), 1);
   const programmes = matchs
     .filter((m) => m.statut === "programme")

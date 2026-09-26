@@ -79,7 +79,7 @@ export default function MatchDetail() {
 
   const home = clubsById[match.equipe_domicile_id];
   const away = clubsById[match.equipe_exterieur_id];
-  const live = match.statut === "en_cours";
+  const live = match.statut === "en_cours" && !match.ended_at;
   const nom = (jid) => joueurs[jid]?.nom_complet || "à compléter";
   const faits = grouperFaits(evts);
   const stats = statsDesFaits(evts);

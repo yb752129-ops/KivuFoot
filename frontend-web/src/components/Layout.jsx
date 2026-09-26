@@ -40,7 +40,7 @@ function Cloche() {
     function charge() {
       api.matchs(saison.id)
         .then((rows) => {
-          if (!stop) setLives((rows || []).filter((m) => m.statut === "en_cours"));
+          if (!stop) setLives((rows || []).filter((m) => m.statut === "en_cours" && !m.ended_at));
         })
         .catch(() => { if (!stop) setLives([]); });
     }

@@ -16,7 +16,7 @@ export default function Matchs() {
       if (stop) return;
       const list = rows || [];
       setMatchs(list);
-      const lives = list.filter((m) => m.statut === "en_cours");
+      const lives = list.filter((m) => m.statut === "en_cours" && !m.ended_at);
       if (!lives.length) {
         setEvtsById({});
         return;
@@ -33,7 +33,7 @@ export default function Matchs() {
     return () => { stop = true; };
   }, [saison]);
 
-  const lives = matchs.filter((m) => m.statut === "en_cours");
+  const lives = matchs.filter((m) => m.statut === "en_cours" && !m.ended_at);
   const aVenir = matchs
     .filter((m) => m.statut === "programme")
     .sort((a, b) => new Date(a.date_heure) - new Date(b.date_heure));
