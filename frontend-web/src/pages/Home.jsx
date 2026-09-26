@@ -24,6 +24,13 @@ function dateEditoriale(value) {
   return new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
 }
 
+function LogoClub({ club, nom }) {
+  if (club?.logo_url) {
+    return <img className="classement-logo" src={club.logo_url} alt={`Logo ${stripDemo(nom)}`} loading="lazy" />;
+  }
+  return <span className="classement-logo classement-logo-vide" aria-hidden="true">{stripDemo(nom || "?").slice(0, 2).toUpperCase()}</span>;
+}
+
 function prioriteEditoriale(item) {
   if (item.mise_en_avant) return "À la une";
   const age = item.date_publication ? Date.now() - new Date(item.date_publication).getTime() : -1;
@@ -228,19 +235,23 @@ export default function Home() {
               </tr>
             </thead>
             <tbody>
-              {apercu.map((l, i) => (
-                <tr key={l.club_id}>
-                  <td className="pos">{i + 1}</td>
-                  <td>
-                    <Link to={`/clubs/${l.club_id}`}>{stripDemo(l.club_nom)}</Link>
-                  </td>
-                  <td><strong>{l.points}</strong></td>
-                  <td>{l.matchs_joues}</td>
-                  <td>
-                    {l.difference_buts > 0 ? `+${l.difference_buts}` : l.difference_buts}
-                  </td>
-                </tr>
-              ))}
+              {apercu.map((l, i) => {
+                const club = clubsById[l.club_id];
+                return (
+                  <tr key={l.club_id}>
+                    <td className="pos">{i + 1}</td>
+                    <td>
+                      <Link to={`/clubs/${l.club_id}`} className="classement-club-cell">
+                        <LogoClub club={club} nom={l.club_nom} />
+                        <span>{stripDemo(l.club_nom)}</span>
+                      </Link>
+                    </td>
+                    <td><strong>{l.points}</strong></td>
+                    <td>{l.matchs_joues}</td>
+                    <td>{l.difference_buts > 0 ? `+${l.difference_buts}` : l.difference_buts}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         )}

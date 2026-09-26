@@ -50,5 +50,7 @@ class ClassementLigne(BaseModel):
 class TopStatLigne(BaseModel):
     joueur_id: int
     joueur_nom: str
-    club_nom: str | None
+    club_id: int | None = None
+    club_nom: str | None = None
+    photo_url: str | None = None
     valeur: int

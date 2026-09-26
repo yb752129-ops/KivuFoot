@@ -450,6 +450,17 @@ h1 {
 }
 .table tbody tr:last-child td { border-bottom: 0; }
 .pos { width: 1.5rem; font-variant-numeric: tabular-nums; font-weight: 700; }
+.classement-club-cell { display: inline-flex; align-items: center; gap: .5rem; min-width: 9.5rem; color: inherit; }
+.classement-logo { width: 1.8rem; height: 1.8rem; flex: 0 0 1.8rem; object-fit: contain; border-radius: 50%; border: 1px solid var(--rule-strong); background: var(--paper-2); }
+.classement-logo-vide { display: inline-grid; place-items: center; color: var(--stamp); font-size: .62rem; font-weight: 800; letter-spacing: .03em; }
+.stats-joueur-row { display: grid; grid-template-columns: 2.8rem 1fr auto; align-items: center; gap: .75rem; width: 100%; padding: .72rem 0; border-bottom: 1px solid var(--rule); color: inherit; text-decoration: none; }
+.stats-joueur-row:last-of-type { border-bottom: 0; }
+.stats-joueur-row:hover .stats-joueur-infos strong { color: var(--stamp); }
+.stats-joueur-photo { width: 2.8rem; height: 2.8rem; display: grid; place-items: center; overflow: hidden; border-radius: 50%; border: 1px solid var(--rule-strong); background: var(--paper-2); color: var(--stamp); font-size: .78rem; font-weight: 800; }
+.stats-joueur-photo img { width: 100%; height: 100%; object-fit: cover; }
+.stats-joueur-infos { display: grid; gap: .18rem; min-width: 0; }
+.stats-joueur-infos strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.stats-joueur-infos span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink-soft); font-size: .78rem; }
 
 .badge {
   display: inline-block;

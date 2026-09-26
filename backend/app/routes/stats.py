@@ -1,9 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.auth.rbac import require_roles
 from app.database import get_db
+from app.models.club import Club
 from app.models.enums import RoleUtilisateur
 from app.models.joueur import Joueur
 from app.models.stats import StatistiqueJoueur
@@ -36,19 +38,23 @@ async def stats_joueur(
 
 async def _top(db: AsyncSession, saison_id: int, colonne, limit: int) -> list[TopStatLigne]:
     result = await db.execute(
-        select(StatistiqueJoueur, Joueur)
+        select(StatistiqueJoueur, Joueur, Club)
         .join(Joueur, Joueur.id == StatistiqueJoueur.joueur_id)
+        .outerjoin(Club, Club.id == Joueur.club_actuel_id)
+        .options(selectinload(Joueur.photo_actuelle_rel))
         .where(StatistiqueJoueur.saison_id == saison_id, Joueur.anonymise.is_(False))
-        .order_by(colonne.desc())
+        .order_by(colonne.desc(), Joueur.nom_complet.asc())
         .limit(min(limit, 50))
     )
     lignes = []
-    for stat, joueur in result.all():
+    for stat, joueur, club in result.all():
         lignes.append(
             TopStatLigne(
                 joueur_id=joueur.id,
                 joueur_nom=joueur.nom_complet,
-                club_nom=None,
+                club_id=club.id if club else None,
+                club_nom=club.nom if club else None,
+                photo_url=joueur.photo_url,
                 valeur=getattr(stat, colonne.key),
             )
         )

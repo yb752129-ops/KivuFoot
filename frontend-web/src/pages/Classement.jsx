@@ -6,8 +6,15 @@ import { stripDemo } from "../display.js";
 
 const GROUPES = ["A", "B", "C", "D"];
 
+function LogoClub({ club, nom }) {
+  if (club?.logo_url) {
+    return <img className="classement-logo" src={club.logo_url} alt={`Logo ${stripDemo(nom)}`} loading="lazy" />;
+  }
+  return <span className="classement-logo classement-logo-vide" aria-hidden="true">{stripDemo(nom || "?").slice(0, 2).toUpperCase()}</span>;
+}
+
 export default function Classement() {
-  const { saison, saisonClubs } = useKivu();
+  const { saison, saisonClubs, clubsById } = useKivu();
   const [lignes, setLignes] = useState([]);
   const [groupes, setGroupes] = useState([]);
   const [groupe, setGroupe] = useState("");
@@ -62,20 +69,28 @@ export default function Classement() {
               </tr>
             </thead>
             <tbody>
-              {lignes.map((l, i) => (
-                <tr key={l.club_id}>
-                  <td className="pos">{i + 1}</td>
-                  <td><Link to={`/clubs/${l.club_id}`}>{stripDemo(l.club_nom)}</Link></td>
-                  <td><strong>{l.points}</strong></td>
-                  <td>{l.matchs_joues}</td>
-                  <td>{l.victoires}</td>
-                  <td>{l.nuls}</td>
-                  <td>{l.defaites}</td>
-                  <td>{l.buts_marques}</td>
-                  <td>{l.buts_encaisses}</td>
-                  <td>{l.difference_buts > 0 ? `+${l.difference_buts}` : l.difference_buts}</td>
-                </tr>
-              ))}
+              {lignes.map((l, i) => {
+                const club = clubsById[l.club_id] || (saisonClubs || []).find((item) => item.id === l.club_id || item.club_id === l.club_id);
+                return (
+                  <tr key={l.club_id}>
+                    <td className="pos">{i + 1}</td>
+                    <td>
+                      <Link to={`/clubs/${l.club_id}`} className="classement-club-cell">
+                        <LogoClub club={club} nom={l.club_nom} />
+                        <span>{stripDemo(l.club_nom)}</span>
+                      </Link>
+                    </td>
+                    <td><strong>{l.points}</strong></td>
+                    <td>{l.matchs_joues}</td>
+                    <td>{l.victoires}</td>
+                    <td>{l.nuls}</td>
+                    <td>{l.defaites}</td>
+                    <td>{l.buts_marques}</td>
+                    <td>{l.buts_encaisses}</td>
+                    <td>{l.difference_buts > 0 ? `+${l.difference_buts}` : l.difference_buts}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         )}
