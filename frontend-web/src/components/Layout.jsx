@@ -146,6 +146,14 @@ export default function Layout() {
                 </span>
               )}
             </NavLink>
+            <NavLink
+              to="/install"
+              className={({ isActive }) => `masthead-install-link${isActive ? " actif" : ""}`}
+              aria-label="Installer KivuFoot"
+            >
+              <span aria-hidden="true">⇩</span>
+              <span>Installer KivuFoot</span>
+            </NavLink>
           </div>
           {competition?.est_demo && (
             <p className="demo-line">Données de démonstration</p>

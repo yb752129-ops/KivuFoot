@@ -1,6 +1,16 @@
 /* KivuFoot — service worker : coquille hors ligne, polices en cache, API jamais cachée. */
-const CACHE = "kivufoot-shell-v1";
-const SHELL = ["/", "/index.html", "/manifest.webmanifest", "/favicon-64.png", "/apple-180.png"];
+const CACHE = "kivufoot-shell-v2";
+const SHELL = [
+  "/",
+  "/index.html",
+  "/manifest.webmanifest",
+  "/favicon-64.png",
+  "/favicon.svg",
+  "/apple-180.png",
+  "/icone-192.png",
+  "/icone-512.png",
+  "/install"
+];
 
 self.addEventListener("install", (e) => {
   e.waitUntil(

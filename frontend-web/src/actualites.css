@@ -4,6 +4,29 @@
 .masthead-raccourcis .masthead-actualites-link:hover, .masthead-raccourcis .masthead-actualites-link.actif { background: var(--stamp); color: var(--paper); }
 .masthead-actualites-badge { display: inline-grid; min-width: 1.25rem; height: 1.25rem; place-items: center; padding: 0 .22rem; border-radius: 999px; background: var(--stamp); color: var(--paper); font-size: .64rem; line-height: 1; letter-spacing: 0; white-space: nowrap; }
 .masthead-raccourcis .masthead-actualites-link:hover .masthead-actualites-badge, .masthead-raccourcis .masthead-actualites-link.actif .masthead-actualites-badge { background: var(--paper); color: var(--stamp); }
+.masthead-raccourcis .masthead-install-link { display: inline-flex; align-items: center; gap: .4rem; color: var(--paper); border: 1px solid var(--stamp); background: var(--stamp); padding: .42rem .68rem; border-radius: 999px; font-size: .72rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; text-decoration: none; }
+.masthead-raccourcis .masthead-install-link:hover, .masthead-raccourcis .masthead-install-link.actif { background: var(--stamp-2); border-color: var(--stamp-2); }
+
+.install-page { max-width: 40rem; min-height: 100dvh; margin: 0 auto; padding: 1rem 1rem 3rem; }
+.install-retour { display: inline-block; color: var(--stamp); font-size: .82rem; font-weight: 700; margin-bottom: 1.25rem; }
+.install-intro { text-align: center; border-bottom: 1px solid var(--rule); padding: .5rem 0 1.35rem; }
+.install-logo { display: block; width: 5.5rem; height: 5.5rem; margin: 0 auto 1rem; object-fit: cover; border-radius: 1.2rem; }
+.install-intro .kicker { margin: 0 0 .3rem; color: var(--stamp); font-size: .72rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
+.install-intro h1 { margin: 0; font-family: var(--serif); font-size: clamp(2rem, 9vw, 3rem); line-height: 1.05; }
+.install-intro > p:last-child { max-width: 32rem; margin: .8rem auto 0; color: var(--ink-soft); font-size: .95rem; }
+.install-action { margin: 1.2rem 0 .8rem; min-height: 3.2rem; font-size: .95rem; letter-spacing: .04em; text-transform: uppercase; }
+.install-message { margin: .7rem 0 1rem; padding: .75rem .85rem; border-left: 3px solid var(--stamp); background: color-mix(in srgb, var(--paper-2) 58%, transparent); color: var(--ink); font-size: .88rem; }
+.install-instructions { margin-top: 1.25rem; }
+.install-instructions .section-head { margin-top: 0; }
+.install-step { border-bottom: 1px solid var(--rule); padding: .85rem 0; }
+.install-step strong { display: block; color: var(--stamp); font-size: .98rem; }
+.install-step p { margin: .35rem 0 0; color: var(--ink-soft); font-size: .9rem; }
+.install-note { margin: 1.2rem 0 0; color: var(--ink-soft); font-size: .78rem; }
+
+@media (max-width: 520px) {
+  .masthead-raccourcis { justify-content: flex-start; overflow-x: auto; padding-bottom: .15rem; }
+  .masthead-raccourcis .masthead-actualites-link, .masthead-raccourcis .masthead-install-link { flex: 0 0 auto; }
+}
 
 .actualites-page h1, .actualites-gestion h1 { margin-bottom: .25rem; }
 .actualites-en-tete { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; border-bottom: 1px solid var(--rule); padding-bottom: 1rem; }

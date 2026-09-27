@@ -45,12 +45,15 @@ import AdminAudit from "./pages/admin/Audit.jsx";
 import AdminPropositions from "./pages/admin/Propositions.jsx";
 import AdminComptes from "./pages/admin/Comptes.jsx";
 import Activation from "./pages/Activation.jsx";
+import Installation from "./pages/Installation.jsx";
 import { AuthProvider, useAuth } from "./auth.jsx";
 import { isAuthenticated } from "./api.js";
 import Reseau from "./components/Reseau.jsx";
 
 function PorteChargement({ children }) {
   const { loading, error, competitions, reessayer } = useKivu();
+  const pageInstallation = typeof window !== "undefined" && window.location.pathname === "/install";
+  if (pageInstallation) return children;
   if (loading) return <ChargementEcran />;
   if (error && competitions.length === 0) {
     return <ChargementEcran erreur={error} onRetry={reessayer} />;
@@ -79,6 +82,7 @@ export default function App() {
       <KivuProvider>
         <PorteChargement>
         <Routes>
+          <Route path="/install" element={<Installation />} />
           <Route element={<Layout />}>
             <Route path="/" element={<Home />} />
             <Route path="/classement" element={<Classement />} />
