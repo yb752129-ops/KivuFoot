@@ -141,6 +141,7 @@ const LOGOS_LOCAUX = {
   "droit": "/logos-equipes/droit.png",
   "info 2026": "/logos-equipes/info-2026.png",
   "info-2026": "/logos-equipes/info-2026.png",
+  "bae": "/logos-equipes/bae.png",
 };
 
 function cleLogo(nom) {
