@@ -10,6 +10,7 @@ import Matchs from "./pages/Matchs.jsx";
 import MatchDetail from "./pages/MatchDetail.jsx";
 import Actualites from "./pages/Actualites.jsx";
 import ActualiteDetail from "./pages/ActualiteDetail.jsx";
+import Competition from "./pages/Competition.jsx";
 import Clubs from "./pages/Clubs.jsx";
 import ClubDetail from "./pages/ClubDetail.jsx";
 import Joueur from "./pages/Joueur.jsx";
@@ -90,6 +91,7 @@ export default function App() {
             <Route path="/matchs/:id" element={<MatchDetail />} />
             <Route path="/actualites" element={<Actualites />} />
             <Route path="/actualites/:id" element={<ActualiteDetail />} />
+            <Route path="/competitions/:id" element={<Competition />} />
             <Route path="/clubs" element={<Clubs />} />
             <Route path="/clubs/:id" element={<ClubDetail />} />
             <Route path="/joueurs/:id" element={<Joueur />} />

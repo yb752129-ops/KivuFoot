@@ -50,6 +50,12 @@
 .actualite-bas a, .actualite-match-link { color: var(--stamp); font-weight: 700; }
 
 .actualite-detail { max-width: 42rem; }
+.actualite-competition { display: grid; gap: .35rem; border: 1px solid var(--stamp); padding: 1rem; margin: 1rem 0; background: color-mix(in srgb, var(--paper-2) 42%, transparent); }
+.actualite-competition .kicker { margin: 0; }
+.actualite-competition strong { font-family: var(--serif); font-size: 1.2rem; }
+.actualite-competition span { color: var(--ink-soft); font-size: .82rem; }
+.actualite-competition-link { width: max-content; color: var(--stamp); font-size: .82rem; font-weight: 700; }
+.actualite-accueil-source { color: var(--stamp) !important; font-weight: 700; }
 .actualite-preview-bandeau { border: 1px solid var(--warn); color: var(--warn); padding: .65rem .8rem; font-size: .82rem; }
 .actualite-detail-categorie { margin: 1rem 0 .35rem; color: var(--stamp); font-size: .76rem; letter-spacing: .12em; font-weight: 700; text-transform: uppercase; }
 .actualite-detail h1 { max-width: 38rem; margin: 0; font-family: var(--serif); font-size: clamp(2rem, 8vw, 3.3rem); line-height: 1.04; }
@@ -119,6 +125,15 @@
 .actualite-accueil-date { color: var(--stamp) !important; font-weight: 700; }
 .actualite-accueil-toutes { display: inline-block; margin-top: .8rem; color: var(--ink-soft); font-size: .78rem; }
 .actualite-admin-une { width: max-content; color: var(--stamp); font-size: .65rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+
+.competition-page { max-width: 42rem; }
+.competition-sceau { width: max-content; margin: 1rem 0 .55rem; padding: .28rem .5rem; border: 1px solid var(--stamp); color: var(--stamp); font-size: .68rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+.competition-page h1 { margin: 0; font-family: var(--serif); font-size: clamp(2rem, 8vw, 3.2rem); line-height: 1.05; }
+.competition-fiche { display: grid; gap: .55rem; margin: 1.2rem 0; border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); padding: .8rem 0; }
+.competition-fiche p { display: flex; justify-content: space-between; gap: 1rem; margin: 0; color: var(--ink-soft); font-size: .86rem; }
+.competition-fiche strong { color: var(--ink); }
+.competition-actions { display: flex; flex-wrap: wrap; gap: .55rem; margin: 1rem 0; }
+.competition-note { margin-top: 1.25rem; color: var(--ink-soft); font-size: .82rem; line-height: 1.55; }
 
 @media (max-width: 520px) {
   .actualite-accueil-carte { grid-template-columns: 5.4rem 1fr; gap: .65rem; }

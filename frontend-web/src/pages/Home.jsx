@@ -112,11 +112,13 @@ export default function Home() {
     .sort((a, b) => new Date(a.date_heure) - new Date(b.date_heure));
   const apercu = classement.slice(0, 5);
   const nomComp = competition ? stripDemo(competition.nom) : "";
-  const actualiteAccueil = actualites.find((item) => {
-    if (!item.date_publication) return false;
-    const age = maintenant - new Date(item.date_publication).getTime();
-    return age >= 0 && age < 10 * 60 * 1000;
-  }) || null;
+  const actualiteAccueil = actualites.find((item) => item.mise_en_avant)
+    || actualites.find((item) => {
+      if (!item.date_publication) return false;
+      const age = maintenant - new Date(item.date_publication).getTime();
+      return age >= 0 && age < 10 * 60 * 1000;
+    })
+    || null;
   const numJ =
     lives[0]?.journee
     || aVenir[0]?.journee
@@ -149,7 +151,9 @@ export default function Home() {
           <div className="actualite-accueil-en-tete">
             <div>
               <p className="kicker">📰 Actualités</p>
-              <h2 id="actualite-accueil-titre">Une information est disponible</h2>
+              <h2 id="actualite-accueil-titre">
+                {actualiteAccueil.categorie === "annonce" ? "Communication officielle" : "Une information est disponible"}
+              </h2>
             </div>
             <span className={`actualite-priorite ${actualiteAccueil.mise_en_avant ? "actualite-priorite-une" : ""}`}>
               {prioriteEditoriale(actualiteAccueil)}
@@ -163,6 +167,7 @@ export default function Home() {
             )}
             <div>
               <p className="actualite-accueil-date">{dateEditoriale(actualiteAccueil.date_publication)}</p>
+              {actualiteAccueil.categorie === "annonce" && <p className="actualite-accueil-source">Source : Comité d’Organisation</p>}
               <h3>{actualiteAccueil.titre}</h3>
               {actualiteAccueil.competition_nom && <p>{actualiteAccueil.competition_nom}</p>}
               <strong>Lire l’actualité →</strong>

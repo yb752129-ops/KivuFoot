@@ -4,6 +4,23 @@ import { api, getActualiteClientToken } from "../api.js";
 import { marquerActualiteLue } from "../actualitesRead.js";
 import { CATEGORIES, dateTexte, libellePriorite } from "./Actualites.jsx";
 
+function CompetitionLien({ item }) {
+  if (!item?.competition_id) return null;
+  return (
+    <aside className="actualite-competition">
+      <p className="kicker">Compétition concernée</p>
+      <strong>{item.competition_nom || "Compétition officielle"}</strong>
+      {item.saison_nom && <span>{item.saison_nom}</span>}
+      <Link className="actualite-competition-link" to={`/competitions/${item.competition_id}`}>
+        Ouvrir la page de la compétition →
+      </Link>
+      <Link className="actualite-competition-link" to={`/actualites?competition_id=${item.competition_id}`}>
+        Voir ses actualités →
+      </Link>
+    </aside>
+  );
+}
+
 function MatchLien({ match }) {
   if (!match) return null;
   return (
@@ -74,7 +91,9 @@ export default function ActualiteDetail({ preview = false }) {
         {libellePriorite(item)}
       </span>
       <h1>{item.titre}</h1>
-      <p className="actualite-detail-date">Publié le {dateTexte(item.date_publication || item.date_creation)} · {item.auteur_nom || "KivuFoot"}</p>
+      <p className="actualite-detail-date">
+        Publié le {dateTexte(item.date_publication || item.date_creation)} · {item.categorie === "annonce" ? "Source : Comité d’Organisation" : (item.auteur_nom || "Organisateur de la compétition")}
+      </p>
       {(item.competition_nom || item.saison_nom || item.journee) && (
         <p className="actualite-detail-contexte">
           {item.competition_nom || "Compétition"}{item.saison_nom ? ` · ${item.saison_nom}` : ""}{item.journee ? ` · ${item.journee}` : ""}
@@ -95,6 +114,7 @@ export default function ActualiteDetail({ preview = false }) {
       <div className="actualite-texte">
         {item.texte.split(/\n\s*\n/).map((paragraph, index) => <p key={index}>{paragraph}</p>)}
       </div>
+      <CompetitionLien item={item} />
       <MatchLien match={item.match} />
       {item.homme_match && (
         <aside className="actualite-joueur">
@@ -110,7 +130,7 @@ export default function ActualiteDetail({ preview = false }) {
         <button type="button" className={`actualite-like ${item.liked ? "aime" : ""}`} disabled={busy || preview} onClick={aimer}>
           {item.liked ? "♥ Aimé" : "♡ J’aime"} · {item.like_count || 0}
         </button>
-        <small>Résultats validés par les organisateurs et publiés avec KivuFoot.</small>
+        <small>{item.categorie === "annonce" ? "KivuFoot diffuse cette communication ; la décision appartient au Comité d’Organisation." : "Résultats validés par les organisateurs et publiés avec KivuFoot."}</small>
       </div>
     </article>
   );

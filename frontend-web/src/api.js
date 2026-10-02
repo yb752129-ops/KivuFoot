@@ -165,6 +165,7 @@ function avecLogosLocaux(data) {
 
 export const api = {
   competitions: () => request("/competitions"),
+  competition: (id) => request(`/competitions/${id}`),
   creerCompetition: (payload) => request("/competitions", { method: "POST", body: payload, auth: true }),
   supprimerCompetition: (id, purger = false) => request(`/competitions/${id}${purger ? "?purger=true" : ""}`, { method: "DELETE", auth: true }),
   saisons: (competitionId) => request(`/saisons?competition_id=${competitionId}`),

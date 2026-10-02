@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { api, getActualiteClientToken } from "../api.js";
 import { useActualitesLues } from "../actualitesRead.js";
 import { useKivu } from "../context.jsx";
 
 const CATEGORIES = {
-  annonce: "Annonce",
+  annonce: "Annonce officielle",
   match_competition: "Match / compétition",
   retour_journee: "Retour de journée",
   homme_du_match: "Homme du match",
@@ -36,6 +36,9 @@ export { CATEGORIES, dateTexte, estRecente, libellePriorite };
 
 export default function Actualites() {
   const { competition } = useKivu();
+  const [searchParams] = useSearchParams();
+  const competitionParam = searchParams.get("competition_id") || "";
+  const competitionId = competitionParam || competition?.id || "";
   const [items, setItems] = useState([]);
   const [categorie, setCategorie] = useState("");
   const [err, setErr] = useState("");
@@ -45,7 +48,7 @@ export default function Actualites() {
   async function load() {
     setLoading(true);
     try {
-      const rows = await api.actualites({ categorie, competitionId: competition?.id || "", clientToken: getActualiteClientToken() });
+      const rows = await api.actualites({ categorie, competitionId, clientToken: getActualiteClientToken() });
       setItems(rows || []);
       setErr("");
     } catch (e) {
@@ -55,7 +58,7 @@ export default function Actualites() {
     }
   }
 
-  useEffect(() => { load(); }, [categorie, competition?.id]);
+  useEffect(() => { load(); }, [categorie, competitionId]);
 
   return (
     <section className="hero actualites-page">

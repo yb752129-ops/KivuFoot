@@ -5,6 +5,18 @@ import { useKivu } from "../../context.jsx";
 import { CATEGORIES, dateTexte } from "../Actualites.jsx";
 
 const STATUS = { brouillon: "Brouillons", publie: "Publiées", archive: "Archivées" };
+const COMMUNIQUE_TITRE = "COMMUNIQUÉ OFFICIEL — Comité d’Organisation";
+const COMMUNIQUE_TEXTE = `COMMUNIQUÉ OFFICIEL
+
+À l'attention des représentants de toutes les équipes engagées
+
+Le Comité d'Organisation porte à la connaissance de tous les représentants d'équipes que aucune équipe ne sera autorisée à disputer son match sans s'être acquittée au préalable de la totalité des frais d'affiliation à la compétition, y compris les sanctions liées aux cartons (jaune et rouge).
+
+En ce qui concerne les joueurs sous sanction, vous êtes priés de consulter la liste officielle sur le lien de la compétition KivuFoot.
+
+Nous comptons sur la compréhension et le strict respect des présentes dispositions pour le bon déroulement de la compétition.
+
+Pour le Comité d'Organisation ✍️`;
 const EMPTY = { titre: "", categorie: "annonce", texte: "", match_id: "", journee: "", club_id: "", joueur_id: "", telechargement_autorise: true, mise_en_avant: false };
 
 export default function OrgaActualites() {
@@ -41,6 +53,64 @@ export default function OrgaActualites() {
     setFiles([]);
     setMsg("");
     setErr("");
+  }
+
+  function preparerCommunique() {
+    setSelectedId(null);
+    setForm({
+      ...EMPTY,
+      titre: COMMUNIQUE_TITRE,
+      categorie: "annonce",
+      texte: COMMUNIQUE_TEXTE,
+      mise_en_avant: true,
+      telechargement_autorise: true,
+    });
+    setFiles([]);
+    setErr("");
+    setMsg("Le communiqué officiel est prérempli. Enregistrez le brouillon puis publiez-le après vérification.");
+  }
+
+  async function publierCommunique() {
+    if (busy || !competition?.id) {
+      setErr("Choisissez une compétition avant de publier le communiqué.");
+      return;
+    }
+    const confirme = window.confirm(
+      `Publier maintenant le communiqué officiel pour « ${competition.nom} » ?\n\nIl sera visible dans Actualités et mis en avant sur l’accueil. Aucun montant ni aucune sanction ne sera ajouté.`
+    );
+    if (!confirme) return;
+    setBusy(true);
+    setErr("");
+    setMsg("");
+    try {
+      const existingRows = await api.actualitesGestion({ competitionId: competition.id });
+      let existing = (existingRows || []).find(
+        (item) => item.titre === COMMUNIQUE_TITRE && item.competition_id === competition.id && item.statut !== "archive"
+      );
+      if (!existing) {
+        existing = await api.creerActualite({
+          titre: COMMUNIQUE_TITRE,
+          categorie: "annonce",
+          texte: COMMUNIQUE_TEXTE,
+          competition_id: competition.id,
+          saison_id: saison?.id || null,
+          journee: null,
+          match_id: null,
+          club_id: null,
+          joueur_id: null,
+          telechargement_autorise: true,
+          mise_en_avant: true,
+        });
+      }
+      if (existing.statut === "brouillon") await api.publierActualite(existing.id);
+      setSelectedId(existing.id);
+      await load();
+      setMsg("Communication officielle publiée dans Actualités et mise en avant sur l’accueil.");
+    } catch (e) {
+      setErr(e.message);
+    } finally {
+      setBusy(false);
+    }
   }
 
   function edit(item) {
@@ -135,7 +205,11 @@ export default function OrgaActualites() {
     <section className="hero actualites-gestion">
       <div className="actualites-en-tete">
         <div><p className="kicker">Bureau éditorial</p><h1>Actualités</h1><p className="lead">Créer, vérifier, prévisualiser puis publier.</p></div>
-        <button type="button" className="btn btn-primary" onClick={nouveau}>+ Nouvelle actualité</button>
+        <div className="file-actions">
+          <button type="button" className="btn btn-primary" disabled={busy} onClick={publierCommunique}>Publier le communiqué officiel</button>
+          <button type="button" className="btn" disabled={busy} onClick={preparerCommunique}>Préparer le brouillon officiel</button>
+          <button type="button" className="btn" disabled={busy} onClick={nouveau}>+ Nouvelle actualité</button>
+        </div>
       </div>
       {err && <p className="erreur">{err}</p>}
       {msg && <p className="empty">{msg}</p>}
