@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import delete as sql_delete, select
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -156,6 +156,61 @@ async def creer_match(
     await db.commit()
     await db.refresh(match_)
     return match_
+
+
+@router.delete("/{match_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def supprimer_match_programme(
+    match_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles(RoleUtilisateur.ADMIN, RoleUtilisateur.ORGANISATEUR)),
+):
+    """Supprime uniquement un match encore programmé et non verrouillé.
+
+    Cette porte est volontairement étroite : elle sert à corriger une double
+    programmation avant le coup d'envoi. Un match commencé, terminé, validé,
+    verrouillé ou déjà enrichi de faits/participations ne peut pas être effacé.
+    """
+    match_ = await verifier_organisateur_du_match(match_id, current_user, db)
+    statut = match_.statut.value if hasattr(match_.statut, "value") else match_.statut
+    if match_.locked:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Ce match est verrouillé.")
+    if statut != StatutMatch.PROGRAMME.value and statut != StatutMatch.PROGRAMME:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "Seul un match encore programmé peut être supprimé.",
+        )
+    date_heure = match_.date_heure
+    if date_heure.tzinfo is None:
+        date_heure = date_heure.replace(tzinfo=timezone.utc)
+    if match_.started_at is not None or date_heure <= datetime.now(timezone.utc):
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "Ce match a déjà commencé ou son coup d’envoi est dépassé.",
+        )
+    evenement = await db.execute(
+        select(EvenementMatch.id).where(EvenementMatch.match_id == match_id).limit(1)
+    )
+    participation = await db.execute(
+        select(MatchParticipation.id).where(MatchParticipation.match_id == match_id).limit(1)
+    )
+    if evenement.scalar_one_or_none() is not None or participation.scalar_one_or_none() is not None:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "Ce match contient déjà des données sportives et ne peut pas être supprimé.",
+        )
+    avant = {
+        "saison_id": match_.saison_id,
+        "journee": match_.journee,
+        "date_heure": match_.date_heure.isoformat(),
+        "equipe_domicile_id": match_.equipe_domicile_id,
+        "equipe_exterieur_id": match_.equipe_exterieur_id,
+        "stade": match_.stade,
+        "statut": statut,
+    }
+    await log_audit(db, "matchs", match_.id, ActionAudit.DELETE, current_user.id, avant, None)
+    await db.execute(sql_delete(Match).where(Match.id == match_id))
+    await db.commit()
+    return None
 
 
 @router.put("/{match_id}/statut", response_model=MatchOut)

@@ -333,6 +333,27 @@ export default function OrgaMatch({ backTo = "/orga/matchs", mode = "orga" } = {
     return act(() => api.forfait(id, equipe), `Forfait ${nom} : 0–3. À valider pour le classement.`);
   }
 
+  async function supprimerMatch() {
+    if (busy || busyRef.current || match.statut !== "programme" || match.locked) return;
+    const confirmation = window.confirm(
+      `Supprimer définitivement la programmation ${home} – ${away} ?\n\nCette action sert uniquement à corriger un doublon avant le coup d’envoi.`
+    );
+    if (!confirmation) return;
+    busyRef.current = true;
+    setBusy(true);
+    setErr("");
+    setMsg("");
+    try {
+      await api.supprimerMatch(id);
+      nav(backTo, { replace: true, state: { message: "Programmation supprimée." } });
+    } catch (e) {
+      setErr(e.message);
+    } finally {
+      busyRef.current = false;
+      setBusy(false);
+    }
+  }
+
   async function enregistrerFeuille() {
     setBusy(true);
     setErr("");
@@ -519,6 +540,11 @@ export default function OrgaMatch({ backTo = "/orga/matchs", mode = "orga" } = {
         {match.statut === "programme" && (
           <button className="btn btn-primary" type="button" disabled={busy} onClick={demarrer}>
             Démarrer — coup d’envoi
+          </button>
+        )}
+        {!collecteur && match.statut === "programme" && !match.locked && (
+          <button className="btn btn-danger" type="button" disabled={busy} onClick={supprimerMatch}>
+            {busy ? "Suppression…" : "Supprimer cette programmation"}
           </button>
         )}
         {enCours && periode !== "mi_temps" && periode !== "2" && (

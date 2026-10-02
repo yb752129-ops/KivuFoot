@@ -332,6 +332,7 @@ export const api = {
   majPhase: (id, phase, groupe) => request(`/matchs/${id}/phase`, { method: "PUT", body: { phase, groupe }, auth: true }),
   modifierProgrammation: (id, payload) =>
     request(`/matchs/${id}/programmation`, { method: "PUT", body: payload, auth: true }),
+  supprimerMatch: (id) => request(`/matchs/${id}`, { method: "DELETE", auth: true }),
   staffClub: (clubId) => request(`/clubs/${clubId}/staff`),
   creerStaff: (clubId, payload) => request(`/clubs/${clubId}/staff`, { method: "POST", body: payload, auth: true }),
   modifierStaff: (staffId, payload) => request(`/clubs/staff/${staffId}`, { method: "PATCH", body: payload, auth: true }),
