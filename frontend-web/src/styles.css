@@ -2861,8 +2861,32 @@ html[data-theme="dark"] .reseau-perdu {
 .timeline-liste li { display: grid; gap: 0.2rem; padding: 0.65rem 0 0.65rem 1rem; position: relative; }
 .timeline-liste li::before { content: ""; width: 0.55rem; height: 0.55rem; background: var(--lake); border-radius: 50%; position: absolute; left: -0.34rem; top: 0.9rem; }
 .timeline-liste time { color: var(--ink-soft); font-size: 0.78rem; }
+/* Historique mobile : le tableau peut défiler dans sa carte, jamais toute la page. */
+.historique-page,
+.historique-grille > .carte,
+.historique-page .carte {
+  min-width: 0;
+  max-width: 100%;
+}
+.historique-page .table-wrap {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+}
+.historique-page table {
+  min-width: 36rem;
+}
+html,
+body,
+#root {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
 @media (max-width: 760px) {
-  .historique-grille { grid-template-columns: 1fr; }
+  .historique-grille { grid-template-columns: minmax(0, 1fr); }
+  .historique-page .carte { min-width: 0; padding-inline: 0.75rem; overflow: hidden; }
   .historique-page th,
   .historique-page td { white-space: nowrap; }
 }
