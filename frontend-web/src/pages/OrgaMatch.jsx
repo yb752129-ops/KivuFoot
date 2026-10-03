@@ -62,8 +62,10 @@ export default function OrgaMatch({ backTo = "/orga/matchs", mode = "orga" } = {
   const [joueursDom, setJoueursDom] = useState([]);
   const [joueursExt, setJoueursExt] = useState([]);
   const [parts, setParts] = useState([]);
+  const [documents, setDocuments] = useState([]);
   const [err, setErr] = useState("");
   const [msg, setMsg] = useState("");
+  const [documentBusy, setDocumentBusy] = useState(false);
   const [busy, setBusy] = useState(false);
   const [type, setType] = useState("but");
   const [cote, setCote] = useState("domicile");
@@ -255,6 +257,7 @@ export default function OrgaMatch({ backTo = "/orga/matchs", mode = "orga" } = {
       setMatch(m);
       setPossession(possessionGestion || null);
       if (!collecteur) {
+        api.documentsMatch(id).then(setDocuments).catch(() => setDocuments([]));
         api.checklistValidation(id).then(setChecklist).catch(() => setChecklist(null));
       } else {
         setChecklist(null);
@@ -330,6 +333,23 @@ export default function OrgaMatch({ backTo = "/orga/matchs", mode = "orga" } = {
   }
   function publier() {
     return act(() => api.validerMatch(id), "Match validé. Classement officiel à jour.");
+  }
+  async function genererPDF() {
+    setDocumentBusy(true);
+    setErr("");
+    setMsg("");
+    try {
+      const document = await api.genererDocumentMatch(id);
+      if (document?.statut !== "publie" || !document?.url) {
+        throw new Error(document?.message_erreur || "Le PDF n’a pas pu être publié.");
+      }
+      setDocuments([document]);
+      setMsg("PDF officiel prêt au téléchargement.");
+    } catch (e) {
+      setErr(e.message || "Génération du PDF impossible.");
+    } finally {
+      setDocumentBusy(false);
+    }
   }
   function contester() {
     return act(() => api.changerStatut(id, "conteste"), "Match contesté. Hors classement.");
@@ -608,6 +628,24 @@ export default function OrgaMatch({ backTo = "/orga/matchs", mode = "orga" } = {
           </button>
         )}
       </div>
+
+      {!collecteur && match.locked && match.statut === "valide" && (
+        <section className="sheet document-actions" aria-label="Document officiel du match">
+          <div className="section-head">
+            <h2>Document officiel</h2>
+            <span className="stamp">PDF</span>
+          </div>
+          <p className="muted small">Le document est généré à partir des données validées et verrouillées de ce match.</p>
+          <button className="btn btn-primary" type="button" disabled={documentBusy} onClick={genererPDF}>
+            {documentBusy ? "Génération…" : "Générer le PDF officiel"}
+          </button>
+          {documents.map((document) => document.url && (
+            <p key={document.id}>
+              <a className="btn" href={document.url} target="_blank" rel="noreferrer">Télécharger le dossier officiel PDF</a>
+            </p>
+          ))}
+        </section>
+      )}
 
       <PossessionControle
         match={match}
