@@ -86,7 +86,7 @@ function Cloche() {
 }
 
 export default function Layout() {
-  const { competition, competitions, choisirCompetition, error } = useKivu();
+  const { competition, competitions, choisirCompetition, saisons, saison, choisirSaison, error } = useKivu();
   const { prenom } = useAuth();
   const [actualites, setActualites] = useState([]);
   const actualitesLues = useActualitesLues();
@@ -94,14 +94,14 @@ export default function Layout() {
   useEffect(() => {
     let stop = false;
     function chargeActualites() {
-      api.actualites({ competitionId: competition?.id || "", limit: 50, clientToken: getActualiteClientToken() })
+      api.actualites({ competitionId: competition?.id || "", saisonId: saison?.id || "", limit: 50, clientToken: getActualiteClientToken() })
         .then((rows) => { if (!stop) setActualites(rows || []); })
         .catch(() => { if (!stop) setActualites([]); });
     }
     chargeActualites();
     const timer = setInterval(chargeActualites, 30000);
     return () => { stop = true; clearInterval(timer); };
-  }, [competition?.id]);
+  }, [competition?.id, saison?.id]);
 
   const actualitesNonLues = actualites.filter((item) => !item.lu && !actualitesLues.has(Number(item.id)));
 
@@ -124,13 +124,25 @@ export default function Layout() {
             </NavLink>
           </div>
           {competitions.length > 0 && (
-            <p className="comp-nom">
-              {competition
-                ? competition.est_demo
-                  ? `Démo — ${stripDemo(competition.nom)}`
-                  : stripDemo(competition.nom)
-                : ""}
-            </p>
+            <div className="comp-selection">
+              <p className="comp-nom">
+                {competition
+                  ? competition.est_demo
+                    ? `Démo — ${stripDemo(competition.nom)}`
+                    : stripDemo(competition.nom)
+                  : ""}
+              </p>
+              {saisons.length > 1 && (
+                <label className="season-selector">
+                  Édition
+                  <select value={saison?.id || ""} onChange={(event) => choisirSaison(event.target.value)}>
+                    {saisons.map((edition) => (
+                      <option key={edition.id} value={edition.id}>{edition.nom || edition.date_debut || `Édition #${edition.id}`}</option>
+                    ))}
+                  </select>
+                </label>
+              )}
+            </div>
           )}
           <div className="masthead-raccourcis">
             <NavLink
@@ -145,6 +157,14 @@ export default function Layout() {
                   {actualitesNonLues.length > 99 ? "99+" : actualitesNonLues.length}
                 </span>
               )}
+            </NavLink>
+            <NavLink
+              to="/historique"
+              className={({ isActive }) => `masthead-install-link${isActive ? " actif" : ""}`}
+              aria-label="Historique officiel"
+            >
+              <span aria-hidden="true">◷</span>
+              <span>Historique</span>
             </NavLink>
             <NavLink
               to="/install"

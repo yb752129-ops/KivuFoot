@@ -28,6 +28,7 @@ class MatchOut(BaseModel):
     forfait: bool
     forfait_equipe: EquipeConcernee | None
     locked: bool
+    reglement_version_id: int | None = None
     resultat_retroactif: bool = False
     motif_resultat_retroactif: str | None = None
     note_officielle: str | None = None

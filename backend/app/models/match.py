@@ -43,6 +43,12 @@ class Match(Base):
     date_validation: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     locked: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
+    # Règlement explicite de l'édition. Nullable pour ne pas réécrire les
+    # matchs historiques avant décision du Comité d'Organisation.
+    reglement_version_id: Mapped[int | None] = mapped_column(
+        ForeignKey("reglements_versions.id", ondelete="RESTRICT"), index=True
+    )
+
     # Résultat saisi après coup par l'organisation lorsque le match a bien
     # été joué mais n'a pas suivi le flux live normal. Le score est alors
     # officiel sans fabriquer de buts, de minutes ou de buteurs.
@@ -60,6 +66,7 @@ class Match(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     saison = relationship("Saison", back_populates="matchs")
+    reglement = relationship("ReglementVersion")
     equipe_domicile = relationship("Club", foreign_keys=[equipe_domicile_id])
     equipe_exterieur = relationship("Club", foreign_keys=[equipe_exterieur_id])
     evenements = relationship("EvenementMatch", back_populates="match_", cascade="all, delete-orphan")

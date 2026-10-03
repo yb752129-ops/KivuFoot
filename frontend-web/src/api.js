@@ -243,10 +243,11 @@ export const api = {
   approuverProposition: (id) =>
     request(`/joueurs/propositions/${id}/approuver`, { method: "PUT", auth: true }),
   audit: () => request("/audit", { auth: true }),
-  actualites: ({ categorie = "", competitionId = "", offset = 0, limit = 20, clientToken = "" } = {}) => {
+  actualites: ({ categorie = "", competitionId = "", saisonId = "", offset = 0, limit = 20, clientToken = "" } = {}) => {
     const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
     if (categorie) params.set("categorie", categorie);
     if (competitionId) params.set("competition_id", String(competitionId));
+    if (saisonId) params.set("saison_id", String(saisonId));
     if (clientToken) params.set("client_token", clientToken);
     return request(`/actualites?${params.toString()}`);
   },
@@ -304,6 +305,30 @@ export const api = {
   classement: (saisonId, groupe) => request(`/classement?saison_id=${saisonId}${groupe ? `&groupe=${encodeURIComponent(groupe)}` : ""}`),
   buteurs: (saisonId) => request(`/stats/meilleurs-buteurs?saison_id=${saisonId}&limit=10`),
   passeurs: (saisonId) => request(`/stats/meilleurs-passeurs?saison_id=${saisonId}&limit=10`),
+  statistiquesJoueurPublic: (joueurId, saisonId) => request(`/stats/joueur/${joueurId}/public?saison_id=${saisonId}`),
+  reglements: ({ saisonId = "", competitionId = "" } = {}) => {
+    const params = new URLSearchParams();
+    if (saisonId) params.set("saison_id", String(saisonId));
+    if (competitionId) params.set("competition_id", String(competitionId));
+    const suffix = params.toString() ? `?${params.toString()}` : "";
+    return request(`/reglements${suffix}`);
+  },
+  reglement: (id) => request(`/reglements/${id}`),
+  creerReglement: (payload) => request("/reglements", { method: "POST", body: payload, auth: true }),
+  activerReglement: (id) => request(`/reglements/${id}/activer`, { method: "POST", auth: true }),
+  checklistValidation: (matchId) => request(`/matchs/${matchId}/checklist-validation`, { auth: true }),
+  eligibiliteMatch: (matchId, clubId) => request(`/matchs/${matchId}/eligibilite?club_id=${clubId}`, { auth: true }),
+  eligibiliteJoueur: (matchId, joueurId, clubId) => request(`/matchs/${matchId}/eligibilite/${joueurId}?club_id=${clubId}`, { auth: true }),
+  disciplineJoueur: (joueurId, saisonId, matchId) => request(`/discipline/joueurs/${joueurId}?saison_id=${saisonId}&match_id=${matchId}`),
+  disciplineMatch: (matchId) => request(`/discipline/matchs/${matchId}`, { auth: true }),
+  anomaliesHistoriques: (saisonId, statut = "") => request(`/anomalies-historiques?saison_id=${saisonId}${statut ? `&statut_anomalie=${encodeURIComponent(statut)}` : ""}`, { auth: true }),
+  scannerAnomalies: (saisonId) => request(`/anomalies-historiques/scan?saison_id=${saisonId}`, { method: "POST", auth: true }),
+  progressionSaison: (saisonId) => request(`/saisons/${saisonId}/progression`),
+  timelineSaison: (saisonId) => request(`/saisons/${saisonId}/timeline`),
+  historiquePublic: (saisonId) => request(`/historique-public?saison_id=${saisonId}`),
+  records: (saisonId) => request(`/records?saison_id=${saisonId}`),
+  documentsMatch: (matchId) => request(`/documents/matchs/${matchId}`),
+  documentsJoueur: (joueurId, saisonId) => request(`/documents/joueurs/${joueurId}${saisonId ? `?saison_id=${saisonId}` : ""}`),
   login: (email, mot_de_passe) => request("/auth/login", { method: "POST", body: { email, mot_de_passe } }),
   register: (nom_complet, email, mot_de_passe) =>
     request("/auth/register", { method: "POST", body: { nom_complet, email, mot_de_passe } }),

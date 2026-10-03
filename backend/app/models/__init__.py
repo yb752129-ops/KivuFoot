@@ -7,6 +7,7 @@ from app.models.actualite import Actualite, ActualiteImage, ActualiteLecture, Ac
 from app.models.audit import AuditLog
 from app.models.club import Club
 from app.models.competition import Competition, OrganisateurCompetition, Saison, SaisonClub
+from app.models.document import DocumentOfficiel
 from app.models.effectif import EffectifClub
 from app.models.evenement import EvenementMatch
 from app.models.joueur import Joueur, JoueurModificationProposee
@@ -15,6 +16,16 @@ from app.models.possession import PossessionCorrection, PossessionIntervalle, Po
 from app.models.staff import Staff
 from app.models.match import Match, MatchParticipation
 from app.models.stats import Consentement, StatistiqueJoueur
+from app.models.sport_engine import (
+    AnomalieHistorique,
+    ControleValidationMatch,
+    DecisionSportive,
+    EffectifVersion,
+    EffectifVersionJoueur,
+    ReglementVersion,
+    SanctionDisciplinaire,
+    SanctionMatch,
+)
 from app.models.sync import ConflitSynchronisation, StockageSynchronisation
 from app.models.user import RefreshToken, User
 
@@ -26,6 +37,7 @@ __all__ = [
     "HommeMatch",
     "AuditLog",
     "Club",
+    "DocumentOfficiel",
     "Competition",
     "OrganisateurCompetition",
     "Saison",
@@ -44,6 +56,14 @@ __all__ = [
     "MatchParticipation",
     "Consentement",
     "StatistiqueJoueur",
+    "ReglementVersion",
+    "EffectifVersion",
+    "EffectifVersionJoueur",
+    "SanctionDisciplinaire",
+    "SanctionMatch",
+    "DecisionSportive",
+    "ControleValidationMatch",
+    "AnomalieHistorique",
     "ConflitSynchronisation",
     "StockageSynchronisation",
     "RefreshToken",

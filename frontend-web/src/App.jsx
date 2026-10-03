@@ -15,6 +15,7 @@ import Clubs from "./pages/Clubs.jsx";
 import ClubDetail from "./pages/ClubDetail.jsx";
 import Joueur from "./pages/Joueur.jsx";
 import Buteurs from "./pages/Buteurs.jsx";
+import Historique from "./pages/Historique.jsx";
 import Login from "./pages/Login.jsx";
 import Compte from "./pages/Compte.jsx";
 import Recherche from "./pages/Recherche.jsx";
@@ -96,6 +97,7 @@ export default function App() {
             <Route path="/clubs/:id" element={<ClubDetail />} />
             <Route path="/joueurs/:id" element={<Joueur />} />
             <Route path="/buteurs" element={<Buteurs />} />
+            <Route path="/historique" element={<Historique />} />
             <Route path="/compte" element={<Compte />} />
             <Route path="/recherche" element={<Recherche />} />
           </Route>

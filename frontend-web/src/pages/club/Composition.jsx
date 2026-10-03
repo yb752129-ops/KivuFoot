@@ -18,6 +18,7 @@ export default function Composition() {
   const [formation, setFormation] = useState("");
   const [staffId, setStaffId] = useState("");
   const [numeros, setNumeros] = useState({});
+  const [eligibilites, setEligibilites] = useState({});
   const [msg, setMsg] = useState("");
   const [erreur, setErreur] = useState("");
 
@@ -35,6 +36,13 @@ export default function Composition() {
     api.joueurs(clubId).then(setJoueurs).catch(() => setJoueurs([]));
     api.staffClub(clubId).then(setStaff).catch(() => setStaff([]));
   }, [clubId]);
+
+  useEffect(() => {
+    if (!clubId || !match) return;
+    api.eligibiliteMatch(matchId, clubId)
+      .then((rows) => setEligibilites(Object.fromEntries((rows || []).map((row) => [row.joueur_id, row]))))
+      .catch(() => setEligibilites({}));
+  }, [clubId, match, matchId]);
 
   useEffect(() => {
     if (!compo || !equipe) return;
@@ -118,6 +126,11 @@ export default function Composition() {
           <span className="editeur-id">
             <span className="feuille-nom">{j.nom_complet}</span>
             <span className="meta-line">{labelPoste(j.poste) || "Poste"}{j.numero ? ` · N° ${j.numero}` : ""}</span>
+            {eligibilites[j.id] && (
+              <span className={`meta-line ${eligibilites[j.id].statut === "BLOQUANT" ? "editeur-erreur" : ""}`}>
+                {eligibilites[j.id].message}
+              </span>
+            )}
           </span>
           <label className="editeur-numero">
             <input
@@ -136,7 +149,14 @@ export default function Composition() {
                 key={v}
                 type="button"
                 className={`editeur-bouton${choix[j.id] === v ? " actif" : ""}`}
-                onClick={() => setChoix((c) => ({ ...c, [j.id]: c[j.id] === v ? undefined : v }))}
+                onClick={() => {
+                  const eligibilite = eligibilites[j.id];
+                  if (eligibilite?.statut === "BLOQUANT" && !choix[j.id]) {
+                    setErreur(eligibilite.message);
+                    return;
+                  }
+                  setChoix((c) => ({ ...c, [j.id]: c[j.id] === v ? undefined : v }));
+                }}
               >
                 {v === "titulaire" ? "Titulaire" : "Banc"}
               </button>

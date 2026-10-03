@@ -14,6 +14,7 @@ from app.models.club import Club
 from app.models.competition import SaisonClub
 from app.models.enums import StatutMatch
 from app.models.match import Match
+from app.services.reglements import get_reglement_actif
 
 
 class LigneClassement:
@@ -26,6 +27,18 @@ class LigneClassement:
         self.defaites = 0
         self.buts_marques = 0
         self.buts_encaisses = 0
+        self._points_victoire = 3
+        self._points_nul = 1
+        self._points_defaite = 0
+        self._points_adjustment = 0
+
+    def configurer_points(self, victoire: int | None, nul: int | None, defaite: int | None) -> None:
+        if victoire is not None:
+            self._points_victoire = victoire
+        if nul is not None:
+            self._points_nul = nul
+        if defaite is not None:
+            self._points_defaite = defaite
 
     @property
     def difference_buts(self) -> int:
@@ -33,7 +46,13 @@ class LigneClassement:
 
     @property
     def points(self) -> int:
-        return self.victoires * 3 + self.nuls
+        return self.victoires * self._points_victoire + self.nuls * self._points_nul + self.defaites * self._points_defaite + self._points_adjustment
+
+    def ajuster_points_forfait(self, victoire: int | None, defaite: int | None) -> None:
+        if victoire is not None:
+            self._points_adjustment += victoire - self._points_victoire
+        if defaite is not None:
+            self._points_adjustment += defaite - self._points_defaite
 
 
 async def calculer_classement(
@@ -63,6 +82,16 @@ async def calculer_classement(
     }
     if not lignes:
         return []
+
+    # Les valeurs configurées par le règlement actif remplacent les valeurs
+    # historiques du classement sans changer le comportement des éditions
+    # legacy qui n'ont encore aucun règlement rattaché.
+    reglement = await get_reglement_actif(db, saison_id)
+    configuration = reglement.configuration if reglement else {}
+    points = configuration.get("points", {}) if isinstance(configuration, dict) else {}
+    if isinstance(points, dict):
+        for ligne in lignes.values():
+            ligne.configurer_points(points.get("victoire"), points.get("nul"), points.get("defaite"))
 
     result = await db.execute(
         select(Match).where(
@@ -100,13 +129,50 @@ async def calculer_classement(
         if match_.score_domicile > match_.score_exterieur:
             dom.victoires += 1
             ext.defaites += 1
+            vainqueur, perdant = dom, ext
         elif match_.score_domicile < match_.score_exterieur:
             ext.victoires += 1
             dom.defaites += 1
+            vainqueur, perdant = ext, dom
         else:
             dom.nuls += 1
             ext.nuls += 1
+            vainqueur = perdant = None
+
+        if match_.forfait and vainqueur is not None:
+            forfait_points = configuration.get("forfait", {}) if isinstance(configuration, dict) else {}
+            if isinstance(forfait_points, dict):
+                forfait_victoire = points.get("forfait_victoire") if isinstance(points, dict) else None
+                forfait_defaite = points.get("forfait_defaite") if isinstance(points, dict) else None
+                forfait_victoire = forfait_victoire if forfait_victoire is not None else forfait_points.get("victoire")
+                forfait_defaite = forfait_defaite if forfait_defaite is not None else forfait_points.get("defaite")
+                vainqueur.ajuster_points_forfait(forfait_victoire, forfait_defaite)
+                perdant.ajuster_points_forfait(forfait_defaite, forfait_victoire)
 
     classement = list(lignes.values())
-    classement.sort(key=lambda ligne: (-ligne.points, -ligne.difference_buts, -ligne.buts_marques, ligne.club_nom))
+    departages = configuration.get("departages") if isinstance(configuration, dict) else None
+    criteres = departages if isinstance(departages, list) and departages else ["points", "difference_buts", "buts_marques"]
+    criteres_reconnus = [
+        critere for critere in criteres
+        if critere in {"points", "difference_buts", "buts_marques", "buts_encaisses", "victoires", "nuls", "defaites", "matchs_joues"}
+    ] or ["points", "difference_buts", "buts_marques"]
+    def cle_tri(ligne: LigneClassement):
+        valeurs = []
+        for critere in criteres_reconnus:
+            valeur = {
+                "points": ligne.points,
+                "difference_buts": ligne.difference_buts,
+                "buts_marques": ligne.buts_marques,
+                "buts_encaisses": ligne.buts_encaisses,
+                "victoires": ligne.victoires,
+                "nuls": ligne.nuls,
+                "defaites": ligne.defaites,
+                "matchs_joues": ligne.matchs_joues,
+            }.get(critere)
+            if valeur is not None:
+                valeurs.append(-valeur)
+        valeurs.append(ligne.club_nom)
+        return tuple(valeurs)
+
+    classement.sort(key=cle_tri)
     return classement

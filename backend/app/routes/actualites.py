@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 import hashlib
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -313,6 +313,7 @@ async def _can_manage(actualite: Actualite, current_user: User, db: AsyncSession
 async def lister_actualites_publiques(
     categorie: CategorieActualite | None = None,
     competition_id: int | None = None,
+    saison_id: int | None = None,
     limit: int = Query(20, ge=1, le=50),
     offset: int = Query(0, ge=0),
     db: AsyncSession = Depends(get_db),
@@ -330,6 +331,11 @@ async def lister_actualites_publiques(
         query = query.where(Actualite.categorie == categorie)
     if competition_id is not None:
         query = query.where(Actualite.competition_id == competition_id)
+    if saison_id is not None:
+        # Les annonces historiques non rattachées restent visibles : leur
+        # rattachement n'est pas deviné et aucune actualité existante n'est
+        # masquée par l'arrivée du sélecteur d'édition.
+        query = query.where(or_(Actualite.saison_id == saison_id, Actualite.saison_id.is_(None)))
     result = await db.execute(query)
     return [await _serialize_list(item, db, client_token) for item in result.scalars().all()]
 

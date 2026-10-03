@@ -35,10 +35,12 @@ function libellePriorite(item) {
 export { CATEGORIES, dateTexte, estRecente, libellePriorite };
 
 export default function Actualites() {
-  const { competition } = useKivu();
+  const { competition, saison } = useKivu();
   const [searchParams] = useSearchParams();
   const competitionParam = searchParams.get("competition_id") || "";
+  const saisonParam = searchParams.get("saison_id") || "";
   const competitionId = competitionParam || competition?.id || "";
+  const saisonId = saisonParam || saison?.id || "";
   const [items, setItems] = useState([]);
   const [categorie, setCategorie] = useState("");
   const [err, setErr] = useState("");
@@ -48,7 +50,7 @@ export default function Actualites() {
   async function load() {
     setLoading(true);
     try {
-      const rows = await api.actualites({ categorie, competitionId, clientToken: getActualiteClientToken() });
+      const rows = await api.actualites({ categorie, competitionId, saisonId, clientToken: getActualiteClientToken() });
       setItems(rows || []);
       setErr("");
     } catch (e) {
@@ -58,7 +60,7 @@ export default function Actualites() {
     }
   }
 
-  useEffect(() => { load(); }, [categorie, competitionId]);
+  useEffect(() => { load(); }, [categorie, competitionId, saisonId]);
 
   return (
     <section className="hero actualites-page">

@@ -46,14 +46,23 @@ from app.schemas.match import (
     CompositionOut,
     CompositionStaffOut,
 )
+from app.schemas.sport_engine import ChecklistOut, EligibiliteOut
+from app.services.checklist_validation import bloquants_effectifs, run_checklist, save_checklist
+from app.services.eligibilite import verifier_joueur
+from app.services.documents_officiels import generer_document_match
 from app.models.club import Club
 from app.models.competition import Competition
 from app.models.staff import Staff
 from app.services.calcul_stats import appliquer_evenement_valide
+from app.services.reglements import get_reglement_actif, get_reglement_pour_match
 from app.services.validation import valider_match
 from app.services.possession import officialiser_possession, suspendre_possession, terminer_possession
 
 router = APIRouter(prefix="/matchs", tags=["Matchs"])
+
+
+def _value(value):
+    return value.value if hasattr(value, "value") else value
 
 
 @router.get("", response_model=list[MatchOut])
@@ -128,6 +137,73 @@ async def detail_match(match_id: int, db: AsyncSession = Depends(get_db)):
     return match_
 
 
+@router.get("/{match_id}/checklist-validation", response_model=ChecklistOut)
+async def checklist_validation(
+    match_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles(RoleUtilisateur.ADMIN, RoleUtilisateur.ORGANISATEUR)),
+):
+    match_ = await verifier_organisateur_du_match(match_id, current_user, db)
+    return await run_checklist(db, match_)
+
+
+@router.get("/{match_id}/eligibilite", response_model=list[EligibiliteOut])
+async def eligibilite_match(
+    match_id: int,
+    club_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(
+        require_roles(
+            RoleUtilisateur.ADMIN,
+            RoleUtilisateur.ORGANISATEUR,
+            RoleUtilisateur.CLUB_MANAGER,
+            RoleUtilisateur.COACH,
+        )
+    ),
+):
+    match_ = await db.get(Match, match_id)
+    if match_ is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Match introuvable.")
+    role = _value(current_user.role)
+    if role in (RoleUtilisateur.ADMIN.value, RoleUtilisateur.ORGANISATEUR.value):
+        await verifier_organisateur_du_match(match_id, current_user, db)
+    else:
+        if current_user.club_id != club_id:
+            raise HTTPException(status.HTTP_403_FORBIDDEN, "Vous ne gérez pas cette équipe.")
+        if club_id not in (match_.equipe_domicile_id, match_.equipe_exterieur_id):
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "Cette équipe ne participe pas à ce match.")
+    joueurs = (
+        await db.execute(select(Joueur.id).where(Joueur.club_actuel_id == club_id))
+    ).scalars().all()
+    return [await verifier_joueur(db, match_, joueur_id, club_id) for joueur_id in joueurs]
+
+
+@router.get("/{match_id}/eligibilite/{joueur_id}", response_model=EligibiliteOut)
+async def eligibilite_joueur(
+    match_id: int,
+    joueur_id: int,
+    club_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(
+        require_roles(
+            RoleUtilisateur.ADMIN,
+            RoleUtilisateur.ORGANISATEUR,
+            RoleUtilisateur.CLUB_MANAGER,
+            RoleUtilisateur.COACH,
+        )
+    ),
+):
+    match_ = await db.get(Match, match_id)
+    if match_ is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Match introuvable.")
+    role = _value(current_user.role)
+    if role in (RoleUtilisateur.ADMIN.value, RoleUtilisateur.ORGANISATEUR.value):
+        await verifier_organisateur_du_match(match_id, current_user, db)
+    elif current_user.club_id != club_id:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Vous ne gérez pas cette équipe.")
+    return await verifier_joueur(db, match_, joueur_id, club_id)
+
+
 @router.post("", response_model=MatchOut, status_code=status.HTTP_201_CREATED)
 async def creer_match(
     payload: MatchCreate,
@@ -149,6 +225,9 @@ async def creer_match(
     )
     donnees = payload.model_dump()
     donnees["groupe"] = groupe_officiel
+    reglement = await get_reglement_actif(db, payload.saison_id)
+    if reglement is not None:
+        donnees["reglement_version_id"] = reglement.id
     match_ = Match(**donnees)
     db.add(match_)
     await db.flush()
@@ -359,9 +438,29 @@ async def valider_match_route(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_roles(RoleUtilisateur.ADMIN, RoleUtilisateur.ORGANISATEUR)),
 ):
-    await verifier_organisateur_du_match(match_id, current_user, db)
+    match_ = await verifier_organisateur_du_match(match_id, current_user, db)
+    checklist = await run_checklist(db, match_)
+    bloquants = bloquants_effectifs(checklist)
+    if bloquants:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            detail={
+                "message": "Impossible de valider ce match : la checklist contient des contrôles bloquants.",
+                "checklist": checklist.model_dump(mode="json"),
+                "bloquants": [control.model_dump(mode="json") for control in bloquants],
+            },
+        )
+    await save_checklist(db, match_, checklist, current_user.id)
     match_ = await valider_match(db, match_id, current_user.id)
     await db.commit()
+    # Le PDF est un dérivé : une panne de génération ne doit jamais annuler
+    # la validation sportive déjà commitée. Une relance reste possible via
+    # /documents/matchs/{id}/generer.
+    try:
+        await generer_document_match(db, match_id, current_user.id)
+        await db.commit()
+    except Exception:
+        await db.rollback()
     await db.refresh(match_)
     return match_
 
@@ -785,7 +884,12 @@ async def _bloc_equipe(db: AsyncSession, match_: Match, equipe: str, max_rempl: 
 async def _composition_complete(db: AsyncSession, match_: Match) -> CompositionOut:
     saison = await db.get(Saison, match_.saison_id)
     compo = await db.get(Competition, saison.competition_id) if saison else None
-    max_rempl = (compo.max_remplacants if compo and compo.max_remplacants else settings.compo_remplacants_defaut)
+    reglement = await get_reglement_pour_match(db, match_, allow_active_for_new=True)
+    regle_compo = (reglement.configuration or {}).get("composition", {}) if reglement else {}
+    max_reglement = regle_compo.get("remplacants_max") if isinstance(regle_compo, dict) else None
+    max_rempl = max_reglement if max_reglement is not None else (
+        compo.max_remplacants if compo and compo.max_remplacants else settings.compo_remplacants_defaut
+    )
     return CompositionOut(
         match_id=match_.id,
         max_remplacants=max_rempl,
@@ -830,13 +934,26 @@ async def enregistrer_composition(
         raise HTTPException(status_code=403, detail="Vous ne gérez pas cette équipe.")
     saison = await db.get(Saison, match_.saison_id)
     compo = await db.get(Competition, saison.competition_id) if saison else None
-    max_rempl = (compo.max_remplacants if compo and compo.max_remplacants else settings.compo_remplacants_defaut)
+    reglement = await get_reglement_pour_match(db, match_, allow_active_for_new=True)
+    regle_compo = (reglement.configuration or {}).get("composition", {}) if reglement else {}
+    max_reglement = regle_compo.get("remplacants_max") if isinstance(regle_compo, dict) else None
+    max_rempl = max_reglement if max_reglement is not None else (
+        compo.max_remplacants if compo and compo.max_remplacants else settings.compo_remplacants_defaut
+    )
     titulaires = [j for j in payload.joueurs if getattr(j.statut, "value", j.statut) == "titulaire"]
     banc = [j for j in payload.joueurs if getattr(j.statut, "value", j.statut) == "remplacant"]
-    if len(titulaires) > 11:
-        raise HTTPException(status_code=400, detail="Maximum 11 titulaires.")
+    max_titulaires = regle_compo.get("titulaires_max") if isinstance(regle_compo, dict) else None
+    min_titulaires = regle_compo.get("titulaires_min") if isinstance(regle_compo, dict) else None
+    min_banc = regle_compo.get("remplacants_min") if isinstance(regle_compo, dict) else None
+    if len(titulaires) > (max_titulaires if max_titulaires is not None else 11):
+        limite = max_titulaires if max_titulaires is not None else 11
+        raise HTTPException(status_code=400, detail=f"Maximum {limite} titulaires.")
+    if min_titulaires is not None and len(titulaires) < min_titulaires:
+        raise HTTPException(status_code=400, detail=f"Minimum {min_titulaires} titulaires.")
     if len(banc) > max_rempl:
         raise HTTPException(status_code=400, detail=f"Maximum {max_rempl} remplaçants pour cette compétition.")
+    if min_banc is not None and len(banc) < min_banc:
+        raise HTTPException(status_code=400, detail=f"Minimum {min_banc} remplaçants.")
     if payload.staff_id:
         st = await db.get(Staff, payload.staff_id)
         if not st or st.club_id != club_id:
@@ -846,6 +963,9 @@ async def enregistrer_composition(
         j = await db.get(Joueur, ligne.joueur_id)
         if not j or j.club_actuel_id != club_id:
             raise HTTPException(status_code=400, detail="Un joueur sélectionné n'appartient pas à ce club.")
+        eligibilite = await verifier_joueur(db, match_, ligne.joueur_id, club_id, equipe=equipe)
+        if eligibilite.statut == "BLOQUANT":
+            raise HTTPException(status_code=400, detail=eligibilite.message)
         ids_voulus.add(ligne.joueur_id)
     avant = {
         "formation": match_.formation_domicile if equipe == "domicile" else match_.formation_exterieur,

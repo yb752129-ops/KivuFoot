@@ -3,6 +3,7 @@ import { api } from "./api.js";
 
 const Ctx = createContext(null);
 const COMP_KEY = "kivufoot_competition_id";
+const SEASON_KEY = "kivufoot_saison_id";
 
 export function useKivu() {
   return useContext(Ctx);
@@ -11,6 +12,15 @@ export function useKivu() {
 function lireId() {
   try {
     const n = Number(localStorage.getItem(COMP_KEY));
+    return Number.isFinite(n) && n > 0 ? n : 0;
+  } catch {
+    return 0;
+  }
+}
+
+function lireSaisonId() {
+  try {
+    const n = Number(localStorage.getItem(SEASON_KEY));
     return Number.isFinite(n) && n > 0 ? n : 0;
   } catch {
     return 0;
@@ -28,6 +38,7 @@ export function KivuProvider({ children }) {
   const [error, setError] = useState("");
   const [competitions, setCompetitions] = useState([]);
   const [competition, setCompetition] = useState(null);
+  const [saisons, setSaisons] = useState([]);
   const [saison, setSaison] = useState(null);
   const [clubs, setClubs] = useState([]);
   const [saisonClubs, setSaisonClubs] = useState(null);
@@ -47,15 +58,24 @@ export function KivuProvider({ children }) {
     }
   }
 
-  async function chargerSaison(comp) {
+  async function chargerSaison(comp, saisonId = 0) {
     if (!comp) {
+      setSaisons([]);
       setSaison(null);
       setSaisonClubs([]);
       return;
     }
-    const saisons = await api.saisons(comp.id);
-    const s = saisons?.[0] || null;
+    const rows = (await api.saisons(comp.id)) || [];
+    setSaisons(rows);
+    const saved = saisonId || lireSaisonId();
+    const s = rows.find((row) => row.id === saved)
+      || rows.find((row) => !row.date_fin)
+      || rows[0]
+      || null;
     setSaison(s);
+    if (s) {
+      try { localStorage.setItem(SEASON_KEY, String(s.id)); } catch { /* ignore */ }
+    }
     await chargerClubsSaison(s?.id);
   }
 
@@ -76,20 +96,9 @@ export function KivuProvider({ children }) {
       setCompetition(comp);
       setClubs(clubList || []);
       if (comp) {
-        const saisons = await api.saisons(comp.id);
-        const s = saisons?.[0] || null;
-        setSaison(s);
-        if (s) {
-          try {
-            const sc = await api.clubsSaison(s.id);
-            setSaisonClubs(sc || []);
-          } catch {
-            setSaisonClubs(null);
-          }
-        } else {
-          setSaisonClubs([]);
-        }
+        await chargerSaison(comp);
       } else {
+        setSaisons([]);
         setSaison(null);
         setSaisonClubs([]);
       }
@@ -119,6 +128,15 @@ export function KivuProvider({ children }) {
     }
   }
 
+  async function choisirSaison(id) {
+    const next = saisons.find((row) => row.id === Number(id)) || null;
+    setSaison(next);
+    try {
+      if (next) localStorage.setItem(SEASON_KEY, String(next.id));
+    } catch { /* ignore */ }
+    await chargerClubsSaison(next?.id);
+  }
+
   async function rechargerCompetitions() {
     const list = (await api.competitions()) || [];
     setCompetitions(list);
@@ -134,7 +152,9 @@ export function KivuProvider({ children }) {
         error,
         competitions,
         competition,
+        saisons,
         saison,
+        choisirSaison,
         clubs,
         saisonClubs,
         clubsById,

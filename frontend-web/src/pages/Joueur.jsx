@@ -6,13 +6,25 @@ import { labelPoste, stripDemo } from "../display.js";
 
 export default function Joueur() {
   const { id } = useParams();
-  const { clubsById } = useKivu();
+  const { clubsById, saison } = useKivu();
   const [j, setJ] = useState(null);
+  const [stats, setStats] = useState(null);
+  const [documents, setDocuments] = useState([]);
   const [err, setErr] = useState("");
 
   useEffect(() => {
     api.joueur(id).then(setJ).catch((e) => setErr(e.message));
   }, [id]);
+
+  useEffect(() => {
+    if (!saison) {
+      setStats(null);
+      setDocuments([]);
+      return;
+    }
+    api.statistiquesJoueurPublic(id, saison.id).then(setStats).catch(() => setStats(null));
+    api.documentsJoueur(id, saison.id).then(setDocuments).catch(() => setDocuments([]));
+  }, [id, saison]);
 
   if (err) return <p className="erreur">{err}</p>;
   if (!j) return <p className="empty">Chargement…</p>;
@@ -47,7 +59,40 @@ export default function Joueur() {
           <strong>{labelPoste(j.poste) || "à compléter"}</strong>
         </div>
       </div>
-      <p className="empty">Buts, passes et cartons s’affichent après les matchs validés. On n’invente pas de stats.</p>
+      <div className="section-head">
+        <h2>Statistiques officielles</h2>
+      </div>
+      {!stats ? (
+        <p className="empty">Statistiques non disponibles pour cette édition.</p>
+      ) : (
+        <>
+          <div className="sheet id-sheet">
+            {[
+              ["Matchs", stats.matchs_joues],
+              ["Titularisations", stats.titularisations],
+              ["Minutes", stats.minutes_jouees],
+              ["Buts", stats.buts],
+              ["Passes décisives", stats.passes_decisives],
+              ["Cartons jaunes", stats.cartons_jaunes],
+              ["Cartons rouges", stats.cartons_rouges],
+              ["Penalties marqués", stats.penalties_marques],
+              ["Penalties ratés", stats.penalties_rates],
+              ["Homme du match", stats.hommes_du_match],
+            ].map(([label, valeur]) => (
+              <div className="id-row" key={label}>
+                <span>{label}</span>
+                <strong>{valeur ?? 0}</strong>
+              </div>
+            ))}
+          </div>
+          <p className="muted small">Statistiques calculées à partir des matchs officiellement validés.</p>
+          {documents.map((document) => document.url && (
+            <a className="btn" key={document.id} href={document.url} target="_blank" rel="noreferrer">
+              Télécharger la fiche PDF officielle
+            </a>
+          ))}
+        </>
+      )}
     </section>
   );
 }

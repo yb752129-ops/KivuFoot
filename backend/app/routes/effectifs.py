@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.rbac import require_roles, verifier_organisateur_du_match, verifier_organisateur_de_competition, verifier_scope_club
@@ -9,8 +9,10 @@ from app.database import get_db
 from app.models.club import Club
 from app.models.competition import Saison, SaisonClub
 from app.models.effectif import EffectifClub
-from app.models.enums import ActionAudit, RoleUtilisateur, StatutEffectif
+from app.models.enums import ActionAudit, RoleUtilisateur, StatutEffectif, StatutJoueur
+from app.models.joueur import Joueur
 from app.models.match import Match
+from app.models.sport_engine import EffectifVersion, EffectifVersionJoueur
 from app.models.user import User
 from app.schemas.effectif import ControleEffectifMatchOut, EffectifClubOut, EffectifRetour
 from app.services.audit import log_audit
@@ -174,6 +176,42 @@ async def valider_effectif(
     ligne.traite_at = datetime.now(timezone.utc)
     ligne.traite_par_id = current_user.id
     ligne.motif_retour = None
+
+    # Snapshot additif de l'effectif au moment de la validation. L'ancienne
+    # table EffectifClub reste la source du workflow ; ce snapshot devient la
+    # source historique d'éligibilité pour les futurs matchs. Aucun ancien
+    # effectif n'est reconstruit automatiquement.
+    max_version = await db.scalar(
+        select(func.max(EffectifVersion.version)).where(
+            EffectifVersion.saison_id == saison_id,
+            EffectifVersion.club_id == club_id,
+        )
+    )
+    version = EffectifVersion(
+        saison_id=saison_id,
+        club_id=club_id,
+        version=int(max_version or 0) + 1,
+        statut="valide",
+        motif="Snapshot créé lors de la validation de l'effectif.",
+        valide_par_id=current_user.id,
+        valide_at=datetime.now(timezone.utc),
+        date_effet=datetime.now(timezone.utc).date(),
+    )
+    db.add(version)
+    await db.flush()
+    joueurs = (
+        await db.execute(
+            select(Joueur.id).where(
+                Joueur.club_actuel_id == club_id,
+                Joueur.fusionne.is_(False),
+                Joueur.anonymise.is_(False),
+                Joueur.statut == StatutJoueur.ACTIF,
+            )
+        )
+    ).scalars().all()
+    for joueur_id in joueurs:
+        db.add(EffectifVersionJoueur(effectif_version_id=version.id, joueur_id=joueur_id))
+
     await log_audit(
         db,
         "effectifs_clubs",
@@ -181,7 +219,7 @@ async def valider_effectif(
         ActionAudit.VALIDATE,
         current_user.id,
         {"statut": ancien},
-        {"statut": StatutEffectif.VALIDE.value},
+        {"statut": StatutEffectif.VALIDE.value, "effectif_version_id": version.id, "joueurs": len(joueurs)},
     )
     await db.commit()
     return _out(await resume_effectif(db, saison_id, club, ligne))

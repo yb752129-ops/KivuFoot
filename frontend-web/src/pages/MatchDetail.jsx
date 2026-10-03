@@ -23,6 +23,7 @@ export default function MatchDetail() {
   const [joueurs, setJoueurs] = useState({});
   const [compo, setCompo] = useState(null);
   const [possession, setPossession] = useState(null);
+  const [documents, setDocuments] = useState([]);
   const [moi, setMoi] = useState(null);
   const [onglet, setOnglet] = useState("apercu");
   const [err, setErr] = useState("");
@@ -43,6 +44,7 @@ export default function MatchDetail() {
     setJoueurs(Object.fromEntries(js.map((j) => [j.id, j])));
     setCompo(p || null);
     setPossession(possessionPublique || null);
+    api.documentsMatch(id).then(setDocuments).catch(() => setDocuments([]));
     api.me().then(setMoi).catch(() => setMoi(null));
   }
 
@@ -104,6 +106,11 @@ export default function MatchDetail() {
         </>
       )}
       {match.statut === "valide" && <p className="stamp">Validé</p>}
+      {documents.map((document) => document.url && (
+        <p key={document.id}>
+          <a className="btn" href={document.url} target="_blank" rel="noreferrer">Télécharger le dossier officiel PDF</a>
+        </p>
+      ))}
       {match.forfait && <p className="lead">Forfait</p>}
       {match.note_officielle && (
         <aside className="match-note" aria-label="Note officielle">

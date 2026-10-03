@@ -12,6 +12,7 @@ from app.middlewares.error_handler import register_error_handlers
 from app.routes import (
     actualites,
     audit,
+    documents,
     auth,
     classement,
     clubs,
@@ -19,9 +20,12 @@ from app.routes import (
     effectifs,
     evenements,
     joueurs,
+    history,
     matchs,
     public,
     possession,
+    reglements,
+    sport_engine,
     stats,
     sync,
     utilisateurs,
@@ -53,12 +57,16 @@ register_error_handlers(app)
 PREFIX = settings.api_v1_prefix
 app.include_router(auth.router, prefix=PREFIX)
 app.include_router(actualites.router, prefix=PREFIX)
+app.include_router(documents.router, prefix=PREFIX)
 app.include_router(competitions.router, prefix=PREFIX)
 app.include_router(effectifs.router, prefix=PREFIX)
 app.include_router(clubs.router, prefix=PREFIX)
 app.include_router(joueurs.router, prefix=PREFIX)
+app.include_router(history.router, prefix=PREFIX)
 app.include_router(matchs.router, prefix=PREFIX)
 app.include_router(possession.router, prefix=PREFIX)
+app.include_router(reglements.router, prefix=PREFIX)
+app.include_router(sport_engine.router, prefix=PREFIX)
 app.include_router(evenements.router, prefix=PREFIX)
 app.include_router(public.router, prefix=PREFIX)
 app.include_router(validation.router, prefix=PREFIX)

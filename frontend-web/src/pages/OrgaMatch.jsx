@@ -56,6 +56,7 @@ export default function OrgaMatch({ backTo = "/orga/matchs", mode = "orga" } = {
   const collecteur = mode === "collecteur";
   const [match, setMatch] = useState(null);
   const [controleEffectif, setControleEffectif] = useState(null);
+  const [checklist, setChecklist] = useState(null);
   const [possession, setPossession] = useState(null);
   const [evts, setEvts] = useState([]);
   const [joueursDom, setJoueursDom] = useState([]);
@@ -253,6 +254,11 @@ export default function OrgaMatch({ backTo = "/orga/matchs", mode = "orga" } = {
       ]);
       setMatch(m);
       setPossession(possessionGestion || null);
+      if (!collecteur) {
+        api.checklistValidation(id).then(setChecklist).catch(() => setChecklist(null));
+      } else {
+        setChecklist(null);
+      }
       setEvts(e || []);
       setParts(p || []);
       const [jd, je] = await Promise.all([
@@ -535,6 +541,26 @@ export default function OrgaMatch({ backTo = "/orga/matchs", mode = "orga" } = {
       </section>
       {err && <p className="erreur">{err}</p>}
       {msg && <p className="empty">{msg}</p>}
+
+      {!collecteur && checklist && (
+        <section className="sheet validation-checklist" aria-label="Contrôle avant validation">
+          <div className="section-head">
+            <h2>Contrôle avant validation</h2>
+            <span className={`stamp ${checklist.resultat === "BLOQUANT" ? "danger" : checklist.resultat === "ATTENTION" ? "warning" : ""}`}>
+              {checklist.resultat}
+            </span>
+          </div>
+          <p className="muted small">
+            Mode {checklist.mode}. Les anomalies historiques restent observées et ne sont pas réécrites.
+          </p>
+          {(checklist.controles || []).map((controle) => (
+            <div className="id-row" key={controle.code}>
+              <span>{controle.statut === "OK" ? "✅" : controle.statut === "ATTENTION" ? "⚠️" : "🔴"} {controle.libelle}</span>
+              <strong>{controle.message}</strong>
+            </div>
+          ))}
+        </section>
+      )}
 
       <div className="orga-actions">
         {match.statut === "programme" && (

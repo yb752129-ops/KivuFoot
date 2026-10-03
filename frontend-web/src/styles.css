@@ -2834,3 +2834,35 @@ html[data-theme="dark"] .reseau-perdu {
 }
 .possession-chronologie li { grid-template-columns: 1fr auto auto auto; }
 .possession-corriger { padding: 0.15rem 0.35rem; font-size: 0.68rem; }
+
+/* Projection publique des éditions, calculée depuis les sources officielles. */
+.historique-grille {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(18rem, 0.9fr);
+  gap: 1rem;
+  margin: 1.2rem 0;
+}
+.historique-page .carte {
+  border: 1px solid var(--rule-strong);
+  background: var(--paper);
+  padding: 1rem;
+  margin-top: 1rem;
+}
+.historique-page .carte h2 { margin-top: 0; }
+.historique-page table { width: 100%; border-collapse: collapse; }
+.historique-page th,
+.historique-page td { padding: 0.55rem 0.45rem; border-bottom: 1px solid var(--rule); text-align: left; }
+.historique-page th { color: var(--ink-soft); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; }
+.liste-simple { list-style: none; padding: 0; margin: 0; }
+.liste-simple li { display: flex; flex-direction: column; gap: 0.22rem; padding: 0.65rem 0; border-bottom: 1px solid var(--rule); }
+.liste-simple li span,
+.timeline-liste li span { color: var(--ink-soft); font-size: 0.78rem; }
+.timeline-liste { list-style: none; padding: 0; margin: 0; border-left: 2px solid var(--rule-strong); }
+.timeline-liste li { display: grid; gap: 0.2rem; padding: 0.65rem 0 0.65rem 1rem; position: relative; }
+.timeline-liste li::before { content: ""; width: 0.55rem; height: 0.55rem; background: var(--lake); border-radius: 50%; position: absolute; left: -0.34rem; top: 0.9rem; }
+.timeline-liste time { color: var(--ink-soft); font-size: 0.78rem; }
+@media (max-width: 760px) {
+  .historique-grille { grid-template-columns: 1fr; }
+  .historique-page th,
+  .historique-page td { white-space: nowrap; }
+}
