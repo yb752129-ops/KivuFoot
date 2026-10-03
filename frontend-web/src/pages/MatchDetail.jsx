@@ -25,8 +25,29 @@ export default function MatchDetail() {
   const [possession, setPossession] = useState(null);
   const [documents, setDocuments] = useState([]);
   const [moi, setMoi] = useState(null);
+  const [documentBusy, setDocumentBusy] = useState(false);
+  const [documentMsg, setDocumentMsg] = useState("");
   const [onglet, setOnglet] = useState("apercu");
   const [err, setErr] = useState("");
+
+  async function genererPDF() {
+    setDocumentBusy(true);
+    setDocumentMsg("");
+    try {
+      const document = await api.genererDocumentMatch(id);
+      const publie = document?.statut === "publie" && document?.url;
+      if (publie) {
+        setDocuments(await api.documentsMatch(id));
+        setDocumentMsg("PDF officiel prêt au téléchargement.");
+      } else {
+        setDocumentMsg(document?.message_erreur || "Le PDF n’a pas pu être publié.");
+      }
+    } catch (e) {
+      setDocumentMsg(e.message || "Génération du PDF impossible.");
+    } finally {
+      setDocumentBusy(false);
+    }
+  }
 
   async function load() {
     const m = await api.match(id);
@@ -111,6 +132,16 @@ export default function MatchDetail() {
           <a className="btn" href={document.url} target="_blank" rel="noreferrer">Télécharger le dossier officiel PDF</a>
         </p>
       ))}
+      {moi && ["admin", "organisateur"].includes(moi.role) && match.statut === "valide" && (
+        <section className="sheet document-actions" aria-label="Document officiel">
+          <p className="kicker">Document officiel</p>
+          <p className="muted small">Générez ou actualisez le PDF à partir des données validées de ce match.</p>
+          <button className="btn btn-primary" type="button" disabled={documentBusy} onClick={genererPDF}>
+            {documentBusy ? "Génération…" : "Générer le PDF officiel"}
+          </button>
+          {documentMsg && <p className="empty">{documentMsg}</p>}
+        </section>
+      )}
       {match.forfait && <p className="lead">Forfait</p>}
       {match.note_officielle && (
         <aside className="match-note" aria-label="Note officielle">
