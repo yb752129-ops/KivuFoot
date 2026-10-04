@@ -22,7 +22,6 @@ export default function MatchDetail() {
   const [joueurs, setJoueurs] = useState({});
   const [compo, setCompo] = useState(null);
   const [possession, setPossession] = useState(null);
-  const [documents, setDocuments] = useState([]);
   const [moi, setMoi] = useState(null);
   const [documentBusy, setDocumentBusy] = useState(false);
   const [documentMsg, setDocumentMsg] = useState("");
@@ -36,7 +35,6 @@ export default function MatchDetail() {
       const document = await api.genererDocumentMatch(id);
       const publie = document?.statut === "publie" && document?.url;
       if (publie) {
-        setDocuments(await api.documentsMatch(id));
         setDocumentMsg("PDF officiel prêt au téléchargement.");
       } else {
         setDocumentMsg(document?.message_erreur || "Le PDF n’a pas pu être publié.");
@@ -64,7 +62,6 @@ export default function MatchDetail() {
     setJoueurs(Object.fromEntries(js.map((j) => [j.id, j])));
     setCompo(p || null);
     setPossession(possessionPublique || null);
-    api.documentsMatch(id).then(setDocuments).catch(() => setDocuments([]));
     api.me().then(setMoi).catch(() => setMoi(null));
   }
 
@@ -126,11 +123,6 @@ export default function MatchDetail() {
         </>
       )}
       {match.statut === "valide" && <p className="stamp">Validé</p>}
-      {documents.map((document) => document.url && (
-        <p key={document.id}>
-          <a className="btn" href={document.url} target="_blank" rel="noreferrer">Télécharger le dossier officiel PDF</a>
-        </p>
-      ))}
       {moi && ["admin", "organisateur"].includes(moi.role) && match.statut === "valide" && (
         <section className="sheet document-actions" aria-label="Document officiel">
           <p className="kicker">Document officiel</p>
