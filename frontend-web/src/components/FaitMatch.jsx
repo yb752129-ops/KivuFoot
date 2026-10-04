@@ -1,4 +1,4 @@
-import { Ballon, Botte, Carton, FlecheIn, FlecheOut } from "../icons.jsx";
+import { Ballon, Botte, Carton, FlecheIn, FlecheOut, IcoRefuse } from "../icons.jsx";
 import { formatMinute, labelEvenement, MOTIF_REFUS } from "../display.js";
 
 function Ico({ e }) {
@@ -14,7 +14,7 @@ function Ico({ e }) {
       </span>
     );
   }
-  if (e.type === "penalty") return <span className="fait-rate" aria-hidden="true">×</span>;
+  if (e.type === "penalty") return <IcoRefuse className="fait-ballon" />;
   return null;
 }
 
