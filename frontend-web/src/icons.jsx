@@ -43,9 +43,8 @@ export function IcoCsc({ className }) {
 /** But refusé / penalty raté : ballon + badge croix. Jamais de mention VAR. */
 export function IcoRefuse({ className }) {
   return (
-    <svg {...plein} className={className} style={styleFait}>
-      <circle cx="9" cy="9" r="7.3" fill="currentColor" />
-      <path d="M9 5.6 11.9 7.7 10.8 11H7.2L6.1 7.7Z" fill="var(--paper, #f3efe4)" />
+    <svg {...plein} className={className} style={styleFait} fillRule="nonzero">
+      <path d="M2.00,12.00 a10.00,10.00 0 1,1 20.00,0 a10.00,10.00 0 1,1 -20.00,0 Z M8.58,10.89 L9.88,14.91 L14.12,14.91 L15.42,10.89 L12.00,8.40 Z M15.97,3.51 a2.20,2.20 0 1,0 4.40,0 a2.20,2.20 0 1,0 -4.40,0 Z M19.79,15.24 a2.20,2.20 0 1,0 4.40,0 a2.20,2.20 0 1,0 -4.40,0 Z M9.80,22.50 a2.20,2.20 0 1,0 4.40,0 a2.20,2.20 0 1,0 -4.40,0 Z M-0.19,15.24 a2.20,2.20 0 1,0 4.40,0 a2.20,2.20 0 1,0 -4.40,0 Z M3.63,3.51 a2.20,2.20 0 1,0 4.40,0 a2.20,2.20 0 1,0 -4.40,0 Z" />
       <circle cx="17.2" cy="17.2" r="5.15" fill="var(--paper, #f3efe4)" stroke="currentColor" strokeWidth="1.2" />
       <path d="m14.9 14.9 4.6 4.6m0-4.6-4.6 4.6" fill="none" stroke="var(--err, #b84b42)" strokeWidth="2" strokeLinecap="round" />
     </svg>
