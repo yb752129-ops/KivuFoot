@@ -237,6 +237,18 @@ export function todayCivil(now = new Date(), timeZone = TZ_SUD_KIVU) {
   return civilDate(now, timeZone);
 }
 
+export function formatDateNavigation(yyyyMmDd) {
+  if (!yyyyMmDd) return "";
+  const date = new Date(`${yyyyMmDd}T12:00:00`);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleDateString("fr-FR", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  }).replace(/\./g, "").toUpperCase();
+}
+
 export function addCivilDays(yyyyMmDd, days) {
   const [y, m, d] = String(yyyyMmDd || "").split("-").map(Number);
   if (!y || !m || !d) return "";

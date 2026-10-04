@@ -15,12 +15,15 @@ export default function Scoreboard({ match, clubsById, to }) {
   const homeWin = played && sd > se;
   const awayWin = played && se > sd;
   const lieu = formatDateline(match.date_heure, match.stade);
+  const logoHome = clubsById[match.equipe_domicile_id]?.logo_url;
+  const logoAway = clubsById[match.equipe_exterieur_id]?.logo_url;
 
   const inner = (
     <>
       <div className="sb-line">
         <span className={`sb-name${homeWin ? " is-winner" : ""}${awayWin ? " is-loser" : ""}`}>
-          {home}
+          {logoHome && <img className="sb-logo" src={logoHome} alt={`Logo ${home}`} />}
+          <span>{home}</span>
         </span>
         <span className="sb-score">
           {played ? (
@@ -34,7 +37,8 @@ export default function Scoreboard({ match, clubsById, to }) {
           )}
         </span>
         <span className={`sb-name away${awayWin ? " is-winner" : ""}${homeWin ? " is-loser" : ""}`}>
-          {away}
+          <span>{away}</span>
+          {logoAway && <img className="sb-logo" src={logoAway} alt={`Logo ${away}`} />}
         </span>
       </div>
       <div className="sb-meta">

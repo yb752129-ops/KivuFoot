@@ -2,12 +2,12 @@ import { useEffect, useState } from "react";
 import { api } from "../api.js";
 import { useKivu } from "../context.jsx";
 import { AVenirLigne, LiveUne, TermineLigne } from "../components/LignesMatch.jsx";
-import { addCivilDays, civilDate, dernierFaitLive, groupMatchsByJournee, journeeTitre, todayCivil } from "../display.js";
+import { addCivilDays, civilDate, dernierFaitLive, formatDateNavigation, groupMatchsByJournee, journeeTitre, todayCivil } from "../display.js";
 
 export default function Matchs() {
   const { saison, clubsById } = useKivu();
   const [matchs, setMatchs] = useState([]);
-  const [dateSelection, setDateSelection] = useState("");
+  const [dateSelection, setDateSelection] = useState(() => todayCivil());
   const [evtsById, setEvtsById] = useState({});
 
   useEffect(() => {
@@ -34,9 +34,7 @@ export default function Matchs() {
     return () => { stop = true; };
   }, [saison]);
 
-  const matchsAffiches = dateSelection
-    ? matchs.filter((m) => civilDate(m.date_heure) === dateSelection)
-    : matchs;
+  const matchsAffiches = matchs.filter((m) => civilDate(m.date_heure) === dateSelection);
   const lives = matchs.filter((m) => m.statut === "en_cours" && !m.ended_at);
   const aVenir = matchsAffiches
     .filter((m) => m.statut === "programme")
@@ -62,17 +60,31 @@ export default function Matchs() {
   return (
     <section className="hero">
       <h1>Matchs</h1>
-      <div className="calendar-nav" aria-label="Navigation temporelle">
-        <button className="btn" type="button" onClick={() => setDateSelection(addCivilDays(dateSelection || todayCivil(), -1))}>← Hier</button>
-        <button className={`btn${!dateSelection ? " btn-primary" : ""}`} type="button" onClick={() => setDateSelection("")}>Toutes les dates</button>
-        <button className="btn" type="button" onClick={() => setDateSelection(todayCivil())}>Aujourd'hui</button>
-        <button className="btn" type="button" onClick={() => setDateSelection(addCivilDays(dateSelection || todayCivil(), 1))}>Demain →</button>
-        <label className="field calendar-date-field">
-          Date
-          <input type="date" value={dateSelection} onChange={(event) => setDateSelection(event.target.value)} />
+      <div className="date-navigation matchs-date-navigation" aria-label="Choisir la date des matchs">
+        <button
+          type="button"
+          className="date-arrow"
+          aria-label="Date précédente"
+          onClick={() => setDateSelection(addCivilDays(dateSelection, -1))}
+        >‹</button>
+        <label className="date-picker-control">
+          <span>Matchs du</span>
+          <strong>{formatDateNavigation(dateSelection)}</strong>
+          <input
+            type="date"
+            value={dateSelection}
+            aria-label="Choisir la date des matchs"
+            onChange={(event) => setDateSelection(event.target.value || todayCivil())}
+          />
         </label>
+        <button
+          type="button"
+          className="date-arrow"
+          aria-label="Date suivante"
+          onClick={() => setDateSelection(addCivilDays(dateSelection, 1))}
+        >›</button>
       </div>
-      {dateSelection && <p className="journee-date">Matchs du {new Date(`${dateSelection}T12:00:00`).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}</p>}
+      <p className="journee-date">Matchs du {formatDateNavigation(dateSelection)}</p>
 
       {lives.map((m) => (
         <LiveUne key={m.id} match={m} clubsById={clubsById} evt={evtsById[m.id] || null} />

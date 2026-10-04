@@ -2890,3 +2890,118 @@ body,
   .historique-page th,
   .historique-page td { white-space: nowrap; }
 }
+/* Corrections UI publiques avant match : logos, dates et onglets mobiles. */
+.sb-name {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+.sb-name.away { justify-content: flex-end; }
+.sb-logo {
+  width: 2.15rem;
+  height: 2.15rem;
+  flex: 0 0 auto;
+  object-fit: contain;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.28));
+}
+.mc-tabs { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+.date-navigation {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  margin: 0.7rem 0 0.35rem;
+}
+.date-arrow {
+  width: 2rem;
+  height: 2rem;
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: 1.7rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.date-arrow:hover,
+.date-arrow:focus-visible { color: var(--stamp); }
+.date-picker-control {
+  position: relative;
+  display: grid;
+  gap: 0.05rem;
+  min-width: min(15rem, 70vw);
+  padding: 0.48rem 2.2rem 0.48rem 0.85rem;
+  border: 1px solid var(--rule-strong);
+  color: var(--ink);
+  background: var(--paper-2);
+  text-align: center;
+  cursor: pointer;
+}
+.date-picker-control span {
+  color: var(--ink-soft);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.date-picker-control strong {
+  font-family: var(--score);
+  font-size: 1rem;
+  letter-spacing: 0.08em;
+}
+.date-picker-control::after {
+  content: "▣";
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--stamp);
+  font-size: 0.9rem;
+}
+.date-picker-control input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+.matchs-date-navigation { margin-top: 0.85rem; }
+.date-navigation-compact { width: auto; justify-content: flex-end; margin: 0; }
+.date-navigation-compact .date-picker-control { min-width: min(14rem, 58vw); }
+
+@media (max-width: 480px) {
+  .sb-logo { width: 1.85rem; height: 1.85rem; }
+  .sb-name { gap: 0.35rem; font-size: 0.88rem; }
+  .date-picker-control { min-width: min(13.5rem, 72vw); }
+  .date-navigation-compact { width: 100%; justify-content: center; margin-top: 0.35rem; }
+  .jour-barre-sub { align-items: flex-start; flex-direction: column; }
+}
+
+.possession-provenance {
+  margin: 0.25rem 0 0.8rem;
+  line-height: 1.45;
+}
+.stats-possession { margin-top: 1rem; }
+
+.cloche-equipes {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 0;
+}
+.cloche-equipes > span { min-width: 0; }
+.cloche-logo {
+  width: 1.15rem;
+  height: 1.15rem;
+  flex: 0 0 auto;
+  object-fit: contain;
+  border-radius: 50%;
+  background: rgba(239, 237, 230, 0.92);
+  padding: 2px;
+}

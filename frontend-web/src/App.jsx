@@ -97,7 +97,14 @@ export default function App() {
             <Route path="/clubs/:id" element={<ClubDetail />} />
             <Route path="/joueurs/:id" element={<Joueur />} />
             <Route path="/buteurs" element={<Buteurs />} />
-            <Route path="/historique" element={<Historique />} />
+            <Route
+              path="/historique"
+              element={
+                <Porte roles={["organisateur", "admin"]}>
+                  <Historique />
+                </Porte>
+              }
+            />
             <Route path="/compte" element={<Compte />} />
             <Route path="/recherche" element={<Recherche />} />
           </Route>
@@ -121,6 +128,7 @@ export default function App() {
             <Route path="matchs" element={<OrgaMatchsListe />} />
             <Route path="matchs/:id" element={<OrgaMatch />} />
             <Route path="validation" element={<OrgaValidation />} />
+            <Route path="historique" element={<Historique />} />
           </Route>
           <Route
             path="/collecteur"
@@ -173,6 +181,7 @@ export default function App() {
             }
           >
             <Route index element={<AdminVue />} />
+            <Route path="historique" element={<Historique />} />
             <Route path="audit" element={<AdminAudit />} />
             <Route path="propositions" element={<AdminPropositions />} />
             <Route path="comptes" element={<AdminComptes />} />

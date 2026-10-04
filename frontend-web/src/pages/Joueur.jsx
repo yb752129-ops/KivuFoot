@@ -9,7 +9,7 @@ export default function Joueur() {
   const { clubsById, saison } = useKivu();
   const [j, setJ] = useState(null);
   const [stats, setStats] = useState(null);
-  const [documents, setDocuments] = useState([]);
+
   const [err, setErr] = useState("");
 
   useEffect(() => {
@@ -19,11 +19,9 @@ export default function Joueur() {
   useEffect(() => {
     if (!saison) {
       setStats(null);
-      setDocuments([]);
       return;
     }
     api.statistiquesJoueurPublic(id, saison.id).then(setStats).catch(() => setStats(null));
-    api.documentsJoueur(id, saison.id).then(setDocuments).catch(() => setDocuments([]));
   }, [id, saison]);
 
   if (err) return <p className="erreur">{err}</p>;
@@ -86,11 +84,7 @@ export default function Joueur() {
             ))}
           </div>
           <p className="muted small">Statistiques calculées à partir des matchs officiellement validés.</p>
-          {documents.map((document) => document.url && (
-            <a className="btn" key={document.id} href={document.url} target="_blank" rel="noreferrer">
-              Télécharger la fiche PDF officielle
-            </a>
-          ))}
+
         </>
       )}
     </section>

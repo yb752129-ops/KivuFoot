@@ -36,6 +36,7 @@ export default function OrgaLayout() {
         {bureau && <NavLink to="/orga/calendrier">Calendrier</NavLink>}
         <NavLink to="/orga/matchs">Matchs</NavLink>
         {bureau && <NavLink to="/orga/validation">Validation</NavLink>}
+        {bureau && <NavLink to="/orga/historique">Historique</NavLink>}
       </nav>
       <div className="shell">
         <Outlet />

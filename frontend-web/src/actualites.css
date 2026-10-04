@@ -141,3 +141,13 @@
   .actualite-accueil-en-tete { display: block; }
   .actualite-accueil-en-tete .actualite-priorite { margin-top: .45rem; }
 }
+
+/* Header public : installation secondaire, jamais un gros bouton. */
+.masthead-raccourcis { gap: 0.35rem; justify-content: flex-start; }
+.masthead-raccourcis .masthead-install-link {
+  padding: 0.24rem 0.48rem;
+  gap: 0.25rem;
+  font-size: 0.62rem;
+  letter-spacing: 0.05em;
+  font-weight: 700;
+}

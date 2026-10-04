@@ -11,7 +11,6 @@ import { dernierFaitLive, formatJour, grouperFaits, journeeTitre, statsDesFaits,
 const ONGLETS = [
   { id: "apercu", label: "Aperçu" },
   { id: "stats", label: "Statistiques" },
-  { id: "possession", label: "Possession" },
   { id: "compo", label: "Compositions" },
 ];
 
@@ -177,7 +176,8 @@ export default function MatchDetail() {
       )}
 
       {onglet === "stats" && (
-        <table className="table stats-feuille table-accueil">
+        <>
+          <table className="table stats-feuille table-accueil">
           <thead>
             <tr>
               <th>{stripDemo(home?.nom) || "Domicile"}</th>
@@ -208,17 +208,17 @@ export default function MatchDetail() {
             </tr>
           </tbody>
         </table>
-      )}
-
-      {onglet === "possession" && (
-        <section className="sheet possession-public" aria-label="Possession du match">
+        <section className="sheet possession-public stats-possession" aria-label="Possession du match">
           <div className="possession-public-head">
             <div>
-              <p className="kicker">Protocole KIVUFOOT POSSESSION V1</p>
-              <h2>Temps de contrôle observé</h2>
+              <p className="kicker">Protocole {possession?.protocole || "KIVUFOOT_POSSESSION_V1"}</p>
+              <h2>Possession</h2>
             </div>
             {possession?.disponible && <span className="stamp">Officielle</span>}
           </div>
+          <p className="muted small possession-provenance">
+            Statut : {possession?.statut || "Non disponible"} · Provenance : {possession?.mapping || "TEAM_A=domicile, TEAM_B=extérieur"}
+          </p>
           {!possession?.disponible ? (
             <p className="empty">Possession non disponible</p>
           ) : (
@@ -240,6 +240,7 @@ export default function MatchDetail() {
             </>
           )}
         </section>
+        </>
       )}
 
       {onglet === "compo" && (

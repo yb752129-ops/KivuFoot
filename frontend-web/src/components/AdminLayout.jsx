@@ -28,6 +28,7 @@ export default function AdminLayout() {
         <NavLink to="/admin/propositions">Propositions</NavLink>
         <NavLink to="/orga/actualites">Actualités</NavLink>
         <NavLink to="/admin/comptes">Comptes</NavLink>
+        <NavLink to="/admin/historique">Historique</NavLink>
       </nav>
       <div className="shell">
         <Outlet />

@@ -73,8 +73,10 @@ function Cloche() {
               onClick={() => setOpen(false)}
             >
               <Chrono match={m} running />
-              <span>
-                {stripDemo(clubName(clubsById, m.equipe_domicile_id))} – {stripDemo(clubName(clubsById, m.equipe_exterieur_id))}
+              <span className="cloche-equipes">
+                {clubsById[m.equipe_domicile_id]?.logo_url && <img className="cloche-logo" src={clubsById[m.equipe_domicile_id].logo_url} alt="" />}
+                <span>{stripDemo(clubName(clubsById, m.equipe_domicile_id))} – {stripDemo(clubName(clubsById, m.equipe_exterieur_id))}</span>
+                {clubsById[m.equipe_exterieur_id]?.logo_url && <img className="cloche-logo" src={clubsById[m.equipe_exterieur_id].logo_url} alt="" />}
               </span>
               <b>{m.score_domicile}–{m.score_exterieur}</b>
             </Link>
@@ -159,20 +161,12 @@ export default function Layout() {
               )}
             </NavLink>
             <NavLink
-              to="/historique"
-              className={({ isActive }) => `masthead-install-link${isActive ? " actif" : ""}`}
-              aria-label="Historique officiel"
-            >
-              <span aria-hidden="true">◷</span>
-              <span>Historique</span>
-            </NavLink>
-            <NavLink
               to="/install"
               className={({ isActive }) => `masthead-install-link${isActive ? " actif" : ""}`}
               aria-label="Installer KivuFoot"
             >
               <span aria-hidden="true">⇩</span>
-              <span>Installer KivuFoot</span>
+              <span>Installer</span>
             </NavLink>
           </div>
           {competition?.est_demo && (
