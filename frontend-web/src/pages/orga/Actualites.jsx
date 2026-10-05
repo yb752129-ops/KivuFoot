@@ -242,7 +242,8 @@ export default function OrgaActualites() {
         <label className="field">Texte éditorial<textarea value={form.texte} onChange={(e) => change("texte", e.target.value)} required minLength={10} rows={8} /></label>
         <label className="field">Photos <input type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={(e) => setFiles(Array.from(e.target.files || []))} /><small>La première image devient l’image principale. 10 Mo maximum par image.</small></label>
         <label className="checkbox-line"><input type="checkbox" checked={form.telechargement_autorise} onChange={(e) => change("telechargement_autorise", e.target.checked)} /> Téléchargement public autorisé</label>
-        <label className="checkbox-line"><input type="checkbox" checked={form.mise_en_avant} onChange={(e) => change("mise_en_avant", e.target.checked)} /> Mettre en avant sur l’accueil public</label>
+        <label className="checkbox-line"><input type="checkbox" checked={form.mise_en_avant} onChange={(e) => change("mise_en_avant", e.target.checked)} /> Épingler sur l’accueil public au-delà de la fenêtre de 10 minutes</label>
+        <p className="meta-line">Sans épingle, une actualité publiée apparaît sur l’accueil pendant 10 minutes puis reste dans Actualités.</p>
         <div className="file-actions"><button className="btn btn-primary" type="submit" disabled={busy}>{busy ? "Enregistrement…" : "Enregistrer le brouillon"}</button>{selectedId && <Link className="btn" to={`/orga/actualites/${selectedId}/previsualiser`}>Prévisualiser</Link>}</div>
       </form>
 

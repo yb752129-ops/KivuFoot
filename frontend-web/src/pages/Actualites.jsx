@@ -41,17 +41,42 @@ export default function Actualites() {
   const saisonParam = searchParams.get("saison_id") || "";
   const competitionId = competitionParam || competition?.id || "";
   const saisonId = saisonParam || saison?.id || "";
+  const PAGE_SIZE = 50;
   const [items, setItems] = useState([]);
   const [categorie, setCategorie] = useState("");
+  const [offset, setOffset] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(true);
   const actualitesLues = useActualitesLues();
 
-  async function load() {
+  async function loadPage(nextOffset = 0, append = false) {
     setLoading(true);
+    if (!append) setItems([]);
+
     try {
-      const rows = await api.actualites({ categorie, competitionId, saisonId, clientToken: getActualiteClientToken() });
-      setItems(rows || []);
+      const rows = await api.actualites({
+        categorie,
+        competitionId,
+        saisonId,
+        offset: nextOffset,
+        limit: PAGE_SIZE,
+        clientToken: getActualiteClientToken(),
+      });
+
+      const incoming = rows || [];
+
+      setItems((previous) => {
+        if (!append) return incoming;
+        const seen = new Set(previous.map((item) => item.id));
+        return [
+          ...previous,
+          ...incoming.filter((item) => !seen.has(item.id)),
+        ];
+      });
+
+      setOffset(nextOffset + incoming.length);
+      setHasMore(incoming.length === PAGE_SIZE);
       setErr("");
     } catch (e) {
       setErr(e.message);
@@ -60,7 +85,9 @@ export default function Actualites() {
     }
   }
 
-  useEffect(() => { load(); }, [categorie, competitionId, saisonId]);
+  useEffect(() => {
+    loadPage(0, false);
+  }, [categorie, competitionId, saisonId]);
 
   return (
     <section className="hero actualites-page">
@@ -107,6 +134,18 @@ export default function Actualites() {
           </article>
         ))}
       </div>
+      {hasMore && (
+        <p className="actualites-plus">
+          <button
+            className="btn"
+            type="button"
+            disabled={loading}
+            onClick={() => loadPage(offset, true)}
+          >
+            {loading ? "Chargement…" : "Charger les anciennes actualités"}
+          </button>
+        </p>
+      )}
     </section>
   );
 }

@@ -151,3 +151,10 @@
   letter-spacing: 0.05em;
   font-weight: 700;
 }
+
+
+/* L'archive éditoriale reste parcourable au-delà de la première page API. */
+.actualites-plus {
+  margin: 1rem 0 0;
+  text-align: center;
+}

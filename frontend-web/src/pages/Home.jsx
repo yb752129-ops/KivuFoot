@@ -8,7 +8,6 @@ import {
   addCivilDays,
   civilDate,
   dernierFaitLive,
-  formatDateNavigation,
   stripDemo,
   todayCivil,
 } from "../display.js";
@@ -47,7 +46,7 @@ export default function Home() {
   const [matchs, setMatchs] = useState([]);
   const [evtsById, setEvtsById] = useState({});
   const [actualites, setActualites] = useState([]);
-  const [bulletinDate, setBulletinDate] = useState(() => todayCivil());
+  const [jourOffset, setJourOffset] = useState(0);
   const [maintenant, setMaintenant] = useState(() => Date.now());
 
   useEffect(() => {
@@ -102,7 +101,9 @@ export default function Home() {
   }, [saison, staff]);
 
   const lives = matchs.filter((m) => m.statut === "en_cours" && !m.ended_at);
-  const jour = bulletinDate;
+  // Le bulletin reste limité à aujourd'hui / demain.
+  // Un jour vide reste vide : aucun programme n'est inventé.
+  const jour = jourOffset === 0 ? todayCivil() : addCivilDays(todayCivil(), 1);
   const programmes = matchs
     .filter((m) => m.statut === "programme")
     .sort((a, b) => new Date(a.date_heure) - new Date(b.date_heure));
@@ -184,29 +185,24 @@ export default function Home() {
         </div>
         <div className="jour-barre jour-barre-sub">
           <h3>À venir</h3>
-          <div className="date-navigation date-navigation-compact" aria-label="Date du bulletin">
+          <div className="jour-nav" aria-label="Navigation des prochains matchs">
             <button
               type="button"
-              className="date-arrow"
-              aria-label="Date précédente"
-              onClick={() => setBulletinDate(addCivilDays(bulletinDate, -1))}
-            >‹</button>
-            <label className="date-picker-control">
-              <span>Matchs du</span>
-              <strong>{formatDateNavigation(bulletinDate)}</strong>
-              <input
-                type="date"
-                value={bulletinDate}
-                aria-label="Choisir la date du bulletin"
-                onChange={(event) => setBulletinDate(event.target.value || todayCivil())}
-              />
-            </label>
+              aria-label="Afficher les matchs d'aujourd'hui"
+              disabled={jourOffset === 0}
+              onClick={() => setJourOffset(0)}
+            >
+              ‹
+            </button>
+            <span>{jourOffset === 0 ? "Aujourd'hui" : "Demain"}</span>
             <button
               type="button"
-              className="date-arrow"
-              aria-label="Date suivante"
-              onClick={() => setBulletinDate(addCivilDays(bulletinDate, 1))}
-            >›</button>
+              aria-label="Afficher les matchs de demain"
+              disabled={jourOffset === 1}
+              onClick={() => setJourOffset(1)}
+            >
+              ›
+            </button>
           </div>
         </div>
         {aVenir.length === 0 && <p className="empty">Pas de match prévu ce jour.</p>}
