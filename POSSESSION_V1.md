@@ -20,8 +20,14 @@ actualités ou comptes.
 ## API
 
 - `GET /api/v1/matchs/{id}/possession` : résumé public strictement filtré.
-  Il renvoie `Possession non disponible` tant que le match et la possession
-  ne sont pas officiellement validés.
+  Pendant un match `en_cours`, il expose la mesure calculée à l'instant de la
+  lecture avec `statut=PROVISOIRE`, `est_live=true` et le message
+  `Possession live · donnée provisoire`. La valeur de l'intervalle ouvert est
+  incluse sans être écrite comme une durée finale. Après la fin, la capture
+  reste provisoire jusqu'à la validation ; celle-ci la fait passer à
+  `statut=OFFICIELLE` et `est_live=false`. Pour un match non commencé, une
+  capture absente, un forfait ou une capture exclue, il renvoie
+  `Possession non disponible`.
 - `GET /api/v1/matchs/{id}/possession/gestion` : détail collector/organisateur.
 - `POST /api/v1/matchs/{id}/possession/transition` : commande idempotente du
   collecteur, avec `operation_id` UUID obligatoire.

@@ -785,15 +785,34 @@ async def snapshot_possession(
 
 
 async def snapshot_public_possession(
-    db: AsyncSession, match: Match, possession: PossessionMatch | None
+    db: AsyncSession,
+    match: Match,
+    possession: PossessionMatch | None,
+    *,
+    now: datetime | None = None,
 ) -> PossessionPublicOut:
-    """Filtre strictement la possession avant toute exposition publique."""
+    """Expose la mesure courante sans transformer le provisoire en officiel.
+
+    Le moteur reste celui des intervalles observés : ``snapshot_possession``
+    ajoute la durée de l'intervalle ouvert jusqu'à ``now``. Pendant un match
+    en cours, cette valeur est publique sous le statut PROVISOIRE. Après la
+    fin, elle peut rester visible comme valeur provisoire jusqu'à la
+    validation ; seule ``officialiser_possession`` la fait passer à
+    OFFICIELLE.
+    """
     equipe_a_nom, equipe_b_nom = await _noms_equipes(db, match)
+    statut_match = _match_status(match)
+    statut_possession = _value(possession.statut) if possession else None
+    statuts_match_publics = (StatutMatch.EN_COURS.value, StatutMatch.TERMINE.value, StatutMatch.VALIDE.value)
+
     if (
         possession is None
-        or _match_status(match) != StatutMatch.VALIDE.value
-        or _value(possession.statut) != StatutPossession.OFFICIELLE.value
+        or statut_match not in statuts_match_publics
         or not possession.eligible_public
+        or statut_possession not in (
+            StatutPossession.PROVISOIRE.value,
+            StatutPossession.OFFICIELLE.value,
+        )
     ):
         return PossessionPublicOut(
             match_id=match.id,
@@ -803,9 +822,11 @@ async def snapshot_public_possession(
             equipe_b_id=match.equipe_exterieur_id,
             equipe_a_nom=equipe_a_nom,
             equipe_b_nom=equipe_b_nom,
-            statut=_value(possession.statut) if possession else None,
+            statut=statut_possession,
+            est_live=False,
         )
-    detail = await snapshot_possession(db, match, possession, include_intervals=False)
+
+    detail = await snapshot_possession(db, match, possession, now=now, include_intervals=False)
     if detail.temps_mesure_ms <= 0 or detail.pourcentage_a is None:
         return PossessionPublicOut(
             match_id=match.id,
@@ -815,17 +836,29 @@ async def snapshot_public_possession(
             equipe_b_id=possession.equipe_b_id,
             equipe_a_nom=equipe_a_nom,
             equipe_b_nom=equipe_b_nom,
-            statut=StatutPossession.OFFICIELLE,
+            statut=statut_possession,
+            est_live=False,
         )
+
+    officielle = statut_possession == StatutPossession.OFFICIELLE.value
+    est_live = not officielle and statut_match == StatutMatch.EN_COURS.value
+    if officielle:
+        message = "Possession officielle"
+    elif est_live:
+        message = "Possession live · donnée provisoire"
+    else:
+        message = "Possession provisoire · validation en attente"
+
     return PossessionPublicOut(
         match_id=match.id,
         disponible=True,
-        message="Possession officielle",
+        message=message,
         equipe_a_id=possession.equipe_a_id,
         equipe_b_id=possession.equipe_b_id,
         equipe_a_nom=equipe_a_nom,
         equipe_b_nom=equipe_b_nom,
-        statut=StatutPossession.OFFICIELLE,
+        statut=statut_possession,
+        est_live=est_live,
         temps_a=detail.temps_a,
         temps_b=detail.temps_b,
         temps_non_attribue=detail.temps_non_attribue,

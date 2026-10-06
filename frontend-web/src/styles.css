@@ -2987,6 +2987,14 @@ body,
   margin: 0.25rem 0 0.8rem;
   line-height: 1.45;
 }
+.possession-public-live {
+  border-left: 3px solid var(--lake);
+  padding-left: 0.8rem;
+}
+.possession-public-head .stamp-live {
+  border-color: var(--lake);
+  color: var(--lake);
+}
 .stats-possession { margin-top: 1rem; }
 
 .cloche-equipes {

@@ -106,6 +106,9 @@ class PossessionPublicOut(BaseModel):
     equipe_b_nom: str | None = None
     mapping: str = "TEAM_A=domicile, TEAM_B=extérieur"
     statut: StatutPossession | None = None
+    # PROVISOIRE + est_live=True signifie que le match est encore en cours.
+    # OFFICIELLE signifie que la validation du match est terminée.
+    est_live: bool = False
     protocole: ProtocolePossession = ProtocolePossession.KIVUFOOT_POSSESSION_V1
     temps_a: float | None = None
     temps_b: float | None = None

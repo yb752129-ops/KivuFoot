@@ -40,7 +40,12 @@ async def _verifier_gestion(match_id: int, current_user: User, db: AsyncSession)
 
 @router.get("/{match_id}/possession", response_model=PossessionPublicOut)
 async def lire_possession_publique(match_id: int, db: AsyncSession = Depends(get_db)):
-    """La possession n'est publique qu'après validation du match ET de la capture."""
+    """Retourne la mesure actuelle : LIVE/PROVISOIRE ou OFFICIELLE.
+
+    La route ne crée aucune capture et ne lit aucun événement sportif pour
+    estimer la possession. Le temps de l'intervalle observé ouvert est calculé
+    par le service existant au moment de la lecture.
+    """
     match = await _match_existant(db, match_id)
     return await snapshot_public_possession(db, match, await get_possession(db, match_id))
 

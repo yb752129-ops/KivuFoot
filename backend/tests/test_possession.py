@@ -164,22 +164,72 @@ async def test_08_finished_interdit_toute_nouvelle_sequence(db_session):
 
 
 @pytest.mark.asyncio
-async def test_09_publication_exige_match_valide_et_capture_officielle(db_session):
+async def test_09_publication_live_puis_officielle_apres_validation(db_session):
     match, user = await contexte(db_session)
     await transition_possession(db_session, match.id, "TEAM_A", user.id, operation(), now=instant(0))
+
+    # L'intervalle A est encore ouvert : la lecture publique doit inclure les
+    # secondes observées depuis la dernière transition.
+    public_live = await snapshot_public_possession(
+        db_session,
+        match,
+        await get_possession(db_session, match.id),
+        now=instant(10),
+    )
+    assert public_live.disponible is True
+    assert public_live.est_live is True
+    assert public_live.statut == StatutPossession.PROVISOIRE
+    assert public_live.message == "Possession live · donnée provisoire"
+    assert public_live.temps_a_ms == 10_000
+    assert (public_live.pourcentage_a, public_live.pourcentage_b) == (100, 0)
+
+    # Le passage à B fait évoluer la valeur publique sans recréer ni
+    # recalculer une donnée à partir du score ou des événements.
+    await transition_possession(db_session, match.id, "TEAM_B", user.id, operation(), now=instant(20))
+    public_live_2 = await snapshot_public_possession(
+        db_session,
+        match,
+        await get_possession(db_session, match.id),
+        now=instant(30),
+    )
+    assert public_live_2.est_live is True
+    assert (public_live_2.temps_a_ms, public_live_2.temps_b_ms) == (20_000, 10_000)
+    assert (public_live_2.pourcentage_a, public_live_2.pourcentage_b) == (67, 33)
+
     match.statut = StatutMatch.TERMINE
-    await transition_possession(db_session, match.id, "FINISHED", user.id, operation(), now=instant(10))
+    await transition_possession(db_session, match.id, "FINISHED", user.id, operation(), now=instant(40))
     public_avant = await snapshot_public_possession(db_session, match, await get_possession(db_session, match.id))
-    assert public_avant.disponible is False
+    assert public_avant.disponible is True
+    assert public_avant.est_live is False
+    assert public_avant.statut == StatutPossession.PROVISOIRE
+
     match.statut = StatutMatch.VALIDE
     await officialiser_possession(db_session, match.id, user.id)
     public_apres = await snapshot_public_possession(db_session, match, await get_possession(db_session, match.id))
     assert public_apres.disponible is True
-    assert public_apres.pourcentage_a == 100
+    assert public_apres.est_live is False
+    assert public_apres.statut == StatutPossession.OFFICIELLE
+    assert public_apres.pourcentage_a == 50
 
 
 @pytest.mark.asyncio
-async def test_10_collecteur_peut_saisir_mais_ne_peut_pas_valider(client, db_session):
+async def test_10_route_publique_expose_la_possession_live(client, db_session):
+    match, user = await contexte(db_session)
+    await transition_possession(db_session, match.id, "TEAM_A", user.id, operation(), now=instant(0))
+
+    response = await client.get(f"/api/v1/matchs/{match.id}/possession")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["disponible"] is True
+    assert payload["est_live"] is True
+    assert payload["statut"] == "PROVISOIRE"
+    assert payload["message"] == "Possession live · donnée provisoire"
+    assert payload["pourcentage_a"] is not None
+
+
+@pytest.mark.asyncio
+async def test_11_collecteur_peut_saisir_mais_ne_peut_pas_valider(client, db_session):
     match, user = await contexte(db_session)
 
     async def utilisateur_courant():
@@ -196,7 +246,7 @@ async def test_10_collecteur_peut_saisir_mais_ne_peut_pas_valider(client, db_ses
 
 
 @pytest.mark.asyncio
-async def test_11_correction_organisateur_conserve_une_trace(db_session):
+async def test_12_correction_organisateur_conserve_une_trace(db_session):
     from app.services.possession import corriger_intervalle_possession
 
     match, user = await contexte(db_session)

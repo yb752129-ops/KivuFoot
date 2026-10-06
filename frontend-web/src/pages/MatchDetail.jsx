@@ -103,6 +103,15 @@ export default function MatchDetail() {
   const faits = grouperFaits(evts);
   const stats = statsDesFaits(evts);
   const dernier = faits[faits.length - 1] || null;
+  const possessionLive = Boolean(possession?.disponible && possession?.est_live);
+  const possessionOfficielle = possession?.disponible && possession?.statut === "OFFICIELLE";
+  const possessionStatut = possessionLive
+    ? "LIVE · PROVISOIRE"
+    : possessionOfficielle
+      ? "OFFICIELLE"
+      : possession?.statut === "PROVISOIRE"
+        ? "PROVISOIRE"
+        : "Non disponible";
 
   return (
     <section className="hero">
@@ -200,16 +209,24 @@ export default function MatchDetail() {
             </tr>
           </tbody>
         </table>
-        <section className="sheet possession-public stats-possession" aria-label="Possession du match">
+        <section
+          className={`sheet possession-public stats-possession ${possessionLive ? "possession-public-live" : ""}`}
+          aria-label="Possession du match"
+          aria-live={possessionLive ? "polite" : undefined}
+        >
           <div className="possession-public-head">
             <div>
               <p className="kicker">Protocole {possession?.protocole || "KIVUFOOT_POSSESSION_V1"}</p>
               <h2>Possession</h2>
             </div>
-            {possession?.disponible && <span className="stamp">Officielle</span>}
+            {possession?.disponible && (
+              <span className={`stamp ${possessionLive ? "stamp-live" : ""}`}>
+                {possessionStatut}
+              </span>
+            )}
           </div>
           <p className="muted small possession-provenance">
-            Statut : {possession?.statut || "Non disponible"} · Provenance : {possession?.mapping || "TEAM_A=domicile, TEAM_B=extérieur"}
+            Statut : {possessionStatut} · {possession?.message || "Possession non disponible"} · Provenance : {possession?.mapping || "TEAM_A=domicile, TEAM_B=extérieur"}
           </p>
           {!possession?.disponible ? (
             <p className="empty">Possession non disponible</p>
