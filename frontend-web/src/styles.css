@@ -2990,7 +2990,8 @@ body,
   .sb-name { gap: 0.35rem; font-size: 0.88rem; }
   .date-picker-control { min-width: min(13.5rem, 72vw); }
   .date-navigation-compact { width: 100%; justify-content: center; margin-top: 0.35rem; }
-  .jour-barre-sub { align-items: flex-start; flex-direction: column; }
+  .jour-barre-sub { align-items: baseline; flex-direction: row; }
+  .jour-barre-sub .jour-nav { margin-left: auto; white-space: nowrap; }
 }
 
 .possession-provenance {
