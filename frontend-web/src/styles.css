@@ -2022,6 +2022,83 @@ html[data-theme="dark"] { --door-card: #1c1914; --door-num: var(--lime); }
   padding: 0.35rem 0.95rem;
 }
 .id-row span { text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.64rem; color: var(--ink-soft); }
+
+.section-note {
+  color: var(--ink-soft);
+  font-size: 0.78rem;
+  text-align: right;
+}
+.performance-status {
+  margin: 0.8rem 0 0.75rem;
+  padding: 0.8rem 0.9rem;
+  border: 1px solid var(--rule);
+  border-left: 4px solid var(--ink-soft);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--paper-2) 58%, transparent);
+}
+.performance-status-confirmee {
+  border-left-color: var(--ok);
+}
+.performance-status-provisoire {
+  border-left-color: var(--warn);
+}
+.performance-status-non_disponible {
+  border-left-color: var(--ink-soft);
+}
+.performance-status-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+.status-pill {
+  display: inline-block;
+  padding: 0.18rem 0.42rem;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  color: var(--stamp);
+  font-size: 0.66rem;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.performance-status-provisoire .status-pill { color: var(--warn); }
+.performance-status-non_disponible .status-pill { color: var(--ink-soft); }
+.performance-source {
+  color: var(--ink-soft);
+  font-size: 0.74rem;
+}
+.performance-status p,
+.performance-note p {
+  margin: 0.45rem 0 0;
+  color: var(--ink-soft);
+  font-size: 0.84rem;
+  line-height: 1.45;
+}
+.stat-unavailable {
+  color: var(--ink-soft);
+  font-size: 0.82rem;
+  font-style: italic;
+  font-weight: 500;
+}
+.performance-note {
+  margin-top: 0.75rem;
+  padding: 0.75rem 0.9rem;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+}
+.performance-note strong {
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.hero .muted.small {
+  margin: 0.7rem 0 0;
+  color: var(--ink-soft);
+  font-size: 0.75rem;
+  line-height: 1.45;
+}
 .orga-app .empty {
   border: 1.5px dashed var(--rule-strong);
   border-radius: 12px;

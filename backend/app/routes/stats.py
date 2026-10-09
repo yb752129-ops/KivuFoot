@@ -55,27 +55,96 @@ async def stats_joueur_public(
             HommeMatch.joueur_id == joueur_id,
         )
     )
-    values = stat or StatistiqueJoueur(
-        joueur_id=joueur_id,
-        competition_id=0,
-        saison_id=saison_id,
+    # Une ligne StatistiqueJoueur signifie qu'une donnée confirmée a été
+    # produite par le flux de validation. En son absence, ne renvoyons pas
+    # un faux tableau rempli de zéros : zéro et donnée indisponible ne sont
+    # pas la même information.
+    penalties_marques = sum(1 for resultat, _ in penalty_rows if resultat == ResultatPenalty.MARQUE)
+    penalties_rates = sum(1 for resultat, _ in penalty_rows if resultat == ResultatPenalty.RATE)
+    champs_stats = (
+        "matchs_joues",
+        "titularisations",
+        "minutes_jouees",
+        "buts",
+        "passes_decisives",
+        "cartons_jaunes",
+        "cartons_rouges",
+        "penalties_marques",
+        "penalties_rates",
+        "hommes_du_match",
     )
+
+    if stat is None:
+        # Les penalties ratés et les désignations homme du match possèdent
+        # leurs propres tables officielles. Ils peuvent donc être publiés
+        # même si aucune ligne d'agrégat joueur n'existe encore.
+        statuts = {champ: "NON_DISPONIBLE" for champ in champs_stats}
+        if penalty_rows:
+            statuts["penalties_marques"] = "CONFIRMEE"
+            statuts["penalties_rates"] = "CONFIRMEE"
+        if homme_du_match:
+            statuts["hommes_du_match"] = "CONFIRMEE"
+        au_moins_une_donnee = any(statut == "CONFIRMEE" for statut in statuts.values())
+        return {
+            "joueur_id": joueur.id,
+            "joueur_nom": joueur.nom_complet,
+            "club_actuel_id": joueur.club_actuel_id,
+            "saison_id": saison_id,
+            "disponible": au_moins_une_donnee,
+            "statut": "CONFIRMEE" if au_moins_une_donnee else "NON_DISPONIBLE",
+            "message": (
+                (
+                    "Certaines données confirmées sont publiées ; les autres restent indisponibles. "
+                    "Les données provisoires ne sont pas publiées faute de source publique fiable."
+                )
+                if au_moins_une_donnee
+                else (
+                    "Aucune statistique confirmée pour cette édition. "
+                    "Les données provisoires ne sont pas publiées faute de source publique fiable."
+                )
+            ),
+            "matchs_joues": None,
+            "titularisations": None,
+            "minutes_jouees": None,
+            "buts": None,
+            "passes_decisives": None,
+            "cartons_jaunes": None,
+            "cartons_rouges": None,
+            "penalties_marques": penalties_marques if penalty_rows else None,
+            "penalties_rates": penalties_rates if penalty_rows else None,
+            "hommes_du_match": int(homme_du_match) if homme_du_match else None,
+            "statuts": statuts,
+            "source": "matchs_officiellement_valides" if au_moins_une_donnee else "aucune_donnee_confirmee",
+            "donnees_non_collectees": [
+                "Statistiques défensives détaillées",
+                "Arrêts et buts évités du gardien",
+            ],
+        }
+
     return {
         "joueur_id": joueur.id,
         "joueur_nom": joueur.nom_complet,
         "club_actuel_id": joueur.club_actuel_id,
         "saison_id": saison_id,
-        "matchs_joues": values.matchs_joues,
-        "titularisations": values.titularisations,
-        "minutes_jouees": values.minutes_jouees,
-        "buts": values.buts,
-        "passes_decisives": values.passes_decisives,
-        "cartons_jaunes": values.cartons_jaunes,
-        "cartons_rouges": values.cartons_rouges,
-        "penalties_marques": sum(1 for resultat, _ in penalty_rows if resultat == ResultatPenalty.MARQUE),
-        "penalties_rates": sum(1 for resultat, _ in penalty_rows if resultat == ResultatPenalty.RATE),
+        "disponible": True,
+        "statut": "CONFIRMEE",
+        "message": "Statistiques calculées à partir des données confirmées de la compétition.",
+        "matchs_joues": stat.matchs_joues,
+        "titularisations": stat.titularisations,
+        "minutes_jouees": stat.minutes_jouees,
+        "buts": stat.buts,
+        "passes_decisives": stat.passes_decisives,
+        "cartons_jaunes": stat.cartons_jaunes,
+        "cartons_rouges": stat.cartons_rouges,
+        "penalties_marques": penalties_marques,
+        "penalties_rates": penalties_rates,
         "hommes_du_match": int(homme_du_match or 0),
+        "statuts": {champ: "CONFIRMEE" for champ in champs_stats},
         "source": "matchs_officiellement_valides",
+        "donnees_non_collectees": [
+            "Statistiques défensives détaillées",
+            "Arrêts et buts évités du gardien",
+        ],
     }
 
 

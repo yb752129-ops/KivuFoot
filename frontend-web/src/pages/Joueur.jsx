@@ -4,6 +4,31 @@ import { api } from "../api.js";
 import { clubName, useKivu } from "../context.jsx";
 import { labelPoste, stripDemo } from "../display.js";
 
+const LIGNES_STATS = [
+  ["Matchs", "matchs_joues"],
+  ["Titularisations", "titularisations"],
+  ["Minutes", "minutes_jouees"],
+  ["Buts", "buts"],
+  ["Passes décisives", "passes_decisives"],
+  ["Cartons jaunes", "cartons_jaunes"],
+  ["Cartons rouges", "cartons_rouges"],
+  ["Penalties marqués", "penalties_marques"],
+  ["Penalties ratés", "penalties_rates"],
+  ["Homme du match", "hommes_du_match"],
+];
+
+const STATUTS = {
+  CONFIRMEE: "Confirmées",
+  PROVISOIRE: "Provisoires",
+  NON_DISPONIBLE: "Non disponibles",
+};
+
+function valeurStatistique(valeur) {
+  // Un zéro réellement agrégé reste un zéro. Seules les valeurs absentes
+  // sont présentées comme indisponibles.
+  return valeur === null || valeur === undefined ? "Non disponible" : valeur;
+}
+
 export default function Joueur() {
   const { id } = useParams();
   const { clubsById, saison } = useKivu();
@@ -28,6 +53,11 @@ export default function Joueur() {
   if (!j) return <p className="empty">Chargement…</p>;
 
   const club = j.club_actuel_id ? stripDemo(clubName(clubsById, j.club_actuel_id)) : "";
+  const statut = stats?.statut || "NON_DISPONIBLE";
+  const statutLabel = STATUTS[statut] || "État non précisé";
+  const sourceLabel = stats?.source === "matchs_officiellement_valides"
+    ? "Matchs officiellement validés"
+    : "Aucune source confirmée";
 
   return (
     <section className="hero">
@@ -58,33 +88,37 @@ export default function Joueur() {
         </div>
       </div>
       <div className="section-head">
-        <h2>Statistiques officielles</h2>
+        <h2>Performance par édition</h2>
+        {saison?.nom && <span className="section-note">{saison.nom}</span>}
       </div>
       {!stats ? (
         <p className="empty">Statistiques non disponibles pour cette édition.</p>
       ) : (
         <>
+          <div className={`performance-status performance-status-${statut.toLowerCase()}`}>
+            <div className="performance-status-top">
+              <span className="status-pill">{statutLabel}</span>
+              <span className="performance-source">Source : {sourceLabel}</span>
+            </div>
+            <p>{stats.message || "État de validation non précisé."}</p>
+          </div>
           <div className="sheet id-sheet">
-            {[
-              ["Matchs", stats.matchs_joues],
-              ["Titularisations", stats.titularisations],
-              ["Minutes", stats.minutes_jouees],
-              ["Buts", stats.buts],
-              ["Passes décisives", stats.passes_decisives],
-              ["Cartons jaunes", stats.cartons_jaunes],
-              ["Cartons rouges", stats.cartons_rouges],
-              ["Penalties marqués", stats.penalties_marques],
-              ["Penalties ratés", stats.penalties_rates],
-              ["Homme du match", stats.hommes_du_match],
-            ].map(([label, valeur]) => (
-              <div className="id-row" key={label}>
+            {LIGNES_STATS.map(([label, cle]) => (
+              <div className="id-row" key={cle}>
                 <span>{label}</span>
-                <strong>{valeur ?? 0}</strong>
+                <strong className={stats[cle] === null || stats[cle] === undefined ? "stat-unavailable" : ""}>
+                  {valeurStatistique(stats[cle])}
+                </strong>
               </div>
             ))}
           </div>
-          <p className="muted small">Statistiques calculées à partir des matchs officiellement validés.</p>
-
+          {stats.donnees_non_collectees?.length > 0 && (
+            <div className="performance-note">
+              <strong>Données non collectées</strong>
+              <p>{stats.donnees_non_collectees.join(" · ")}</p>
+            </div>
+          )}
+          <p className="muted small">Un zéro indique une valeur mesurée nulle ; « Non disponible » indique qu’aucune donnée fiable n’est publiée.</p>
         </>
       )}
     </section>
