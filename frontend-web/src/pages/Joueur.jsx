@@ -29,11 +29,43 @@ function valeurStatistique(valeur) {
   return valeur === null || valeur === undefined ? "Non disponible" : valeur;
 }
 
+function dateMatch(dateHeure) {
+  if (!dateHeure) return "Date indisponible";
+  const date = new Date(dateHeure);
+  if (Number.isNaN(date.getTime())) return "Date indisponible";
+  return new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "short" })
+    .format(date)
+    .replace(".", "");
+}
+
+function faitsIndividuels(match) {
+  const stats = match.statistiques || {};
+  const faits = [];
+  if (stats.buts > 0) faits.push(`${stats.buts} but${stats.buts > 1 ? "s" : ""}`);
+  if (stats.passes_decisives > 0) {
+    faits.push(`${stats.passes_decisives} passe${stats.passes_decisives > 1 ? "s" : ""}`);
+  }
+  if (stats.penalties_marques > 0) faits.push(`${stats.penalties_marques} penalty${stats.penalties_marques > 1 ? "s" : ""} marqué${stats.penalties_marques > 1 ? "s" : ""}`);
+  if (stats.penalties_rates > 0) faits.push(`${stats.penalties_rates} penalty${stats.penalties_rates > 1 ? "s" : ""} raté${stats.penalties_rates > 1 ? "s" : ""}`);
+  if (stats.cartons_jaunes > 0) faits.push(`${stats.cartons_jaunes} jaune${stats.cartons_jaunes > 1 ? "s" : ""}`);
+  if (stats.cartons_rouges > 0) faits.push(`${stats.cartons_rouges} rouge${stats.cartons_rouges > 1 ? "s" : ""}`);
+  if (match.homme_du_match === true) faits.push("Homme du match");
+  return faits;
+}
+
+function scoreMatch(match) {
+  if (match.score_equipe === null || match.score_equipe === undefined || match.score_adversaire === null || match.score_adversaire === undefined) {
+    return "Score indisponible";
+  }
+  return `${match.score_equipe} – ${match.score_adversaire}`;
+}
+
 export default function Joueur() {
   const { id } = useParams();
   const { clubsById, saison } = useKivu();
   const [j, setJ] = useState(null);
   const [stats, setStats] = useState(null);
+  const [matchHistory, setMatchHistory] = useState(null);
 
   const [err, setErr] = useState("");
 
@@ -44,9 +76,11 @@ export default function Joueur() {
   useEffect(() => {
     if (!saison) {
       setStats(null);
+      setMatchHistory(null);
       return;
     }
     api.statistiquesJoueurPublic(id, saison.id).then(setStats).catch(() => setStats(null));
+    api.matchsJoueurPublic(id, saison.id).then(setMatchHistory).catch(() => setMatchHistory(null));
   }, [id, saison]);
 
   if (err) return <p className="erreur">{err}</p>;
@@ -120,6 +154,54 @@ export default function Joueur() {
           )}
           <p className="muted small">Un zéro indique une valeur mesurée nulle ; « Non disponible » indique qu’aucune donnée fiable n’est publiée.</p>
         </>
+      )}
+      <div className="section-head player-match-section-head">
+        <h2>Matchs validés</h2>
+        {matchHistory?.matchs?.length > 0 && (
+          <span className="section-note">{matchHistory.matchs.length} match{matchHistory.matchs.length > 1 ? "s" : ""}</span>
+        )}
+      </div>
+      {!matchHistory ? (
+        <p className="empty">Historique des matchs non disponible pour cette édition.</p>
+      ) : matchHistory.matchs?.length === 0 ? (
+        <div className="performance-status performance-status-non_disponible">
+          <span className="status-pill">Non disponibles</span>
+          <p>{matchHistory.message || "Aucun match officiellement validé pour cette édition."}</p>
+        </div>
+      ) : (
+        <div className="player-match-list">
+          {matchHistory.matchs.map((match) => {
+            const participation = match.participation || {};
+            const faits = faitsIndividuels(match);
+            return (
+              <article className="player-match-card" key={match.match_id}>
+                <div className="player-match-header">
+                  <div>
+                    <span className="player-match-date">{dateMatch(match.date_heure)}</span>
+                    <strong>{match.journee || "Match validé"}</strong>
+                  </div>
+                  <span className="status-pill">Confirmé</span>
+                </div>
+                <div className="player-match-scoreline">
+                  <div>
+                    <strong>{match.club_nom || "Équipe non précisée"}</strong>
+                    <span>contre {match.adversaire_nom || "Adversaire non précisé"}</span>
+                  </div>
+                  <b>{scoreMatch(match)}</b>
+                </div>
+                <div className="player-match-details">
+                  <span>{participation.disponible ? (participation.titulaire ? "Titulaire" : "Remplaçant") : "Participation non disponible"}</span>
+                  <span>{participation.minutes === null || participation.minutes === undefined ? "Minutes non disponibles" : `${participation.minutes} min`}</span>
+                </div>
+                {faits.length > 0 ? (
+                  <p className="player-match-facts">{faits.join(" · ")}</p>
+                ) : participation.disponible ? (
+                  <p className="player-match-facts player-match-facts-muted">Aucun fait individuel enregistré</p>
+                ) : null}
+              </article>
+            );
+          })}
+        </div>
       )}
     </section>
   );

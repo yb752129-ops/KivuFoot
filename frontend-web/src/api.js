@@ -306,6 +306,7 @@ export const api = {
   buteurs: (saisonId) => request(`/stats/meilleurs-buteurs?saison_id=${saisonId}&limit=10`),
   passeurs: (saisonId) => request(`/stats/meilleurs-passeurs?saison_id=${saisonId}&limit=10`),
   statistiquesJoueurPublic: (joueurId, saisonId) => request(`/stats/joueur/${joueurId}/public?saison_id=${saisonId}`),
+  matchsJoueurPublic: (joueurId, saisonId) => request(`/stats/joueur/${joueurId}/public/matchs?saison_id=${saisonId}`),
   reglements: ({ saisonId = "", competitionId = "" } = {}) => {
     const params = new URLSearchParams();
     if (saisonId) params.set("saison_id", String(saisonId));
