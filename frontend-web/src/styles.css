@@ -2710,6 +2710,55 @@ html[data-theme="dark"] { --door-card: #1c1914; --door-num: var(--lime); }
   color: var(--stamp);
   background: rgba(10, 45, 32, 0.42);
 }
+.feuille-terrain-mixte {
+  min-height: 40rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 0.2rem;
+}
+.feuille-terrain-mixte .feuille-terrain-rangs {
+  min-height: 14rem;
+  flex: 1 1 0;
+  justify-content: space-around;
+}
+.feuille-terrain-team {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+  text-align: center;
+  text-transform: uppercase;
+}
+.feuille-terrain-team strong {
+  max-width: 90%;
+  overflow: hidden;
+  font-size: 0.76rem;
+  letter-spacing: 0.08em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.feuille-terrain-team span {
+  padding: 0.12rem 0.45rem;
+  border: 1px solid rgba(243, 239, 228, 0.55);
+  border-radius: 999px;
+  font-size: 0.62rem;
+  letter-spacing: 0.05em;
+}
+.feuille-terrain-centre {
+  position: relative;
+  z-index: 2;
+  align-self: center;
+  padding: 0.13rem 0.42rem;
+  border: 1px solid rgba(243, 239, 228, 0.55);
+  border-radius: 999px;
+  background: rgba(18, 62, 44, 0.9);
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
 .feuille-tactique-foot {
   margin: 0.45rem 0 0;
   color: var(--ink-soft);
