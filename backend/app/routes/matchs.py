@@ -998,18 +998,31 @@ async def enregistrer_composition(
     )
     titulaires = [j for j in payload.joueurs if getattr(j.statut, "value", j.statut) == "titulaire"]
     banc = [j for j in payload.joueurs if getattr(j.statut, "value", j.statut) == "remplacant"]
-    max_titulaires = regle_compo.get("titulaires_max") if isinstance(regle_compo, dict) else None
-    min_titulaires = regle_compo.get("titulaires_min") if isinstance(regle_compo, dict) else None
+    # Une feuille de football ne peut être enregistrée que si elle contient
+    # exactement onze titulaires : ni brouillon incomplet, ni douzième titulaire.
     min_banc = regle_compo.get("remplacants_min") if isinstance(regle_compo, dict) else None
-    if len(titulaires) > (max_titulaires if max_titulaires is not None else 11):
-        limite = max_titulaires if max_titulaires is not None else 11
-        raise HTTPException(status_code=400, detail=f"Maximum {limite} titulaires.")
-    if min_titulaires is not None and len(titulaires) < min_titulaires:
-        raise HTTPException(status_code=400, detail=f"Minimum {min_titulaires} titulaires.")
+    if len(titulaires) != 11:
+        raise HTTPException(status_code=400, detail="La composition doit contenir exactement 11 titulaires.")
     if len(banc) > max_rempl:
         raise HTTPException(status_code=400, detail=f"Maximum {max_rempl} remplaçants pour cette compétition.")
     if min_banc is not None and len(banc) < min_banc:
         raise HTTPException(status_code=400, detail=f"Minimum {min_banc} remplaçants.")
+
+    joueurs_vus: set[int] = set()
+    numeros_vus: dict[int, int] = {}
+    for ligne in payload.joueurs:
+        if ligne.joueur_id in joueurs_vus:
+            raise HTTPException(status_code=400, detail="Un même joueur ne peut apparaître qu'une seule fois dans la composition.")
+        joueurs_vus.add(ligne.joueur_id)
+        if ligne.numero is not None:
+            autre_joueur = numeros_vus.get(ligne.numero)
+            if autre_joueur is not None:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Le numéro {ligne.numero} est attribué à plusieurs joueurs.",
+                )
+            numeros_vus[ligne.numero] = ligne.joueur_id
+
     if payload.staff_id:
         st = await db.get(Staff, payload.staff_id)
         if not st or st.club_id != club_id:
@@ -1043,8 +1056,10 @@ async def enregistrer_composition(
         part = par_joueur.get(ligne.joueur_id)
         if part:
             part.statut = stat
-            if ligne.numero is not None:
-                part.numero = ligne.numero
+            # Une valeur NULL signifie explicitement « numéro non renseigné ».
+            # Ne conservons pas silencieusement un ancien numéro lorsque le
+            # club l'a effacé dans l'éditeur.
+            part.numero = ligne.numero
         else:
             db.add(
                 MatchParticipation(

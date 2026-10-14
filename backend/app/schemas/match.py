@@ -1,4 +1,5 @@
 from datetime import datetime
+import re
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -161,14 +162,26 @@ class ParticipationOut(BaseModel):
 class CompositionJoueurIn(BaseModel):
     joueur_id: int
     statut: StatutParticipation
-    numero: int | None = None
+    numero: int | None = Field(default=None, ge=1, le=99)
 
 
 class CompositionEquipeIn(BaseModel):
     equipe: EquipeConcernee
-    formation: str | None = None
+    formation: str | None = Field(default=None, max_length=12)
     staff_id: int | None = None
-    joueurs: list[CompositionJoueurIn] = []
+    joueurs: list[CompositionJoueurIn] = Field(default_factory=list)
+
+    @field_validator("formation", mode="before")
+    @classmethod
+    def formation_normalisee(cls, v):
+        if v is None:
+            return None
+        valeur = str(v).strip().replace("–", "-").replace("—", "-")
+        if not valeur:
+            return None
+        if not re.fullmatch(r"\d+(?:-\d+)+", valeur):
+            raise ValueError("La formation doit utiliser un format comme 4-3-3.")
+        return valeur
 
 
 class CompositionJoueurOut(BaseModel):

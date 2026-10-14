@@ -73,6 +73,76 @@ async def test_coach_pose_sa_composition_pas_celle_de_ladversaire(client, db_ses
     assert club.json()["coach_nom"] == "Test coach"
 
 
+async def test_composition_refuse_un_numero_de_maillot_duplique(client, db_session):
+    club_a = await creer_club(db_session, "Club Composition")
+    club_b = await creer_club(db_session, "Club Adverse")
+    joueurs = [
+        await creer_joueur(db_session, club_a.id, f"Joueur Composition {index}")
+        for index in range(1, 12)
+    ]
+    orga = await creer_utilisateur(db_session, RoleUtilisateur.ORGANISATEUR, "orga.composition@test.example")
+    _, saison = await creer_competition_avec_saison(db_session, orga)
+    match_ = await creer_match(db_session, saison.id, club_a.id, club_b.id)
+    token = await _login(client, db_session, RoleUtilisateur.COACH, "coach.composition@test.example", club_id=club_a.id)
+
+    response = await client.put(
+        f"/api/v1/matchs/{match_.id}/composition",
+        json={
+            "equipe": "domicile",
+            "formation": "4-3-3",
+            "joueurs": [
+                *[
+                    {"joueur_id": joueur.id, "statut": "titulaire", "numero": 10 if index < 2 else index + 1}
+                    for index, joueur in enumerate(joueurs)
+                ],
+            ],
+        },
+        headers=_h(token),
+    )
+
+    assert response.status_code == 400
+    assert "numéro 10" in response.json()["detail"]
+
+
+async def test_composition_refuse_un_onze_incomplet(client, db_session):
+    club_a = await creer_club(db_session, "Club Onze Incomplet")
+    club_b = await creer_club(db_session, "Club Onze Adverse")
+    joueurs = [
+        await creer_joueur(db_session, club_a.id, f"Joueur Onze {index}")
+        for index in range(1, 13)
+    ]
+    orga = await creer_utilisateur(db_session, RoleUtilisateur.ORGANISATEUR, "orga.onze@test.example")
+    _, saison = await creer_competition_avec_saison(db_session, orga)
+    match_ = await creer_match(db_session, saison.id, club_a.id, club_b.id)
+    token = await _login(client, db_session, RoleUtilisateur.COACH, "coach.onze@test.example", club_id=club_a.id)
+
+    def payload_for(rows):
+        return {
+            "equipe": "domicile",
+            "formation": "4-3-3",
+            "joueurs": [
+                {"joueur_id": joueur.id, "statut": "titulaire", "numero": index + 1}
+                for index, joueur in enumerate(rows)
+            ],
+        }
+
+    response_incomplet = await client.put(
+        f"/api/v1/matchs/{match_.id}/composition",
+        json=payload_for(joueurs[:10]),
+        headers=_h(token),
+    )
+    assert response_incomplet.status_code == 400
+    assert "exactement 11 titulaires" in response_incomplet.json()["detail"]
+
+    response_trop_complet = await client.put(
+        f"/api/v1/matchs/{match_.id}/composition",
+        json=payload_for(joueurs),
+        headers=_h(token),
+    )
+    assert response_trop_complet.status_code == 400
+    assert "exactement 11 titulaires" in response_trop_complet.json()["detail"]
+
+
 async def test_coach_ne_peut_pas_saisir_un_fait(client, db_session):
     club_a = await creer_club(db_session, "Club A2")
     club_b = await creer_club(db_session, "Club B2")

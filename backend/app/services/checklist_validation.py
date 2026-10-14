@@ -216,40 +216,36 @@ async def run_checklist(db: AsyncSession, match: Match) -> ChecklistOut:
         "domicile": [p for p in participations if _value(p.equipe_concernee) == "domicile"],
         "exterieur": [p for p in participations if _value(p.equipe_concernee) == "exterieur"],
     }
-    composition_rule = (config or {}).get("composition") if isinstance(config, dict) else None
-    if composition_rule:
-        for side, label in (("domicile", "Équipe domicile"), ("exterieur", "Équipe extérieur")):
-            rows = by_side[side]
-            titulaires = sum(_value(p.statut) == StatutParticipation.TITULAIRE.value for p in rows)
-            banc = sum(_value(p.statut) == StatutParticipation.REMPLACANT.value for p in rows)
-            tmin = composition_rule.get("titulaires_min")
-            tmax = composition_rule.get("titulaires_max")
-            bmin = composition_rule.get("remplacants_min")
-            bmax = composition_rule.get("remplacants_max")
-            bad = []
-            if tmin is not None and titulaires < tmin:
-                bad.append(f"{titulaires} titulaire(s), minimum {tmin}")
-            if tmax is not None and titulaires > tmax:
-                bad.append(f"{titulaires} titulaire(s), maximum {tmax}")
-            if bmin is not None and banc < bmin:
-                bad.append(f"{banc} remplaçant(s), minimum {bmin}")
-            if bmax is not None and banc > bmax:
-                bad.append(f"{banc} remplaçant(s), maximum {bmax}")
-            controls.append(
-                _control(
-                    f"composition_{side}",
-                    f"Composition conforme — {label}",
-                    "BLOQUANT" if bad else "OK",
-                    "; ".join(bad) if bad else f"{titulaires} titulaire(s), {banc} remplaçant(s).",
-                )
-            )
-    else:
+    # Le contrôle de feuille reprend la même règle que l'endpoint de
+    # sauvegarde : exactement onze titulaires, même si une ancienne saison
+    # n'avait pas enregistré de configuration explicite. Les paramètres de
+    # banc restent pilotés par la configuration existante.
+    composition_rule = (config or {}).get("composition", {}) if isinstance(config, dict) else {}
+    if not isinstance(composition_rule, dict):
+        composition_rule = {}
+    for side, label in (("domicile", "Équipe domicile"), ("exterieur", "Équipe extérieur")):
+        rows = by_side[side]
+        titulaires = sum(_value(p.statut) == StatutParticipation.TITULAIRE.value for p in rows)
+        banc = sum(_value(p.statut) == StatutParticipation.REMPLACANT.value for p in rows)
+        tmin = 11
+        tmax = 11
+        bmin = composition_rule.get("remplacants_min")
+        bmax = composition_rule.get("remplacants_max")
+        bad = []
+        if titulaires < tmin:
+            bad.append(f"{titulaires} titulaire(s), minimum {tmin}")
+        if titulaires > tmax:
+            bad.append(f"{titulaires} titulaire(s), maximum {tmax}")
+        if bmin is not None and banc < bmin:
+            bad.append(f"{banc} remplaçant(s), minimum {bmin}")
+        if bmax is not None and banc > bmax:
+            bad.append(f"{banc} remplaçant(s), maximum {bmax}")
         controls.append(
             _control(
-                "composition_regle",
-                "Règle de composition",
-                "ATTENTION",
-                "Aucune limite officielle de composition n'est configurée pour ce règlement.",
+                f"composition_{side}",
+                f"Composition conforme — {label}",
+                "BLOQUANT" if bad else "OK",
+                "; ".join(bad) if bad else f"{titulaires} titulaire(s), {banc} remplaçant(s).",
             )
         )
 
