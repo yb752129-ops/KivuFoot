@@ -254,7 +254,7 @@ export default function MatchDetail() {
 
       {onglet === "compo" && (
         <>
-          <FeuilleMatch compo={compo} />
+          <FeuilleMatch compo={compo} logos={{ domicile: home?.logo_url, exterieur: away?.logo_url }} />
           {moi && moi.club_id && moi.club_id === match.equipe_domicile_id || moi && moi.club_id && moi.club_id === match.equipe_exterieur_id ? (
             <Link className="feuille-lien-editeur" to={`/club/matchs/${id}/composition`}>Préparer la feuille de mon équipe</Link>
           ) : null}

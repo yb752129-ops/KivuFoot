@@ -14,8 +14,9 @@ function LigneJoueur({ j }) {
   );
 }
 
-function BlocEquipe({ bloc }) {
+function BlocEquipe({ bloc, logoUrl }) {
   const nom = stripDemo(bloc.club_nom) || "Équipe à nommer";
+  const logo = logoUrl || bloc.logo_url;
   const titulaires = bloc.titulaires || [];
   const banc = bloc.banc || [];
   const staff = bloc.staff;
@@ -23,7 +24,7 @@ function BlocEquipe({ bloc }) {
     <section className="feuille-equipe">
       <header className="feuille-tete">
         <span className="feuille-logo" aria-hidden="true">
-          {bloc.logo_url ? <img className="logo-libre" src={bloc.logo_url} alt="" /> : (nom || "?").charAt(0)}
+          {logo ? <img className="logo-libre" src={logo} alt="" /> : (nom || "?").charAt(0)}
         </span>
         <span className="feuille-club">
           <strong>{nom}</strong>
@@ -34,10 +35,6 @@ function BlocEquipe({ bloc }) {
         <p className="feuille-vide">Composition non publiée.</p>
       ) : (
         <>
-          <h3 className="feuille-section">Titulaires</h3>
-          {titulaires.map((j) => <LigneJoueur key={j.id} j={j} />)}
-          <h3 className="feuille-section">Banc</h3>
-          {banc.length === 0 ? <p className="feuille-vide">Aucun remplaçant déclaré.</p> : banc.map((j) => <LigneJoueur key={j.id} j={j} />)}
           <h3 className="feuille-section">Entraîneur</h3>
           {staff ? (
             <span className="feuille-coach">
@@ -50,6 +47,10 @@ function BlocEquipe({ bloc }) {
           ) : (
             <p className="feuille-vide">Entraîneur à compléter.</p>
           )}
+          <h3 className="feuille-section">Titulaires</h3>
+          {titulaires.map((j) => <LigneJoueur key={j.id} j={j} />)}
+          <h3 className="feuille-section">Remplaçants</h3>
+          {banc.length === 0 ? <p className="feuille-vide">Aucun remplaçant déclaré.</p> : banc.map((j) => <LigneJoueur key={j.id} j={j} />)}
         </>
       )}
     </section>
@@ -61,12 +62,12 @@ function posteStaff(r) {
   return t ? t.charAt(0).toUpperCase() + t.slice(1) : "";
 }
 
-export default function FeuilleMatch({ compo }) {
+export default function FeuilleMatch({ compo, logos = {} }) {
   if (!compo) return <p className="empty">Chargement…</p>;
   return (
     <div className="feuille">
-      <BlocEquipe bloc={compo.domicile} />
-      <BlocEquipe bloc={compo.exterieur} />
+      <BlocEquipe bloc={compo.domicile} logoUrl={logos.domicile} />
+      <BlocEquipe bloc={compo.exterieur} logoUrl={logos.exterieur} />
     </div>
   );
 }
