@@ -2584,6 +2584,186 @@ html[data-theme="dark"] { --door-card: #1c1914; --door-num: var(--lime); }
   font-size: 0.85rem;
   padding: 0.3rem 0;
 }
+.feuille-composition-incomplete {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.8rem;
+  border: 1px solid color-mix(in srgb, var(--warn) 55%, var(--rule-strong));
+  border-radius: 10px;
+  color: var(--ink-soft);
+  font-size: 0.78rem;
+}
+.feuille-composition-incomplete strong { color: var(--warn); }
+.feuille-tactique {
+  margin: 0.8rem 0 1rem;
+}
+.feuille-tactique-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.55rem;
+}
+.feuille-tactique-kicker {
+  margin: 0 0 0.1rem;
+  color: var(--ink-soft);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.feuille-tactique-head strong { font-size: 0.9rem; }
+.feuille-tactique-note {
+  flex: 0 0 auto;
+  padding: 0.2rem 0.45rem;
+  border: 1px solid var(--rule-strong);
+  border-radius: 999px;
+  color: var(--ink-soft);
+  font-size: 0.65rem;
+}
+.feuille-terrain {
+  position: relative;
+  min-height: 22rem;
+  overflow: hidden;
+  padding: 1rem 0.55rem;
+  border: 1px solid color-mix(in srgb, var(--stamp) 72%, var(--rule-strong));
+  border-radius: 14px;
+  background: linear-gradient(180deg, #1b5a3e 0%, #123e2c 100%);
+  color: #f3efe4;
+}
+.feuille-terrain::before,
+.feuille-terrain::after {
+  content: "";
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  height: 2.4rem;
+  border: 1px solid rgba(243, 239, 228, 0.35);
+}
+.feuille-terrain::before { top: 0.7rem; border-top: 0; }
+.feuille-terrain::after { bottom: 0.7rem; border-bottom: 0; }
+.feuille-terrain-cercle {
+  position: absolute;
+  top: calc(50% - 2.15rem);
+  left: calc(50% - 2.15rem);
+  width: 4.3rem;
+  height: 4.3rem;
+  border: 1px solid rgba(243, 239, 228, 0.35);
+  border-radius: 50%;
+}
+.feuille-terrain-ligne {
+  position: absolute;
+  top: 50%;
+  left: 5%;
+  right: 5%;
+  border-top: 1px solid rgba(243, 239, 228, 0.35);
+}
+.feuille-terrain-rangs {
+  position: relative;
+  z-index: 1;
+  min-height: 20rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  gap: 0.35rem;
+}
+.feuille-terrain-rang {
+  display: flex;
+  justify-content: space-evenly;
+  align-items: flex-start;
+  gap: 0.2rem;
+}
+.feuille-terrain-joueur,
+.feuille-terrain-vide {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.18rem;
+  text-align: center;
+}
+.feuille-terrain-joueur b,
+.feuille-terrain-vide {
+  width: 1.8rem;
+  height: 1.8rem;
+  display: grid;
+  place-items: center;
+  border: 1.5px solid var(--stamp);
+  border-radius: 50%;
+  background: rgba(10, 45, 32, 0.72);
+  color: #f3efe4;
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+.feuille-terrain-joueur small {
+  max-width: 4.6rem;
+  overflow: hidden;
+  color: #f3efe4;
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.feuille-terrain-vide {
+  border-style: dashed;
+  color: var(--stamp);
+  background: rgba(10, 45, 32, 0.42);
+}
+.feuille-tactique-foot {
+  margin: 0.45rem 0 0;
+  color: var(--ink-soft);
+  font-size: 0.68rem;
+  line-height: 1.35;
+}
+.feuille-public-listes {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.9rem;
+}
+.feuille-public-joueurs {
+  display: grid;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.feuille-public-joueur {
+  display: grid;
+  grid-template-columns: 1.8rem minmax(0, 1fr);
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.35rem 0;
+  border-bottom: 1px solid var(--rule);
+  color: inherit;
+  text-decoration: none;
+}
+.feuille-public-numero {
+  display: grid;
+  place-items: center;
+  width: 1.7rem;
+  height: 1.7rem;
+  border: 1px solid var(--rule-strong);
+  border-radius: 50%;
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+.feuille-public-identite {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.05rem;
+}
+.feuille-public-identite strong {
+  overflow: hidden;
+  font-size: 0.78rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.feuille-public-identite small { color: var(--ink-soft); font-size: 0.68rem; }
+@media (min-width: 600px) {
+  .feuille-public-listes { grid-template-columns: 1fr 1fr; }
+}
 
 /* ==== éditeur club de la feuille ==== */
 .editeur-reglages {
