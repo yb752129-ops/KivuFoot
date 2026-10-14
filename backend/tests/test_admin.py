@@ -65,6 +65,40 @@ async def test_admin_approuve_une_proposition(client, db_session):
     assert detail.json()["nom_complet"] == "Nom Nouveau"
 
 
+async def test_admin_approuve_date_poste_et_club_depuis_leurs_valeurs_texte(client, db_session):
+    club_a = await creer_club(db_session, "Club Propositions A")
+    club_b = await creer_club(db_session, "Club Propositions B")
+    joueur = await creer_joueur(db_session, club_a.id, "Joueur à corriger")
+    token_club = await _login(
+        client, db_session, RoleUtilisateur.CLUB_MANAGER, "manager.types@test.example", club_id=club_a.id
+    )
+    token_admin = await _login(client, db_session, RoleUtilisateur.ADMIN, "admin.types@test.example")
+
+    for champ, nouvelle_valeur in (
+        ("date_naissance", "1999-02-03"),
+        ("poste", "milieu"),
+        ("club_actuel_id", str(club_b.id)),
+    ):
+        proposition = await client.post(
+            f"/api/v1/joueurs/{joueur.id}/proposer-modification",
+            json={"champ": champ, "nouvelle_valeur": nouvelle_valeur},
+            headers=_h(token_club),
+        )
+        assert proposition.status_code == 201, proposition.text
+        approuvee = await client.put(
+            f"/api/v1/joueurs/propositions/{proposition.json()['id']}/approuver",
+            headers=_h(token_admin),
+        )
+        assert approuvee.status_code == 200, approuvee.text
+        assert approuvee.json()["statut"] == "approuvee"
+
+    detail = await client.get(f"/api/v1/joueurs/{joueur.id}/detail", headers=_h(token_admin))
+    assert detail.status_code == 200
+    assert detail.json()["date_naissance"] == "1999-02-03"
+    assert detail.json()["poste"] == "milieu"
+    assert detail.json()["club_actuel_id"] == club_b.id
+
+
 async def test_orga_ne_peut_pas_fusionner(client, db_session):
     club = await creer_club(db_session, "Club Fusion")
     a = await creer_joueur(db_session, club.id, "Maître")

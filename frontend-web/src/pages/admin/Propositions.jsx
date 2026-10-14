@@ -15,12 +15,24 @@ export default function AdminPropositions() {
   const [rows, setRows] = useState([]);
   const [joueurs, setJoueurs] = useState([]);
   const [err, setErr] = useState("");
+  const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(0);
 
   async function load() {
-    const [ps, js] = await Promise.all([api.propositions(), api.joueurs()]);
+    // Les propositions restent visibles même si un profil prend du temps à
+    // répondre. On ne charge plus l'annuaire global plafonné à 100 joueurs :
+    // chaque joueur concerné est recherché par son identifiant.
+    const ps = await api.propositions();
     setRows(ps || []);
-    setJoueurs(js || []);
+    const ids = [...new Set((ps || []).map((p) => p.joueur_id))];
+    const resultats = await Promise.all(ids.map(async (joueurId) => {
+      try {
+        return await api.joueur(joueurId);
+      } catch {
+        return null;
+      }
+    }));
+    setJoueurs(resultats.filter(Boolean));
   }
 
   useEffect(() => {
@@ -42,9 +54,11 @@ export default function AdminPropositions() {
   async function approuver(id) {
     setBusy(id);
     setErr("");
+    setMsg("");
     try {
       await api.approuverProposition(id);
       await load();
+      setMsg("Proposition approuvée et joueur mis à jour.");
     } catch (ex) {
       setErr(ex.message);
     } finally {
@@ -60,7 +74,8 @@ export default function AdminPropositions() {
       <h1>Propositions</h1>
       <p className="lead">Le club propose. Ici on approuve. Pas de fusion automatique.</p>
       {err && <p className="erreur">{err}</p>}
-      {attente.length === 0 && !err && <p className="empty">Rien en attente.</p>}
+      {msg && <p className="empty">{msg}</p>}
+      {attente.length === 0 && !err && !msg && <p className="empty">Rien en attente.</p>}
       {attente.map((p) => {
         const j = byId[p.joueur_id];
         return (

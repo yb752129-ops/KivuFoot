@@ -1,3 +1,5 @@
+from datetime import date, datetime, timezone
+
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -5,7 +7,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth.dependencies import get_current_user
 from app.auth.rbac import require_roles, verifier_scope_club
 from app.database import get_db
-from app.models.enums import ActionAudit, RoleUtilisateur, StatutPhoto, StatutVerificationJoueur
+from app.models.club import Club
+from app.models.enums import ActionAudit, PosteJoueur, RoleUtilisateur, StatutPhoto, StatutVerificationJoueur
 from app.models.joueur import Joueur, JoueurModificationProposee
 from app.models.user import User
 from app.schemas.joueur import (
@@ -419,14 +422,70 @@ async def proposer_modification(
     return proposition
 
 
+async def _valeur_proposition_approuvee(
+    db: AsyncSession,
+    joueur: Joueur,
+    champ: str,
+    valeur_brute: str,
+):
+    """Convertit et contrôle la valeur texte avant de l'écrire dans Joueur.
+
+    Les propositions sont stockées comme texte pour rester auditables, mais les
+    colonnes du joueur ont des types différents. L'ancienne approbation faisait
+    un setattr direct : une date ISO ou un identifiant de club pouvait donc
+    provoquer une erreur de base de données au lieu d'être approuvé.
+    """
+    valeur = (valeur_brute or "").strip()
+    if champ == "nom_complet":
+        if not valeur:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "Le nom complet ne peut pas être vide.")
+        return valeur
+    if champ == "date_naissance":
+        try:
+            date_value = date.fromisoformat(valeur)
+        except ValueError:
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                "La date de naissance doit respecter le format AAAA-MM-JJ.",
+            )
+        if date_value >= date.today():
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "La date de naissance doit être dans le passé.")
+        age = date.today().year - date_value.year - (
+            (date.today().month, date.today().day) < (date_value.month, date_value.day)
+        )
+        if age < 18 and joueur.autorisation_parentale is not True:
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                "Un joueur mineur ne peut être approuvé sans autorisation_parentale=true.",
+            )
+        return date_value
+    if champ == "poste":
+        try:
+            return PosteJoueur(valeur).value
+        except ValueError:
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                "Poste invalide. Choisissez gardien, defenseur, milieu ou attaquant.",
+            )
+    if champ == "club_actuel_id":
+        if valeur.lower() in {"", "null", "none"}:
+            return None
+        try:
+            club_id = int(valeur)
+        except ValueError:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "L'identifiant du club doit être un nombre.")
+        if await db.get(Club, club_id) is None:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "Le club proposé est introuvable.")
+        return club_id
+    raise HTTPException(status.HTTP_400_BAD_REQUEST, "Champ de proposition non pris en charge.")
+
+
 @router.put("/propositions/{proposition_id}/approuver", response_model=ModificationProposeeOut)
 async def approuver_proposition(
     proposition_id: int,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_roles(RoleUtilisateur.ADMIN, RoleUtilisateur.ORGANISATEUR)),
 ):
-    from datetime import datetime, timezone
-
     proposition = await db.get(JoueurModificationProposee, proposition_id)
     if proposition is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Proposition introuvable.")
@@ -434,7 +493,12 @@ async def approuver_proposition(
         raise HTTPException(status.HTTP_409_CONFLICT, "Cette proposition a déjà été traitée.")
 
     joueur = await db.get(Joueur, proposition.joueur_id)
-    setattr(joueur, proposition.champ, proposition.nouvelle_valeur)
+    if joueur is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Joueur introuvable.")
+    valeur_approuvee = await _valeur_proposition_approuvee(
+        db, joueur, proposition.champ, proposition.nouvelle_valeur
+    )
+    setattr(joueur, proposition.champ, valeur_approuvee)
     proposition.statut = "approuvee"
     proposition.traitee_par_id = current_user.id
     proposition.date_traitement = datetime.now(timezone.utc)

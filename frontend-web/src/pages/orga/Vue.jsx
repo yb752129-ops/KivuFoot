@@ -11,7 +11,7 @@ export default function OrgaVue() {
   const bureau = user?.role === "organisateur" || user?.role === "admin";
   const [matchs, setMatchs] = useState([]);
   const [file, setFile] = useState([]);
-  const [joueurs, setJoueurs] = useState([]);
+  const [effectifs, setEffectifs] = useState(null);
   const [nomComp, setNomComp] = useState("");
   const [typeComp, setTypeComp] = useState("tournoi");
   const [nomSaison, setNomSaison] = useState("");
@@ -22,8 +22,17 @@ export default function OrgaVue() {
   useEffect(() => {
     if (!bureau) return;
     api.fileValidation().then(setFile).catch(() => setFile([]));
-    api.joueurs().then(setJoueurs).catch(() => setJoueurs([]));
   }, [bureau]);
+
+  useEffect(() => {
+    if (!bureau || !saison) {
+      setEffectifs(null);
+      return;
+    }
+    // Le total vient des résumés d'effectifs de la saison, sans la limite
+    // publique de 100 joueurs de /joueurs?limit=100.
+    api.effectifsSaison(saison.id).then(setEffectifs).catch(() => setEffectifs(null));
+  }, [bureau, saison]);
 
   useEffect(() => {
     if (!saison) {
@@ -36,7 +45,9 @@ export default function OrgaVue() {
   if (!bureau) return <Navigate to="/orga/matchs" replace />;
 
   const equipes = saisonClubs ?? [];
-  const nJoueurs = joueurs.filter((j) => equipes.some((c) => c.id === j.club_actuel_id)).length;
+  const nJoueurs = effectifs
+    ? effectifs.reduce((total, ligne) => total + Number(ligne.total_joueurs || 0), 0)
+    : null;
   const nProg = matchs.filter((m) => m.statut === "programme").length;
   const nLive = matchs.filter((m) => m.statut === "en_cours").length;
   const nAttente = file.length;
@@ -84,9 +95,9 @@ export default function OrgaVue() {
           <strong>{equipes.length}</strong>
           <span>Équipes</span>
         </Link>
-        <Link to="/orga/equipes" className="orga-chiffre">
-          <strong>{nJoueurs}</strong>
-          <span>Joueurs</span>
+        <Link to="/orga/equipes" className="orga-chiffre" title="Total exact des effectifs des équipes inscrites à cette édition">
+          <strong>{nJoueurs === null ? "—" : nJoueurs}</strong>
+          <span>Joueurs inscrits</span>
         </Link>
         <Link to="/orga/calendrier" className="orga-chiffre">
           <strong>{nProg}</strong>

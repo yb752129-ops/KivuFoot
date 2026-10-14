@@ -35,7 +35,10 @@ La ligne de contact extraite de cette pièce est exactement :
 
 Cette pièce est la source confirmée utilisée par la configuration PDF. L'email
 n'est donc pas repris simplement parce qu'il existe dans le bootstrap technique.
-Les variables correspondantes sont :
+Le générateur utilise maintenant la mise en page PDF version 2 : une nouvelle
+version est créée lorsque l'ancien document possède la même empreinte de
+match, sans modifier les données sportives ni les historiques. Les variables
+correspondantes sont :
 
 ```text
 PDF_LOGO_PATH=

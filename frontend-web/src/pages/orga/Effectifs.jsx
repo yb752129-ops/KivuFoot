@@ -81,7 +81,7 @@ export default function OrgaEffectifs() {
       <p className="kicker">Organisateurs</p>
       <h1>Effectifs des clubs</h1>
       <p className="lead">
-        Les 15 clubs doivent soumettre leur effectif. Les organisateurs valident ou demandent une correction ; KivuFoot ne remplace pas leur décision.
+        Les clubs inscrits doivent soumettre leur effectif. Les organisateurs valident ou demandent une correction ; KivuFoot ne remplace pas leur décision.
       </p>
       {err && <p className="erreur">{err}</p>}
       {msg && <p className="empty">{msg}</p>}

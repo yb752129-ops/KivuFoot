@@ -23,9 +23,9 @@ proche de la production.
   le rejoue.
 - Le vrai logo complet est maintenant embarqué dans
   `backend/app/assets/kivufoot-logo.png`.
-- Aucun remote Git n'est configure dans le checkout actuel.
-- Aucun secret GitHub, Render, Supabase ou PostgreSQL n'est present dans le
-  depot.
+- Le checkout ne contient aucun secret GitHub, Render, Supabase ou PostgreSQL.
+- Le push et le déploiement doivent rester séparés : vérifier le commit publié
+  dans GitHub, puis déclencher le déploiement Render et les smoke tests.
 - Les donnees historiques ne doivent pas etre modifiees.
 - Le logo et les coordonnées PDF sont confirmés dans
   `docs/PDF_CONFIRMATION_CHECKLIST.md`; le PDF de contrôle est

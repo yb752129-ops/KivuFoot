@@ -79,6 +79,36 @@ Il contient le logo embarqué, les coordonnées confirmées, `Non disponible` po
 les champs absents et `0` pour une valeur nulle explicite. La checklist de
 source est dans `docs/PDF_CONFIRMATION_CHECKLIST.md`.
 
+### Amélioration visuelle préparée après les captures
+
+- `backend/app/services/documents_officiels.py` utilise la mise en page PDF
+  version 2 : bandeau KivuFoot avec logo, afficheurs des deux équipes et du
+  score, grille compétition/date/stade, sections séparées pour buts et
+  discipline, Homme du match, validation officielle et pied de page.
+- Les noms longs sont placés dans des cellules avec retour à la ligne ; les
+  données absentes restent `Non disponible`, `Aucun ... enregistré` ou
+  `Non désigné` selon le champ. Aucune signature, cachet ou validation n'est
+  inventé.
+- Une nouvelle empreinte de mise en page force la régénération d'une nouvelle
+  version d'un ancien PDF sans changer les données historiques.
+- Exemple généré :
+  `/home/user/kivufoot-work/controle-pdf-kivufoot-match-redesigne-20261014.pdf`.
+
+## Correctifs des captures d'écran
+
+- L'approbation d'une date de naissance convertit maintenant `AAAA-MM-JJ` en
+  vraie date avant écriture. Les approbations du nom, du poste et du club sont
+  également converties et contrôlées ; un club inexistant ou un poste invalide
+  est refusé avec un message explicite, sans erreur SQL générique.
+- La page Propositions ne charge plus l'annuaire global plafonné à 100 joueurs
+  pour afficher les noms des propositions ; elle charge seulement les profils
+  concernés et conserve les propositions visibles si un profil est lent.
+- Le compteur Joueurs de la vue organisateur vient maintenant des résumés
+  d'effectifs de l'édition et non de `/joueurs?limit=100`. Il ne présente plus
+  une limite API comme un total exact ; pendant le chargement, il affiche `—`.
+- Le texte « Les 15 clubs » a été remplacé par « Les clubs inscrits » pour ne
+  pas contredire une compétition qui en compte 16 ou un autre nombre réel.
+
 ## Volet commercial et validation terrain
 
 Un test est en cours à l'Université Espoir d'Afrique, à Bujumbura, dans le
