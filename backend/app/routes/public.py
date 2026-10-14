@@ -26,6 +26,7 @@ async def evenements_publics(match_id: int, db: AsyncSession = Depends(get_db)):
         select(EvenementMatch).where(
             EvenementMatch.match_id == match_id,
             EvenementMatch.statut_validation == StatutValidationEvenement.VALIDE,
+            EvenementMatch.refuse.is_(False),
         )
     )
     return result.scalars().all()

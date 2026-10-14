@@ -5,6 +5,8 @@ import hashlib
 import io
 import json
 from datetime import datetime, timezone
+from pathlib import Path
+from xml.sax.saxutils import escape
 
 from fastapi import HTTPException, status
 from sqlalchemy import func, select
@@ -20,6 +22,7 @@ from app.models.match import Match
 from app.models.document import DocumentOfficiel
 from app.models.stats import StatistiqueJoueur
 from app.services.stockage_document import DepotDocumentRefus, uploader_document, url_publique
+from app.config import settings
 
 
 def _value(value):
@@ -62,7 +65,7 @@ def _pdf_bytes(title: str, blocks: list[tuple[str, str]]) -> bytes:
     from reportlab.lib.pagesizes import A4
     from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
     from reportlab.lib.units import mm
-    from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+    from reportlab.platypus import Image, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
     output = io.BytesIO()
     doc = SimpleDocTemplate(
@@ -76,13 +79,42 @@ def _pdf_bytes(title: str, blocks: list[tuple[str, str]]) -> bytes:
         author="KivuFoot",
     )
     styles = getSampleStyleSheet()
-    heading = ParagraphStyle("KivuHeading", parent=styles["Heading1"], alignment=TA_CENTER, fontSize=17, leading=22, textColor=colors.HexColor("#18324b"))
+    heading = ParagraphStyle(
+        "KivuHeading",
+        parent=styles["Heading1"],
+        alignment=TA_CENTER,
+        fontSize=17,
+        leading=22,
+        textColor=colors.HexColor("#18324b"),
+    )
     label = ParagraphStyle("KivuLabel", parent=styles["BodyText"], fontSize=9, textColor=colors.HexColor("#506070"))
     value = ParagraphStyle("KivuValue", parent=styles["BodyText"], fontSize=10, leading=14)
-    story = [Paragraph("KIVUFOOT", heading), Spacer(1, 4 * mm), Paragraph(title, styles["Heading2"]), Spacer(1, 5 * mm)]
+
+    story = []
+    # Le logo complet a été confirmé dans le workspace
+    # (frontend-web/public/icone-512.png), puis copié dans l'image backend.
+    # Une surcharge PDF_LOGO_PATH reste possible, mais l'absence d'une
+    # variable d'environnement ne doit plus faire disparaître la marque.
+    logo_path = Path(settings.pdf_logo_path) if settings.pdf_logo_path else Path(__file__).resolve().parents[1] / "assets" / "kivufoot-logo.png"
+    if logo_path.is_file():
+        try:
+            logo = Image(str(logo_path), width=34 * mm, height=18 * mm, kind="proportional")
+            logo.hAlign = "CENTER"
+            story.append(logo)
+        except (OSError, ValueError):
+            story.append(Paragraph("KIVUFOOT", heading))
+    else:
+        # Fallback explicite uniquement si le déploiement n'embarque pas
+        # l'asset confirmé; il ne remplace jamais le vrai logo dans le dépôt.
+        story.append(Paragraph("KIVUFOOT", heading))
+    story.extend([Spacer(1, 4 * mm), Paragraph(escape(title), styles["Heading2"]), Spacer(1, 5 * mm)])
+
     table_data = []
     for key, text in blocks:
-        table_data.append([Paragraph(key, label), Paragraph(str(text or "Non renseigné"), value)])
+        # Ne jamais convertir 0 en "Non renseigné" : zéro est une valeur
+        # officielle, tandis que None représente l'absence de collecte.
+        displayed = "Non disponible" if text is None else str(text)
+        table_data.append([Paragraph(escape(str(key)), label), Paragraph(escape(displayed).replace("\n", "<br/>"), value)])
     table = Table(table_data, colWidths=[48 * mm, 125 * mm], hAlign="LEFT")
     table.setStyle(
         TableStyle(
@@ -98,8 +130,30 @@ def _pdf_bytes(title: str, blocks: list[tuple[str, str]]) -> bytes:
         )
     )
     story.append(table)
-    story.append(Spacer(1, 8 * mm))
-    story.append(Paragraph("Données issues des éléments officiellement validés par KivuFoot. L'autorité sportive reste le Comité d'Organisation.", label))
+    # Ces valeurs sont confirmées par la proposition PDF partagée. Le
+    # fallback couvre aussi un ancien environnement qui aurait conservé des
+    # variables PDF_* vides; il ne reprend pas une identité de bootstrap.
+    contact = " | ".join(
+        part
+        for part in (
+            settings.pdf_contact_name or "Yves Bukasa",
+            settings.pdf_contact_email or "yb752129@gmail.com",
+            settings.pdf_contact_phone or "+257 64504091",
+            f"WhatsApp : {settings.pdf_contact_whatsapp or '+243 983753771'}",
+        )
+        if part
+    )
+    if contact:
+        story.extend([Spacer(1, 5 * mm), Paragraph(escape(contact), label)])
+    story.extend(
+        [
+            Spacer(1, 8 * mm),
+            Paragraph(
+                "Données issues des éléments officiellement validés par KivuFoot. L'autorité sportive reste le Comité d'Organisation.",
+                label,
+            ),
+        ]
+    )
     doc.build(story)
     return output.getvalue()
 
@@ -226,8 +280,29 @@ async def generer_document_joueur(db: AsyncSession, joueur_id: int, saison_id: i
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Joueur introuvable.")
     if saison is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Édition introuvable.")
-    stat = await db.scalar(select(StatistiqueJoueur).where(StatistiqueJoueur.joueur_id == joueur_id, StatistiqueJoueur.saison_id == saison_id))
-    values = stat or StatistiqueJoueur(joueur_id=joueur_id, competition_id=saison.competition_id, saison_id=saison_id)
+    stat = await db.scalar(
+        select(StatistiqueJoueur).where(
+            StatistiqueJoueur.joueur_id == joueur_id,
+            StatistiqueJoueur.saison_id == saison_id,
+        )
+    )
+    champs_stats = (
+        "matchs_joues",
+        "titularisations",
+        "minutes_jouees",
+        "buts",
+        "passes_decisives",
+        "cartons_jaunes",
+        "cartons_rouges",
+    )
+    if stat is None:
+        # Une fiche sans agrégat confirmé ne doit jamais fabriquer une
+        # performance nulle. Les champs sont explicitement indisponibles.
+        values = {champ: None for champ in champs_stats}
+        statuts = {champ: "NON_DISPONIBLE" for champ in champs_stats}
+    else:
+        values = {champ: getattr(stat, champ) for champ in champs_stats}
+        statuts = {champ: "CONFIRMEE" for champ in champs_stats}
     snapshot = {
         "joueur_id": joueur_id,
         "joueur_nom": joueur.nom_complet,
@@ -235,13 +310,8 @@ async def generer_document_joueur(db: AsyncSession, joueur_id: int, saison_id: i
         "saison_id": saison_id,
         "saison_nom": saison.nom,
         "competition_id": saison.competition_id,
-        "matchs_joues": values.matchs_joues,
-        "titularisations": values.titularisations,
-        "minutes_jouees": values.minutes_jouees,
-        "buts": values.buts,
-        "passes_decisives": values.passes_decisives,
-        "cartons_jaunes": values.cartons_jaunes,
-        "cartons_rouges": values.cartons_rouges,
+        **values,
+        "statuts": statuts,
     }
     canonical = json.dumps(snapshot, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     fingerprint = hashlib.sha256(canonical.encode()).hexdigest()
@@ -260,13 +330,13 @@ async def generer_document_joueur(db: AsyncSession, joueur_id: int, saison_id: i
             ("Nom", joueur.nom_complet),
             ("Équipe actuelle", str(joueur.club_actuel_id or "Non renseignée")),
             ("Édition", saison.nom or "Non renseignée"),
-            ("Matchs", values.matchs_joues),
-            ("Titularisations", values.titularisations),
-            ("Minutes", values.minutes_jouees),
-            ("Buts", values.buts),
-            ("Passes décisives", values.passes_decisives),
-            ("Cartons jaunes", values.cartons_jaunes),
-            ("Cartons rouges", values.cartons_rouges),
+            ("Matchs", values["matchs_joues"]),
+            ("Titularisations", values["titularisations"]),
+            ("Minutes", values["minutes_jouees"]),
+            ("Buts", values["buts"]),
+            ("Passes décisives", values["passes_decisives"]),
+            ("Cartons jaunes", values["cartons_jaunes"]),
+            ("Cartons rouges", values["cartons_rouges"]),
         ],
     )
     document = DocumentOfficiel(type_document="joueur", scope_id=joueur_id, competition_id=saison.competition_id, saison_id=saison_id, version=version, statut="genere", titre=title, empreinte_source=fingerprint, snapshot=snapshot, genere_par_id=user_id, remplace_document_id=previous.id if previous else None)

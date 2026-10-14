@@ -6,7 +6,7 @@ Le comportement existant reste disponible pour les éditions LEGACY.
 from datetime import datetime, timezone
 
 from fastapi import HTTPException, status
-from sqlalchemy import func, select
+from sqlalchemy import func, inspect, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.competition import Competition, Saison
@@ -26,6 +26,14 @@ async def get_reglement(db: AsyncSession, reglement_id: int) -> ReglementVersion
 
 
 async def get_reglement_actif(db: AsyncSession, saison_id: int) -> ReglementVersion | None:
+    # Les anciennes éditions peuvent avoir été créées avant l'ajout de la
+    # table des règlements. Dans ce cas, l'appelant conserve son comportement
+    # legacy sans fabriquer de règlement ni de configuration implicite.
+    table_presente = await db.run_sync(
+        lambda sync_session: inspect(sync_session.bind).has_table(ReglementVersion.__tablename__)
+    )
+    if not table_presente:
+        return None
     result = await db.execute(
         select(ReglementVersion)
         .where(ReglementVersion.saison_id == saison_id, ReglementVersion.statut == "actif")

@@ -759,13 +759,69 @@ async def ajouter_participation(
     match_id: int,
     payload: ParticipationCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles(RoleUtilisateur.ADMIN, RoleUtilisateur.ORGANISATEUR)),
+    current_user: User = Depends(
+        require_roles(RoleUtilisateur.ADMIN, RoleUtilisateur.ORGANISATEUR, RoleUtilisateur.COACH)
+    ),
 ):
-    match_ = await verifier_organisateur_du_match(match_id, current_user, db)
+    match_ = await db.get(Match, match_id)
+    if match_ is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Match introuvable.")
+    role = _value(current_user.role)
+    if role in (RoleUtilisateur.ADMIN.value, RoleUtilisateur.ORGANISATEUR.value):
+        match_ = await verifier_organisateur_du_match(match_id, current_user, db)
+    else:
+        if current_user.club_id != payload.club_id:
+            raise HTTPException(status.HTTP_403_FORBIDDEN, "Vous ne gérez pas cette équipe.")
+        if payload.club_id not in (match_.equipe_domicile_id, match_.equipe_exterieur_id):
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "Cette équipe ne participe pas à ce match.")
+        equipe_attendue = (
+            EquipeConcernee.DOMICILE
+            if payload.club_id == match_.equipe_domicile_id
+            else EquipeConcernee.EXTERIEUR
+        )
+        if _value(payload.equipe_concernee) != _value(equipe_attendue):
+            raise HTTPException(status.HTTP_403_FORBIDDEN, "L'équipe ne correspond pas à votre club.")
+        joueur = await db.get(Joueur, payload.joueur_id)
+        if joueur is None or joueur.club_actuel_id != payload.club_id:
+            raise HTTPException(status.HTTP_403_FORBIDDEN, "Le joueur n'appartient pas à votre équipe.")
     if match_.locked:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Ce match est verrouillé.")
     participation = MatchParticipation(match_id=match_id, **payload.model_dump())
     db.add(participation)
+    await db.commit()
+    await db.refresh(participation)
+    return participation
+
+
+@router.put("/{match_id}/participations/{participation_id}", response_model=ParticipationOut)
+async def modifier_participation(
+    match_id: int,
+    participation_id: int,
+    payload: ParticipationUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(
+        require_roles(RoleUtilisateur.ADMIN, RoleUtilisateur.ORGANISATEUR, RoleUtilisateur.COACH)
+    ),
+):
+    participation = await db.scalar(
+        select(MatchParticipation).where(
+            MatchParticipation.id == participation_id,
+            MatchParticipation.match_id == match_id,
+        )
+    )
+    if participation is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Participation introuvable.")
+    match_ = await db.get(Match, match_id)
+    if match_ is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Match introuvable.")
+    role = _value(current_user.role)
+    if role in (RoleUtilisateur.ADMIN.value, RoleUtilisateur.ORGANISATEUR.value):
+        await verifier_organisateur_du_match(match_id, current_user, db)
+    elif current_user.club_id != participation.club_id:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Vous ne gérez pas cette équipe.")
+    if match_.locked:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Ce match est verrouillé.")
+    participation.statut = payload.statut
     await db.commit()
     await db.refresh(participation)
     return participation

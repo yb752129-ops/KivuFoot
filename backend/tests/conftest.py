@@ -31,7 +31,7 @@ from app.main import app  # noqa: E402
 TEST_DATABASE_URL = os.environ["DATABASE_URL"]
 
 
-@pytest_asyncio.fixture(scope="session")
+@pytest_asyncio.fixture
 async def engine():
     eng = create_async_engine(TEST_DATABASE_URL)
     async with eng.begin() as conn:

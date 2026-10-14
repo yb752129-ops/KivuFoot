@@ -7,12 +7,12 @@ pytestmark = pytest.mark.asyncio
 
 
 async def test_login_puis_acces_route_protegee(client, db_session):
-    await creer_utilisateur(db_session, RoleUtilisateur.ADMIN, "admin.test@kivufoot.local")
+    await creer_utilisateur(db_session, RoleUtilisateur.ADMIN, "admin.test@kivufoot.example")
     await db_session.commit()
 
     resp = await client.post(
         "/api/v1/auth/login",
-        json={"email": "admin.test@kivufoot.local", "mot_de_passe": "TestPassword123!"},
+        json={"email": "admin.test@kivufoot.example", "mot_de_passe": "TestPassword123!"},
     )
     assert resp.status_code == 200
     tokens = resp.json()
@@ -20,27 +20,27 @@ async def test_login_puis_acces_route_protegee(client, db_session):
 
     resp_me = await client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {tokens['access_token']}"})
     assert resp_me.status_code == 200
-    assert resp_me.json()["email"] == "admin.test@kivufoot.local"
+    assert resp_me.json()["email"] == "admin.test@kivufoot.example"
 
 
 async def test_login_mauvais_mot_de_passe_refuse(client, db_session):
-    await creer_utilisateur(db_session, RoleUtilisateur.ADMIN, "admin2.test@kivufoot.local")
+    await creer_utilisateur(db_session, RoleUtilisateur.ADMIN, "admin2.test@kivufoot.example")
     await db_session.commit()
 
     resp = await client.post(
         "/api/v1/auth/login",
-        json={"email": "admin2.test@kivufoot.local", "mot_de_passe": "MauvaisMotDePasse"},
+        json={"email": "admin2.test@kivufoot.example", "mot_de_passe": "MauvaisMotDePasse"},
     )
     assert resp.status_code == 401
 
 
 async def test_logout_revoque_le_refresh_token(client, db_session):
-    await creer_utilisateur(db_session, RoleUtilisateur.ADMIN, "admin3.test@kivufoot.local")
+    await creer_utilisateur(db_session, RoleUtilisateur.ADMIN, "admin3.test@kivufoot.example")
     await db_session.commit()
 
     resp = await client.post(
         "/api/v1/auth/login",
-        json={"email": "admin3.test@kivufoot.local", "mot_de_passe": "TestPassword123!"},
+        json={"email": "admin3.test@kivufoot.example", "mot_de_passe": "TestPassword123!"},
     )
     tokens = resp.json()
 

@@ -46,6 +46,16 @@ class Settings(BaseSettings):
     s3_secret: str | None = None
     s3_endpoint: str | None = None
 
+    # Identité des PDF officiels. Ces coordonnées ont été confirmées dans
+    # `KivuFoot_proposition_fiches_performance.pdf`, page 2, partagé dans le
+    # workspace. Elles restent surchargeables par l'environnement; elles ne
+    # proviennent pas du bootstrap technique.
+    pdf_logo_path: str | None = None
+    pdf_contact_name: str | None = "Yves Bukasa"
+    pdf_contact_email: str | None = "yb752129@gmail.com"
+    pdf_contact_phone: str | None = "+257 64504091"
+    pdf_contact_whatsapp: str | None = "+243 983753771"
+
     # Redis - explicitement DIFFÉRÉ en V1 (voir rapport Phase 0/1).
     # Conservé en config pour ne pas casser le déploiement si activé plus tard.
     redis_url: str | None = None

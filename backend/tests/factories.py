@@ -16,7 +16,7 @@ async def creer_utilisateur(db: AsyncSession, role: RoleUtilisateur, email: str,
         email=email,
         mot_de_passe_hash=hash_password("TestPassword123!"),
         role=role,
-        nom_complet=f"Test {role}",
+        nom_complet=f"Test {getattr(role, 'value', role)}",
         club_id=club_id,
     )
     db.add(user)

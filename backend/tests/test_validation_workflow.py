@@ -15,7 +15,7 @@ pytestmark = pytest.mark.asyncio
 
 
 async def _setup_match_avec_joueur(db_session):
-    organisateur = await creer_utilisateur(db_session, RoleUtilisateur.ORGANISATEUR, "orga@test.local")
+    organisateur = await creer_utilisateur(db_session, RoleUtilisateur.ORGANISATEUR, "orga@test.example")
     competition, saison = await creer_competition_avec_saison(db_session, organisateur)
     club_a = await creer_club(db_session, "Club A")
     club_b = await creer_club(db_session, "Club B")

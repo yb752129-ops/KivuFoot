@@ -29,10 +29,10 @@ async def test_coach_pose_sa_composition_pas_celle_de_ladversaire(client, db_ses
     club_b = await creer_club(db_session, "Club B")
     j_a = await creer_joueur(db_session, club_a.id, "Joueur A")
     j_b = await creer_joueur(db_session, club_b.id, "Joueur B")
-    orga = await creer_utilisateur(db_session, RoleUtilisateur.ORGANISATEUR, "orga.coach@test.local")
+    orga = await creer_utilisateur(db_session, RoleUtilisateur.ORGANISATEUR, "orga.coach@test.example")
     _, saison = await creer_competition_avec_saison(db_session, orga)
     match_ = await creer_match(db_session, saison.id, club_a.id, club_b.id)
-    token = await _login(client, db_session, RoleUtilisateur.COACH, "coach.a@test.local", club_id=club_a.id)
+    token = await _login(client, db_session, RoleUtilisateur.COACH, "coach.a@test.example", club_id=club_a.id)
     headers = _h(token)
 
     ok = await client.post(
@@ -77,10 +77,10 @@ async def test_coach_ne_peut_pas_saisir_un_fait(client, db_session):
     club_a = await creer_club(db_session, "Club A2")
     club_b = await creer_club(db_session, "Club B2")
     j_a = await creer_joueur(db_session, club_a.id, "Joueur A2")
-    orga = await creer_utilisateur(db_session, RoleUtilisateur.ORGANISATEUR, "orga.coach2@test.local")
+    orga = await creer_utilisateur(db_session, RoleUtilisateur.ORGANISATEUR, "orga.coach2@test.example")
     _, saison = await creer_competition_avec_saison(db_session, orga)
     match_ = await creer_match(db_session, saison.id, club_a.id, club_b.id)
-    token = await _login(client, db_session, RoleUtilisateur.COACH, "coach.fait@test.local", club_id=club_a.id)
+    token = await _login(client, db_session, RoleUtilisateur.COACH, "coach.fait@test.example", club_id=club_a.id)
     resp = await client.post(
         f"/api/v1/matchs/{match_.id}/evenements",
         json={

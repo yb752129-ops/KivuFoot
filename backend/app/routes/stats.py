@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import func, or_, select
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -24,6 +24,10 @@ from app.models.user import User
 from app.schemas.sync import TopStatLigne
 
 router = APIRouter(prefix="/stats", tags=["Statistiques"])
+
+
+def _valeur_enum(value):
+    return value.value if hasattr(value, "value") else value
 
 
 @router.get("/joueur/{joueur_id}/public")
@@ -54,6 +58,33 @@ async def stats_joueur_public(
         )
     )
     penalty_rows = buts_penaltys.all()
+    participation_rows = (
+        await db.execute(
+            select(MatchParticipation)
+            .join(Match, Match.id == MatchParticipation.match_id)
+            .where(
+                Match.saison_id == saison_id,
+                Match.statut == StatutMatch.VALIDE,
+                MatchParticipation.joueur_id == joueur_id,
+            )
+        )
+    ).scalars().all()
+    evenement_rows = (
+        await db.execute(
+            select(EvenementMatch)
+            .join(Match, Match.id == EvenementMatch.match_id)
+            .where(
+                Match.saison_id == saison_id,
+                Match.statut == StatutMatch.VALIDE,
+                or_(
+                    EvenementMatch.joueur_id == joueur_id,
+                    EvenementMatch.joueur_secondaire_id == joueur_id,
+                ),
+                EvenementMatch.statut_validation == StatutValidationEvenement.VALIDE,
+                EvenementMatch.refuse.is_(False),
+            )
+        )
+    ).scalars().all()
     homme_du_match = await db.scalar(
         select(func.count(HommeMatch.id))
         .join(Match, Match.id == HommeMatch.match_id)
@@ -67,8 +98,61 @@ async def stats_joueur_public(
     # produite par le flux de validation. En son absence, ne renvoyons pas
     # un faux tableau rempli de zéros : zéro et donnée indisponible ne sont
     # pas la même information.
-    penalties_marques = sum(1 for resultat, _ in penalty_rows if resultat == ResultatPenalty.MARQUE)
-    penalties_rates = sum(1 for resultat, _ in penalty_rows if resultat == ResultatPenalty.RATE)
+    penalties_marques = sum(
+        1 for resultat, _ in penalty_rows if _valeur_enum(resultat) == ResultatPenalty.MARQUE.value
+    )
+    penalties_rates = sum(
+        1 for resultat, _ in penalty_rows if _valeur_enum(resultat) == ResultatPenalty.RATE.value
+    )
+    participation_confirmee = bool(participation_rows)
+    buts_evenements = sum(
+        1
+        for evenement in evenement_rows
+        if evenement.joueur_id == joueur_id
+        and _valeur_enum(evenement.type) == TypeEvenement.BUT.value
+    )
+    passes_evenements = sum(
+        1
+        for evenement in evenement_rows
+        if evenement.joueur_secondaire_id == joueur_id
+        and _valeur_enum(evenement.type) == TypeEvenement.PASSE_DECISIVE.value
+    )
+    cartons_jaunes_evenements = sum(
+        1
+        for evenement in evenement_rows
+        if evenement.joueur_id == joueur_id
+        and _valeur_enum(evenement.type) == TypeEvenement.CARTON_JAUNE.value
+    )
+    cartons_rouges_evenements = sum(
+        1
+        for evenement in evenement_rows
+        if evenement.joueur_id == joueur_id
+        and _valeur_enum(evenement.type) == TypeEvenement.CARTON_ROUGE.value
+    )
+    buts_evenements += penalties_marques
+    participations_matchs = len({participation.match_id for participation in participation_rows})
+    participations_titulaires = sum(
+        1
+        for participation in participation_rows
+        if _valeur_enum(participation.statut) == StatutParticipation.TITULAIRE.value
+    )
+    # `minute_sortie=NULL` ne prouve pas qu'un joueur a joué 90 minutes :
+    # l'ancienne feuille de match ne distinguait pas « fin de match connue »
+    # et « minutes non collectées ». La vue publique choisit donc l'option
+    # honnête : les minutes restent nulles tant que chaque borne n'est pas
+    # effectivement renseignée. Une saisie connue jusqu'à la fin doit utiliser
+    # minute_sortie=90.
+    minutes_collectees = bool(participation_rows) and all(
+        participation.minute_sortie is not None for participation in participation_rows
+    )
+    participations_minutes = (
+        sum(
+            max(0, participation.minute_sortie - participation.minute_entree)
+            for participation in participation_rows
+        )
+        if minutes_collectees
+        else None
+    )
     champs_stats = (
         "matchs_joues",
         "titularisations",
@@ -87,11 +171,24 @@ async def stats_joueur_public(
         # leurs propres tables officielles. Ils peuvent donc être publiés
         # même si aucune ligne d'agrégat joueur n'existe encore.
         statuts = {champ: "NON_DISPONIBLE" for champ in champs_stats}
-        if penalty_rows:
-            statuts["penalties_marques"] = "CONFIRMEE"
-            statuts["penalties_rates"] = "CONFIRMEE"
-        if homme_du_match:
-            statuts["hommes_du_match"] = "CONFIRMEE"
+        if participation_confirmee:
+            statuts = {champ: "CONFIRMEE" for champ in champs_stats}
+            if not minutes_collectees:
+                statuts["minutes_jouees"] = "NON_DISPONIBLE"
+        else:
+            if buts_evenements:
+                statuts["buts"] = "CONFIRMEE"
+            if passes_evenements:
+                statuts["passes_decisives"] = "CONFIRMEE"
+            if cartons_jaunes_evenements:
+                statuts["cartons_jaunes"] = "CONFIRMEE"
+            if cartons_rouges_evenements:
+                statuts["cartons_rouges"] = "CONFIRMEE"
+            if penalty_rows:
+                statuts["penalties_marques"] = "CONFIRMEE"
+                statuts["penalties_rates"] = "CONFIRMEE"
+            if homme_du_match:
+                statuts["hommes_du_match"] = "CONFIRMEE"
         au_moins_une_donnee = any(statut == "CONFIRMEE" for statut in statuts.values())
         return {
             "joueur_id": joueur.id,
@@ -111,16 +208,16 @@ async def stats_joueur_public(
                     "Les données provisoires ne sont pas publiées faute de source publique fiable."
                 )
             ),
-            "matchs_joues": None,
-            "titularisations": None,
-            "minutes_jouees": None,
-            "buts": None,
-            "passes_decisives": None,
-            "cartons_jaunes": None,
-            "cartons_rouges": None,
-            "penalties_marques": penalties_marques if penalty_rows else None,
-            "penalties_rates": penalties_rates if penalty_rows else None,
-            "hommes_du_match": int(homme_du_match) if homme_du_match else None,
+            "matchs_joues": participations_matchs if participation_confirmee else None,
+            "titularisations": participations_titulaires if participation_confirmee else None,
+            "minutes_jouees": participations_minutes if participation_confirmee else None,
+            "buts": buts_evenements if participation_confirmee or buts_evenements else None,
+            "passes_decisives": passes_evenements if participation_confirmee or passes_evenements else None,
+            "cartons_jaunes": cartons_jaunes_evenements if participation_confirmee or cartons_jaunes_evenements else None,
+            "cartons_rouges": cartons_rouges_evenements if participation_confirmee or cartons_rouges_evenements else None,
+            "penalties_marques": penalties_marques if participation_confirmee or penalty_rows else None,
+            "penalties_rates": penalties_rates if participation_confirmee or penalty_rows else None,
+            "hommes_du_match": int(homme_du_match) if participation_confirmee or homme_du_match else None,
             "statuts": statuts,
             "source": "matchs_officiellement_valides" if au_moins_une_donnee else "aucune_donnee_confirmee",
             "donnees_non_collectees": [
@@ -129,26 +226,87 @@ async def stats_joueur_public(
             ],
         }
 
+    if participation_confirmee:
+        # Les tables de faits sont la source publique de vérité. Même si un
+        # agrégat historique existe, ne le réutilisons pas aveuglément : il
+        # pourrait dater d'avant le marquage refuse=true d'un événement.
+        valeurs = {
+            "matchs_joues": participations_matchs,
+            "titularisations": participations_titulaires,
+            "minutes_jouees": participations_minutes,
+            "buts": buts_evenements,
+            "passes_decisives": passes_evenements,
+            "cartons_jaunes": cartons_jaunes_evenements,
+            "cartons_rouges": cartons_rouges_evenements,
+            "penalties_marques": penalties_marques,
+            "penalties_rates": penalties_rates,
+            "hommes_du_match": int(homme_du_match or 0),
+        }
+        statuts = {champ: "CONFIRMEE" for champ in champs_stats}
+        if not minutes_collectees:
+            statuts["minutes_jouees"] = "NON_DISPONIBLE"
+        valeurs["minutes_jouees"] = participations_minutes
+    else:
+        valeurs = {
+            "matchs_joues": None,
+            "titularisations": None,
+            "minutes_jouees": None,
+            "buts": buts_evenements if buts_evenements else None,
+            "passes_decisives": passes_evenements if passes_evenements else None,
+            "cartons_jaunes": cartons_jaunes_evenements if cartons_jaunes_evenements else None,
+            "cartons_rouges": cartons_rouges_evenements if cartons_rouges_evenements else None,
+            "penalties_marques": penalties_marques if penalty_rows else None,
+            "penalties_rates": penalties_rates if penalty_rows else None,
+            "hommes_du_match": int(homme_du_match) if homme_du_match else None,
+        }
+        statuts = {champ: "NON_DISPONIBLE" for champ in champs_stats}
+        if buts_evenements:
+            statuts["buts"] = "CONFIRMEE"
+        if passes_evenements:
+            statuts["passes_decisives"] = "CONFIRMEE"
+        if cartons_jaunes_evenements:
+            statuts["cartons_jaunes"] = "CONFIRMEE"
+        if cartons_rouges_evenements:
+            statuts["cartons_rouges"] = "CONFIRMEE"
+        if penalty_rows:
+            statuts["penalties_marques"] = "CONFIRMEE"
+            statuts["penalties_rates"] = "CONFIRMEE"
+        if homme_du_match:
+            statuts["hommes_du_match"] = "CONFIRMEE"
+
+    au_moins_une_donnee = participation_confirmee or any(
+        (
+            buts_evenements,
+            passes_evenements,
+            cartons_jaunes_evenements,
+            cartons_rouges_evenements,
+            penalty_rows,
+            homme_du_match,
+        )
+    )
     return {
         "joueur_id": joueur.id,
         "joueur_nom": joueur.nom_complet,
         "club_actuel_id": joueur.club_actuel_id,
         "saison_id": saison_id,
-        "disponible": True,
-        "statut": "CONFIRMEE",
-        "message": "Statistiques calculées à partir des données confirmées de la compétition.",
-        "matchs_joues": stat.matchs_joues,
-        "titularisations": stat.titularisations,
-        "minutes_jouees": stat.minutes_jouees,
-        "buts": stat.buts,
-        "passes_decisives": stat.passes_decisives,
-        "cartons_jaunes": stat.cartons_jaunes,
-        "cartons_rouges": stat.cartons_rouges,
-        "penalties_marques": penalties_marques,
-        "penalties_rates": penalties_rates,
-        "hommes_du_match": int(homme_du_match or 0),
-        "statuts": {champ: "CONFIRMEE" for champ in champs_stats},
-        "source": "matchs_officiellement_valides",
+        "disponible": au_moins_une_donnee,
+        "statut": "CONFIRMEE" if au_moins_une_donnee else "NON_DISPONIBLE",
+        "message": (
+            "Statistiques calculées à partir des données confirmées de la compétition."
+            if participation_confirmee
+            else (
+                "Certaines données confirmées sont publiées ; les autres restent indisponibles. "
+                "Les données provisoires ne sont pas publiées faute de source publique fiable."
+                if au_moins_une_donnee
+                else (
+                    "Aucune statistique confirmée pour cette édition. "
+                    "Les données provisoires ne sont pas publiées faute de source publique fiable."
+                )
+            )
+        ),
+        **valeurs,
+        "statuts": statuts,
+        "source": "matchs_officiellement_valides" if au_moins_une_donnee else "aucune_donnee_confirmee",
         "donnees_non_collectees": [
             "Statistiques défensives détaillées",
             "Arrêts et buts évités du gardien",
@@ -244,6 +402,11 @@ async def stats_joueur_matchs_public(
         participation = participations_by_match.get(match.id)
         match_events = evenements_by_match.get(match.id, [])
         homme = hommes_by_match.get(match.id)
+        # Un match validé n'est pas, à lui seul, une participation du joueur.
+        # Ne publions donc pas les matchs sans feuille de match, événement
+        # validé non refusé ou désignation officielle Homme du match.
+        if participation is None and not match_events and homme is None:
+            continue
         side = valeur_enum(participation.equipe_concernee) if participation else None
         if side not in (EquipeConcernee.DOMICILE.value, EquipeConcernee.EXTERIEUR.value):
             side = next(
@@ -322,8 +485,11 @@ async def stats_joueur_matchs_public(
                 presence_carton_rouge = True
 
         if participation is not None:
-            minute_fin = participation.minute_sortie if participation.minute_sortie is not None else 90
-            minutes = max(0, minute_fin - participation.minute_entree)
+            minutes = (
+                max(0, participation.minute_sortie - participation.minute_entree)
+                if participation.minute_sortie is not None
+                else None
+            )
             participation_data = {
                 "disponible": True,
                 "statut": "CONFIRMEE",
@@ -331,6 +497,8 @@ async def stats_joueur_matchs_public(
                 "minutes": minutes,
             }
             stats_status = {
+                "participation": "CONFIRMEE",
+                "minutes": "CONFIRMEE" if minutes is not None else "NON_DISPONIBLE",
                 "buts": "CONFIRMEE",
                 "passes_decisives": "CONFIRMEE",
                 "cartons_jaunes": "CONFIRMEE",
@@ -346,6 +514,8 @@ async def stats_joueur_matchs_public(
                 "minutes": None,
             }
             stats_status = {
+                "participation": "NON_DISPONIBLE",
+                "minutes": "NON_DISPONIBLE",
                 "buts": "CONFIRMEE" if presence_but else "NON_DISPONIBLE",
                 "passes_decisives": "CONFIRMEE" if presence_passe else "NON_DISPONIBLE",
                 "cartons_jaunes": "CONFIRMEE" if presence_carton_jaune else "NON_DISPONIBLE",
@@ -413,28 +583,56 @@ async def stats_joueur(
 
 
 async def _top(db: AsyncSession, saison_id: int, colonne, limit: int) -> list[TopStatLigne]:
+    # Les tops publics sont recalculés depuis les événements officiels, et
+    # non lus aveuglément dans un agrégat historique. Cela garantit qu'un
+    # événement refuse ne peut pas rester visible après une correction.
+    if colonne.key == "buts":
+        joueur_colonne = EvenementMatch.joueur_id
+        type_filter = or_(
+            EvenementMatch.type == TypeEvenement.BUT,
+            and_(
+                EvenementMatch.type == TypeEvenement.PENALTY,
+                EvenementMatch.resultat == ResultatPenalty.MARQUE,
+            ),
+        )
+    elif colonne.key == "passes_decisives":
+        joueur_colonne = EvenementMatch.joueur_secondaire_id
+        type_filter = EvenementMatch.type == TypeEvenement.PASSE_DECISIVE
+    else:
+        return []
+
+    valeur = func.count(EvenementMatch.id).label("valeur")
     result = await db.execute(
-        select(StatistiqueJoueur, Joueur, Club)
-        .join(Joueur, Joueur.id == StatistiqueJoueur.joueur_id)
+        select(Joueur, Club, valeur)
+        .join(EvenementMatch, joueur_colonne == Joueur.id)
+        .join(Match, Match.id == EvenementMatch.match_id)
         .outerjoin(Club, Club.id == Joueur.club_actuel_id)
         .options(selectinload(Joueur.photo_actuelle_rel))
-        .where(StatistiqueJoueur.saison_id == saison_id, Joueur.anonymise.is_(False))
-        .order_by(colonne.desc(), Joueur.nom_complet.asc())
+        .where(
+            Match.saison_id == saison_id,
+            Match.statut == StatutMatch.VALIDE,
+            EvenementMatch.statut_validation == StatutValidationEvenement.VALIDE,
+            EvenementMatch.refuse.is_(False),
+            joueur_colonne.is_not(None),
+            type_filter,
+            Joueur.anonymise.is_(False),
+            Joueur.fusionne.is_(False),
+        )
+        .group_by(Joueur.id, Club.id)
+        .order_by(valeur.desc(), Joueur.nom_complet.asc())
         .limit(min(limit, 50))
     )
-    lignes = []
-    for stat, joueur, club in result.all():
-        lignes.append(
-            TopStatLigne(
-                joueur_id=joueur.id,
-                joueur_nom=joueur.nom_complet,
-                club_id=club.id if club else None,
-                club_nom=club.nom if club else None,
-                photo_url=joueur.photo_url,
-                valeur=getattr(stat, colonne.key),
-            )
+    return [
+        TopStatLigne(
+            joueur_id=joueur.id,
+            joueur_nom=joueur.nom_complet,
+            club_id=club.id if club else None,
+            club_nom=club.nom if club else None,
+            photo_url=joueur.photo_url,
+            valeur=int(total),
         )
-    return lignes
+        for joueur, club, total in result.all()
+    ]
 
 
 @router.get("/meilleurs-buteurs", response_model=list[TopStatLigne])

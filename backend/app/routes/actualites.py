@@ -314,11 +314,13 @@ async def lister_actualites_publiques(
     categorie: CategorieActualite | None = None,
     competition_id: int | None = None,
     saison_id: int | None = None,
-    limit: int = Query(20, ge=1, le=50),
     offset: int = Query(0, ge=0),
     db: AsyncSession = Depends(get_db),
     client_token: str | None = None,
+    limit: int = 20,
 ):
+    limit = min(max(int(limit), 1), 50)
+    offset = max(int(offset), 0)
     query = (
         select(Actualite)
         .where(Actualite.statut == StatutActualite.PUBLIE)

@@ -20,7 +20,7 @@ const LIGNES_STATS = [
 const STATUTS = {
   CONFIRMEE: "Confirmées",
   PROVISOIRE: "Provisoires",
-  NON_DISPONIBLE: "Non disponibles",
+  NON_DISPONIBLE: "Non disponible",
 };
 
 function valeurStatistique(valeur) {
@@ -165,7 +165,7 @@ export default function Joueur() {
         <p className="empty">Historique des matchs non disponible pour cette édition.</p>
       ) : matchHistory.matchs?.length === 0 ? (
         <div className="performance-status performance-status-non_disponible">
-          <span className="status-pill">Non disponibles</span>
+          <span className="status-pill">Non disponible</span>
           <p>{matchHistory.message || "Aucun match officiellement validé pour cette édition."}</p>
         </div>
       ) : (
@@ -190,8 +190,8 @@ export default function Joueur() {
                   <b>{scoreMatch(match)}</b>
                 </div>
                 <div className="player-match-details">
-                  <span>{participation.disponible ? (participation.titulaire ? "Titulaire" : "Remplaçant") : "Participation non disponible"}</span>
-                  <span>{participation.minutes === null || participation.minutes === undefined ? "Minutes non disponibles" : `${participation.minutes} min`}</span>
+                  <span>{participation.disponible ? (participation.titulaire ? "Titulaire" : "Remplaçant") : "Participation : Non disponible"}</span>
+                  <span>{participation.minutes === null || participation.minutes === undefined ? "Minutes : Non disponible" : `${participation.minutes} min`}</span>
                 </div>
                 {faits.length > 0 ? (
                   <p className="player-match-facts">{faits.join(" · ")}</p>

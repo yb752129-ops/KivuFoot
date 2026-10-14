@@ -4,6 +4,11 @@ Infrastructure numérique du football local (Bukavu, Sud-Kivu) : collecte
 terrain hors-ligne → validation par l'organisateur → publication publique
 (classements, statistiques, profils joueurs), avec traçabilité complète.
 
+Le marché de départ visé est Bukavu, au Sud-Kivu, puis l'Est de la RDC. Un
+test réel est en cours à l'Université Espoir d'Afrique, à Bujumbura, lors d'un
+tournoi Interdépartemental : c'est une validation terrain et une preuve de
+progression, pas le marché commercial cible de KivuFoot.
+
 > **La fiabilité des données est le seul actif du projet.** Toute décision
 > technique de ce dépôt (voir `ARCHITECTURE.md`) a été prise pour préserver
 > cette fiabilité, la sécurité, la traçabilité et le fonctionnement
@@ -25,27 +30,19 @@ Ce dépôt couvre les phases suivantes de la méthode de développement convenue
 | 7 | Tests | ✅ Tests unitaires/intégration sur les règles métier critiques (voir `backend/tests/`) |
 | 8 | Production (Docker, CI/CD, sauvegardes) | ⚠️ Docker/Compose fournis ; CI/CD et sauvegardes automatiques à configurer sur votre infrastructure (squelette dans `.github/workflows/`) |
 
-**Les Phases 5 et 6 ne sont pas dans ce ZIP.** L'API backend expose déjà
-tout ce dont elles ont besoin (routes publiques + documentation OpenAPI sur
-`/docs`), mais je n'ai pas construit les interfaces web organisateur/public
-dans cette passe pour livrer un backend + PWA collecteur réellement complets
-et testés plutôt que six interfaces à moitié faites. Dites-moi si vous
-voulez que je les construise ensuite.
+Les interfaces publiques et organisateur sont présentes dans
+`frontend-web/`; la PWA de collecte reste dans `frontend-collecteur/`. Les
+routes publiques et la documentation OpenAPI sont exposées par le backend.
 
-## ⚠️ Important : les tests n'ont pas été exécutés dans mon environnement
+## Contrôles locaux du 14 octobre 2026
 
-Je n'ai pas d'accès réseau dans le sandbox où j'ai écrit ce code (impossible
-d'installer PostgreSQL, FastAPI, pytest, etc.). J'ai donc :
-- vérifié la **syntaxe** de chaque fichier Python (`py_compile`) ;
-- relu manuellement chaque module pour la cohérence des imports, des types,
-  des contraintes ;
-- mais je n'ai **pas** lancé `pytest` ni démarré le serveur réellement.
-
-**Avant de considérer ce projet comme fonctionnel, lancez vous-même les
-commandes de la section "Lancer les tests" ci-dessous** et corrigez les
-éventuelles erreurs d'exécution (typos non détectés par l'analyse statique,
-incompatibilités de versions, etc.). Je reste disponible pour déboguer avec
-vous à partir des messages d'erreur réels.
+- Backend PostgreSQL : `80 passed` avec `pytest`.
+- Frontend public : `npm run build` réussi avec Vite.
+- Aucun déploiement, push ou modification de données de production n'a été
+  effectué depuis ce workspace.
+- Le vrai logo complet et les coordonnées PDF sont confirmés dans
+  `docs/PDF_CONFIRMATION_CHECKLIST.md`; le logo est embarqué dans
+  `backend/app/assets/kivufoot-logo.png`.
 
 ## Architecture
 
@@ -185,12 +182,14 @@ Voir `backend/.env.example` pour la liste complète et des exemples.
 - [ ] Générer une vraie `SECRET_KEY` (jamais celle d'exemple).
 - [ ] Configurer un vrai mot de passe PostgreSQL (jamais `changeme`).
 - [ ] Construire les interfaces organisateur et publique (Phases 5-6).
-- [ ] Exécuter réellement la suite de tests et corriger les éventuelles
-      erreurs d'exécution non détectables par une simple analyse statique.
-- [ ] Configurer la sauvegarde automatique quotidienne de PostgreSQL (§14.5
-      de la spécification originale — non implémentée dans ce ZIP).
-- [ ] Configurer un vrai pipeline CI/CD (squelette GitHub Actions fourni
-      dans `.github/workflows/backend-tests.yml`, à adapter).
+- [x] Exécuter la suite backend PostgreSQL : `80 passed` lors du contrôle local
+      du 14 octobre 2026.
+- [x] Préparer les scripts et le runbook de sauvegarde PostgreSQL
+      (`docs/POSTGRES_BACKUP_RUNBOOK.md`); la planification et le stockage
+      hors site restent à valider avec l'opérateur.
+- [x] Configurer le workflow GitHub Actions backend + build frontend dans
+      `.github/workflows/backend-tests.yml`; les secrets de déploiement restent
+      volontairement non configurés.
 - [ ] Décider d'un mécanisme de rate limiting réel sur `/auth/login` (la
       configuration existe, l'implémentation technique — ex. `slowapi` ou
       un reverse proxy — reste à brancher).

@@ -24,7 +24,7 @@ async def test_detection_doublon_par_nom_et_date_naissance(db_session):
 
 
 async def test_fusion_transfere_les_evenements_et_marque_esclave(db_session):
-    organisateur = await creer_utilisateur(db_session, RoleUtilisateur.ORGANISATEUR, "orga.fusion@test.local")
+    organisateur = await creer_utilisateur(db_session, RoleUtilisateur.ORGANISATEUR, "orga.fusion@test.example")
     _, saison = await creer_competition_avec_saison(db_session, organisateur)
     club_a = await creer_club(db_session, "Club A")
     club_b = await creer_club(db_session, "Club B")

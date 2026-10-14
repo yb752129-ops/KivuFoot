@@ -13,8 +13,8 @@ pytestmark = pytest.mark.asyncio
 
 
 async def test_push_idempotent_meme_temp_id_ne_duplique_pas(db_session):
-    organisateur = await creer_utilisateur(db_session, RoleUtilisateur.ORGANISATEUR, "orga2@test.local")
-    collecteur = await creer_utilisateur(db_session, RoleUtilisateur.COLLECTEUR, "collecteur@test.local")
+    organisateur = await creer_utilisateur(db_session, RoleUtilisateur.ORGANISATEUR, "orga2@test.example")
+    collecteur = await creer_utilisateur(db_session, RoleUtilisateur.COLLECTEUR, "collecteur@test.example")
     _, saison = await creer_competition_avec_saison(db_session, organisateur)
     club_a = await creer_club(db_session, "Club A")
     club_b = await creer_club(db_session, "Club B")
@@ -44,13 +44,14 @@ async def test_push_idempotent_meme_temp_id_ne_duplique_pas(db_session):
 
 
 async def test_push_sur_match_verrouille_rejette_automatiquement(db_session):
-    organisateur = await creer_utilisateur(db_session, RoleUtilisateur.ORGANISATEUR, "orga3@test.local")
-    collecteur = await creer_utilisateur(db_session, RoleUtilisateur.COLLECTEUR, "collecteur2@test.local")
+    organisateur = await creer_utilisateur(db_session, RoleUtilisateur.ORGANISATEUR, "orga3@test.example")
+    collecteur = await creer_utilisateur(db_session, RoleUtilisateur.COLLECTEUR, "collecteur2@test.example")
     _, saison = await creer_competition_avec_saison(db_session, organisateur)
     club_a = await creer_club(db_session, "Club A")
     club_b = await creer_club(db_session, "Club B")
     joueur = await creer_joueur(db_session, club_a.id)
     match_ = await creer_match(db_session, saison.id, club_a.id, club_b.id)
+    match_.statut = StatutMatch.TERMINE
     await db_session.flush()
 
     await valider_match(db_session, match_.id, organisateur.id)
@@ -71,9 +72,9 @@ async def test_push_sur_match_verrouille_rejette_automatiquement(db_session):
 
 
 async def test_conflit_detecte_entre_deux_collecteurs(db_session):
-    organisateur = await creer_utilisateur(db_session, RoleUtilisateur.ORGANISATEUR, "orga4@test.local")
-    collecteur_1 = await creer_utilisateur(db_session, RoleUtilisateur.COLLECTEUR, "c1@test.local")
-    collecteur_2 = await creer_utilisateur(db_session, RoleUtilisateur.COLLECTEUR, "c2@test.local")
+    organisateur = await creer_utilisateur(db_session, RoleUtilisateur.ORGANISATEUR, "orga4@test.example")
+    collecteur_1 = await creer_utilisateur(db_session, RoleUtilisateur.COLLECTEUR, "c1@test.example")
+    collecteur_2 = await creer_utilisateur(db_session, RoleUtilisateur.COLLECTEUR, "c2@test.example")
     _, saison = await creer_competition_avec_saison(db_session, organisateur)
     club_a = await creer_club(db_session, "Club A")
     club_b = await creer_club(db_session, "Club B")

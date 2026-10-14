@@ -19,6 +19,7 @@ from app.models.enums import (
 from app.models.evenement import EvenementMatch
 from app.models.joueur import Joueur
 from app.models.match import Match, MatchParticipation
+from app.models.possession import PossessionMatch
 from app.models.stats import StatistiqueJoueur
 from app.models.user import User
 from app.routes.matchs import (
@@ -48,6 +49,7 @@ async def db_session():
         Match.__table__,
         MatchParticipation.__table__,
         EvenementMatch.__table__,
+        PossessionMatch.__table__,
         StatistiqueJoueur.__table__,
     ]
     async with engine.begin() as connection:
@@ -86,7 +88,7 @@ async def contexte_match(db_session):
     )
     db_session.add_all([competition, saison, domicile, exterieur, inscription_dom, inscription_ext, match_])
     await db_session.flush()
-    admin = User(id=1, email="admin@test.local", role=RoleUtilisateur.ADMIN, nom_complet="Admin test")
+    admin = User(id=1, email="admin@test.example", role=RoleUtilisateur.ADMIN, nom_complet="Admin test")
     return match_, domicile, exterieur, admin
 
 

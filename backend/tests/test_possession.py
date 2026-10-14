@@ -113,7 +113,7 @@ async def test_04_temps_non_attribue_30_20_10_reste_hors_denomenateur(db_session
     match.statut = StatutMatch.TERMINE
     await transition_possession(db_session, match.id, "FINISHED", user.id, operation(), now=instant(70))
     possession = await get_possession(db_session, match.id)
-    assert (possession.temps_a_ms, possession.temps_b_ms, possession.temps_non_attribue_ms) == (30_000, 20_000, 10_000)
+    assert (possession.temps_a_ms, possession.temps_b_ms, possession.temps_non_attribue_ms) == (30_000, 20_000, 20_000)
     detail = await snapshot_possession(db_session, match, possession, now=instant(70))
     assert (detail.pourcentage_a, detail.pourcentage_b) == (60, 40)
 

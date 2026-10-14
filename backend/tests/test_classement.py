@@ -1,5 +1,6 @@
 import pytest
 
+from app.models.competition import SaisonClub
 from app.models.enums import StatutMatch
 from app.services.calcul_classement import calculer_classement
 from tests.factories import creer_club, creer_competition_avec_saison, creer_match
@@ -27,6 +28,14 @@ async def test_classement_points_et_tri(db_session):
     club_a = await creer_club(db_session, "Club A")
     club_b = await creer_club(db_session, "Club B")
     club_c = await creer_club(db_session, "Club C")
+    db_session.add_all(
+        [
+            SaisonClub(saison_id=saison.id, club_id=club_a.id),
+            SaisonClub(saison_id=saison.id, club_id=club_b.id),
+            SaisonClub(saison_id=saison.id, club_id=club_c.id),
+        ]
+    )
+    await db_session.flush()
 
     # A bat B 2-0 (validé)
     m1 = await creer_match(db_session, saison.id, club_a.id, club_b.id)
@@ -53,6 +62,13 @@ async def test_classement_forfait_compte_dans_le_score(db_session):
     _, saison = await creer_competition_avec_saison(db_session)
     club_a = await creer_club(db_session, "Club A")
     club_b = await creer_club(db_session, "Club B")
+    db_session.add_all(
+        [
+            SaisonClub(saison_id=saison.id, club_id=club_a.id),
+            SaisonClub(saison_id=saison.id, club_id=club_b.id),
+        ]
+    )
+    await db_session.flush()
     m1 = await creer_match(db_session, saison.id, club_a.id, club_b.id)
     m1.score_domicile, m1.score_exterieur = 3, 0
     m1.forfait = True

@@ -19,11 +19,11 @@ def _h(token):
 
 
 async def test_orga_cree_equipe_inscrit_et_programme_un_match(client, db_session):
-    token = await _login(client, db_session, RoleUtilisateur.ORGANISATEUR, "orga.equipes@test.local")
+    token = await _login(client, db_session, RoleUtilisateur.ORGANISATEUR, "orga.equipes@test.example")
     from sqlalchemy import select
     from app.models.user import User
 
-    orga = (await db_session.execute(select(User).where(User.email == "orga.equipes@test.local"))).scalar_one()
+    orga = (await db_session.execute(select(User).where(User.email == "orga.equipes@test.example"))).scalar_one()
     _comp, saison = await creer_competition_avec_saison(db_session, orga, est_demo=False)
     await db_session.commit()
     headers = _h(token)
@@ -43,8 +43,16 @@ async def test_orga_cree_equipe_inscrit_et_programme_un_match(client, db_session
     assert r2.status_code == 201, r2.text
     c2 = r2.json()
 
-    i1 = await client.post(f"/api/v1/saisons/{saison.id}/clubs", json={"club_id": c1["id"]}, headers=headers)
-    i2 = await client.post(f"/api/v1/saisons/{saison.id}/clubs", json={"club_id": c2["id"]}, headers=headers)
+    i1 = await client.post(
+        f"/api/v1/saisons/{saison.id}/clubs",
+        json={"club_id": c1["id"], "groupe": "A"},
+        headers=headers,
+    )
+    i2 = await client.post(
+        f"/api/v1/saisons/{saison.id}/clubs",
+        json={"club_id": c2["id"], "groupe": "A"},
+        headers=headers,
+    )
     assert i1.status_code == 201 and i2.status_code == 201
 
     listed = await client.get(f"/api/v1/saisons/{saison.id}/clubs")
@@ -71,11 +79,11 @@ async def test_orga_cree_equipe_inscrit_et_programme_un_match(client, db_session
 
 
 async def test_match_refuse_equipe_non_inscrite(client, db_session):
-    token = await _login(client, db_session, RoleUtilisateur.ORGANISATEUR, "orga.hors@test.local")
+    token = await _login(client, db_session, RoleUtilisateur.ORGANISATEUR, "orga.hors@test.example")
     from sqlalchemy import select
     from app.models.user import User
 
-    orga = (await db_session.execute(select(User).where(User.email == "orga.hors@test.local"))).scalar_one()
+    orga = (await db_session.execute(select(User).where(User.email == "orga.hors@test.example"))).scalar_one()
     _comp, saison = await creer_competition_avec_saison(db_session, orga, est_demo=False)
     club_a = await creer_club(db_session, "Équipe A")
     club_b = await creer_club(db_session, "Équipe B")
@@ -95,12 +103,12 @@ async def test_match_refuse_equipe_non_inscrite(client, db_session):
 
 
 async def test_autre_orga_ne_peut_pas_inscrire(client, db_session):
-    token_a = await _login(client, db_session, RoleUtilisateur.ORGANISATEUR, "orga.a.insc@test.local")
-    token_b = await _login(client, db_session, RoleUtilisateur.ORGANISATEUR, "orga.b.insc@test.local")
+    token_a = await _login(client, db_session, RoleUtilisateur.ORGANISATEUR, "orga.a.insc@test.example")
+    token_b = await _login(client, db_session, RoleUtilisateur.ORGANISATEUR, "orga.b.insc@test.example")
     from sqlalchemy import select
     from app.models.user import User
 
-    orga_a = (await db_session.execute(select(User).where(User.email == "orga.a.insc@test.local"))).scalar_one()
+    orga_a = (await db_session.execute(select(User).where(User.email == "orga.a.insc@test.example"))).scalar_one()
     _comp, saison = await creer_competition_avec_saison(db_session, orga_a, est_demo=False)
     club = await creer_club(db_session, "Équipe C")
     await db_session.commit()

@@ -9,8 +9,8 @@ pytestmark = pytest.mark.asyncio
 
 
 async def test_organisateur_ne_peut_pas_valider_une_competition_qui_n_est_pas_la_sienne(db_session):
-    organisateur_a = await creer_utilisateur(db_session, RoleUtilisateur.ORGANISATEUR, "orga.a@test.local")
-    organisateur_b = await creer_utilisateur(db_session, RoleUtilisateur.ORGANISATEUR, "orga.b@test.local")
+    organisateur_a = await creer_utilisateur(db_session, RoleUtilisateur.ORGANISATEUR, "orga.a@test.example")
+    organisateur_b = await creer_utilisateur(db_session, RoleUtilisateur.ORGANISATEUR, "orga.b@test.example")
     competition, _ = await creer_competition_avec_saison(db_session, organisateur_a)
     await db_session.flush()
 
@@ -24,8 +24,8 @@ async def test_organisateur_ne_peut_pas_valider_une_competition_qui_n_est_pas_la
 
 
 async def test_admin_peut_toujours_agir_sur_toute_competition(db_session):
-    admin = await creer_utilisateur(db_session, RoleUtilisateur.ADMIN, "admin.rbac@test.local")
-    organisateur = await creer_utilisateur(db_session, RoleUtilisateur.ORGANISATEUR, "orga.rbac@test.local")
+    admin = await creer_utilisateur(db_session, RoleUtilisateur.ADMIN, "admin.rbac@test.example")
+    organisateur = await creer_utilisateur(db_session, RoleUtilisateur.ORGANISATEUR, "orga.rbac@test.example")
     competition, _ = await creer_competition_avec_saison(db_session, organisateur)
     await db_session.flush()
 
@@ -35,7 +35,7 @@ async def test_admin_peut_toujours_agir_sur_toute_competition(db_session):
 async def test_club_manager_ne_gere_que_son_club(db_session):
     club_a = await creer_club(db_session, "Club A")
     club_b = await creer_club(db_session, "Club B")
-    manager_a = await creer_utilisateur(db_session, RoleUtilisateur.CLUB_MANAGER, "manager.a@test.local", club_id=club_a.id)
+    manager_a = await creer_utilisateur(db_session, RoleUtilisateur.CLUB_MANAGER, "manager.a@test.example", club_id=club_a.id)
     await db_session.flush()
 
     verifier_scope_club(manager_a, club_a.id)  # ne lève rien
