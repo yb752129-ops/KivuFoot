@@ -260,10 +260,19 @@ export default function FeuilleMatch({ compo, logos = {}, staffs = {} }) {
   if (!compo) return <p className="empty">Chargement…</p>;
   const domicile = compo.domicile || { titulaires: [], banc: [] };
   const exterieur = compo.exterieur || { titulaires: [], banc: [] };
-  const terrainDisponible = domicile.titulaires.length === 11 && exterieur.titulaires.length === 11;
+  const compositionDeclaree = [domicile, exterieur].some(
+    (bloc) => Array.isArray(bloc.titulaires) && bloc.titulaires.length > 0
+  );
   return (
     <>
-      {terrainDisponible && <TerrainMixte domicile={domicile} exterieur={exterieur} logos={logos} />}
+      {compositionDeclaree ? (
+        <TerrainMixte domicile={domicile} exterieur={exterieur} logos={logos} />
+      ) : (
+        <div className="feuille-composition-incomplete" role="status">
+          <strong>Composition non renseignée</strong>
+          <span>Les titulaires n’ont pas encore été déclarés pour ce match.</span>
+        </div>
+      )}
       <RemplacementsPublic domicile={domicile} exterieur={exterieur} logos={logos} staffs={staffs} />
     </>
   );
