@@ -2584,6 +2584,235 @@ html[data-theme="dark"] { --door-card: #1c1914; --door-num: var(--lime); }
   font-size: 0.85rem;
   padding: 0.3rem 0;
 }
+.feuille-composition-incomplete {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.8rem;
+  border: 1px solid color-mix(in srgb, var(--warn) 55%, var(--rule-strong));
+  border-radius: 10px;
+  color: var(--ink-soft);
+  font-size: 0.78rem;
+}
+.feuille-composition-incomplete strong { color: var(--warn); }
+.feuille-tactique {
+  margin: 0.8rem 0 1rem;
+}
+.feuille-tactique-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.55rem;
+}
+.feuille-tactique-kicker {
+  margin: 0 0 0.1rem;
+  color: var(--ink-soft);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.feuille-tactique-head strong { font-size: 0.9rem; }
+.feuille-tactique-note {
+  flex: 0 0 auto;
+  padding: 0.2rem 0.45rem;
+  border: 1px solid var(--rule-strong);
+  border-radius: 999px;
+  color: var(--ink-soft);
+  font-size: 0.65rem;
+}
+.feuille-terrain {
+  position: relative;
+  min-height: 22rem;
+  overflow: hidden;
+  padding: 1rem 0.55rem;
+  border: 1px solid color-mix(in srgb, var(--stamp) 72%, var(--rule-strong));
+  border-radius: 14px;
+  background: linear-gradient(180deg, #1b5a3e 0%, #123e2c 100%);
+  color: #f3efe4;
+}
+.feuille-terrain::before,
+.feuille-terrain::after {
+  content: "";
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  height: 2.4rem;
+  border: 1px solid rgba(243, 239, 228, 0.35);
+}
+.feuille-terrain::before { top: 0.7rem; border-top: 0; }
+.feuille-terrain::after { bottom: 0.7rem; border-bottom: 0; }
+.feuille-terrain-cercle {
+  position: absolute;
+  top: calc(50% - 2.15rem);
+  left: calc(50% - 2.15rem);
+  width: 4.3rem;
+  height: 4.3rem;
+  border: 1px solid rgba(243, 239, 228, 0.35);
+  border-radius: 50%;
+}
+.feuille-terrain-ligne {
+  position: absolute;
+  top: 50%;
+  left: 5%;
+  right: 5%;
+  border-top: 1px solid rgba(243, 239, 228, 0.35);
+}
+.feuille-terrain-rangs {
+  position: relative;
+  z-index: 1;
+  min-height: 20rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  gap: 0.35rem;
+}
+.feuille-terrain-rang {
+  display: flex;
+  justify-content: space-evenly;
+  align-items: flex-start;
+  gap: 0.2rem;
+}
+.feuille-terrain-joueur,
+.feuille-terrain-vide {
+  flex: 0 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.18rem;
+  text-align: center;
+}
+.feuille-terrain-joueur b,
+.feuille-terrain-vide {
+  width: 1.8rem;
+  height: 1.8rem;
+  display: grid;
+  place-items: center;
+  border: 1.5px solid var(--stamp);
+  border-radius: 50%;
+  background: rgba(10, 45, 32, 0.72);
+  color: #f3efe4;
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+.feuille-terrain-joueur small {
+  max-width: 100%;
+  overflow: hidden;
+  color: #f3efe4;
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.feuille-terrain-vide {
+  border-style: dashed;
+  color: var(--stamp);
+  background: rgba(10, 45, 32, 0.42);
+}
+.feuille-terrain-mixte {
+  min-height: 40rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 0.2rem;
+}
+.feuille-terrain-mixte .feuille-terrain-rangs {
+  min-height: 14rem;
+  flex: 1 1 0;
+  justify-content: space-around;
+}
+.feuille-terrain-team {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+  text-align: center;
+  text-transform: uppercase;
+}
+.feuille-terrain-team strong {
+  max-width: 90%;
+  overflow: hidden;
+  font-size: 0.76rem;
+  letter-spacing: 0.08em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.feuille-terrain-team span {
+  padding: 0.12rem 0.45rem;
+  border: 1px solid rgba(243, 239, 228, 0.55);
+  border-radius: 999px;
+  font-size: 0.62rem;
+  letter-spacing: 0.05em;
+}
+.feuille-terrain-centre {
+  position: relative;
+  z-index: 2;
+  align-self: center;
+  padding: 0.13rem 0.42rem;
+  border: 1px solid rgba(243, 239, 228, 0.55);
+  border-radius: 999px;
+  background: rgba(18, 62, 44, 0.9);
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+.feuille-tactique-foot {
+  margin: 0.45rem 0 0;
+  color: var(--ink-soft);
+  font-size: 0.68rem;
+  line-height: 1.35;
+}
+.feuille-public-listes {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.9rem;
+}
+.feuille-public-joueurs {
+  display: grid;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.feuille-public-joueur {
+  display: grid;
+  grid-template-columns: 1.8rem minmax(0, 1fr);
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.35rem 0;
+  border-bottom: 1px solid var(--rule);
+  color: inherit;
+  text-decoration: none;
+}
+.feuille-public-numero {
+  display: grid;
+  place-items: center;
+  width: 1.7rem;
+  height: 1.7rem;
+  border: 1px solid var(--rule-strong);
+  border-radius: 50%;
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+.feuille-public-identite {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.05rem;
+}
+.feuille-public-identite strong {
+  overflow: hidden;
+  font-size: 0.78rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.feuille-public-identite small { color: var(--ink-soft); font-size: 0.68rem; }
+@media (min-width: 600px) {
+  .feuille-public-listes { grid-template-columns: 1fr 1fr; }
+}
 
 /* ==== éditeur club de la feuille ==== */
 .editeur-reglages {
@@ -3661,3 +3890,595 @@ body,
 @media (max-width: 560px) {
   .composition-selected-grid { grid-template-columns: 1fr; }
 }
+
+/* Remplaçants publics : sélection d'une équipe, liste compacte et courte. */
+.feuille-remplacements {
+  margin: 1rem 0 1.2rem;
+  padding: 0.8rem;
+  border: 1px solid var(--rule-strong);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--card) 88%, transparent);
+}
+.feuille-remplacements-selecteur {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  border-radius: 999px;
+  background: var(--ink);
+}
+.feuille-remplacements-equipe {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.42rem;
+  padding: 0.38rem 0.55rem;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--paper);
+  cursor: pointer;
+  font-size: 0.72rem;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.feuille-remplacements-equipe.actif {
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+.feuille-remplacements-logo {
+  flex: 0 0 auto;
+  width: 1.45rem;
+  height: 1.45rem;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 50%;
+  border: 1px solid currentColor;
+  font-size: 0.65rem;
+  font-weight: 800;
+}
+.feuille-remplacements-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.feuille-remplacements-coach {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0.85rem 0 0.15rem;
+}
+.feuille-remplacements-coach .feuille-photo {
+  width: 2.45rem;
+  height: 2.45rem;
+}
+.feuille-remplacements-coach-identite {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.02rem;
+}
+.feuille-remplacements-coach-identite strong { font-size: 0.88rem; }
+.feuille-remplacements-coach-identite small { color: var(--stamp); font-size: 0.75rem; }
+.feuille-remplacements-tete {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.65rem;
+  margin: 0.6rem 0 0.25rem;
+}
+.feuille-remplacements-tete .feuille-section {
+  margin: 0;
+  color: var(--ink);
+  font-size: 1rem;
+  letter-spacing: 0;
+}
+.feuille-remplacements-tete > span {
+  max-width: 50%;
+  overflow: hidden;
+  color: var(--ink-soft);
+  font-size: 0.7rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.feuille-remplacants-liste {
+  display: grid;
+  gap: 0;
+}
+.feuille-remplacant {
+  display: grid;
+  grid-template-columns: 2.35rem minmax(0, 1fr);
+  align-items: center;
+  gap: 0.55rem;
+  min-height: 2.65rem;
+  padding: 0.28rem 0;
+  border-bottom: 1px solid var(--rule);
+  color: inherit;
+  text-decoration: none;
+}
+.feuille-remplacant:last-child { border-bottom: 0; }
+.feuille-remplacant-photo {
+  width: 2.2rem;
+  height: 2.2rem;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid var(--rule-strong);
+  border-radius: 50%;
+  background: var(--paper-2);
+  color: var(--ink-soft);
+  font-size: 0.66rem;
+  font-weight: 800;
+}
+.feuille-remplacant-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.feuille-remplacant-identite {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.02rem;
+}
+.feuille-remplacant-identite strong {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  gap: 0.38rem;
+  overflow: hidden;
+  font-size: 0.8rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.feuille-remplacant-numero {
+  flex: 0 0 auto;
+  color: var(--ink-soft);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+.feuille-remplacant-identite small {
+  color: var(--ink-soft);
+  font-size: 0.66rem;
+}
+
+/* Finition professionnelle de la carte des remplaçants. */
+.feuille-remplacements {
+  --remp-card: #deddd7;
+  --remp-ink: #1c1a16;
+  --remp-soft: #69645c;
+  --remp-rule: rgba(28, 26, 22, 0.16);
+  --remp-pill: #efede5;
+  --remp-active: #151412;
+  --remp-active-ink: #f4f1e8;
+  border-color: rgba(28, 26, 22, 0.28);
+  background: var(--remp-card);
+  color: var(--remp-ink);
+}
+.feuille-remplacements-selecteur {
+  background: var(--remp-pill);
+}
+.feuille-remplacements-equipe {
+  color: var(--remp-ink);
+}
+.feuille-remplacements-equipe.actif {
+  background: var(--remp-active);
+  color: var(--remp-active-ink);
+}
+.feuille-remplacements-logo {
+  border-color: currentColor;
+}
+.feuille-remplacements-coach {
+  margin-top: 0.9rem;
+}
+.feuille-remplacements-coach .feuille-photo {
+  border-color: var(--remp-rule);
+  background: var(--remp-pill);
+}
+.feuille-remplacements-coach-identite strong {
+  color: var(--remp-ink);
+}
+.feuille-remplacements-coach-identite small {
+  color: var(--stamp);
+}
+.feuille-remplacements-tete .feuille-section {
+  color: var(--remp-ink);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+.feuille-remplacements-tete > span {
+  color: var(--remp-soft);
+}
+.feuille-remplacant {
+  border-bottom-color: var(--remp-rule);
+  color: var(--remp-ink);
+}
+.feuille-remplacant-photo {
+  border-color: rgba(28, 26, 22, 0.3);
+  background: var(--remp-active);
+  color: var(--remp-active-ink);
+}
+.feuille-remplacant-identite strong {
+  color: var(--remp-ink);
+}
+.feuille-remplacant-identite small,
+.feuille-remplacant-numero {
+  color: var(--remp-soft);
+}
+.feuille-remplacements .feuille-vide {
+  color: var(--remp-soft);
+}
+
+html[data-theme="dark"] .feuille-remplacements {
+  --remp-card: #1c201f;
+  --remp-ink: #f1ede3;
+  --remp-soft: #aaa69d;
+  --remp-rule: rgba(241, 237, 227, 0.16);
+  --remp-pill: #101312;
+  --remp-active: #f1ede3;
+  --remp-active-ink: #171916;
+  border-color: var(--remp-rule);
+}
+
+/* Terrain tactique : deux moitiés fixes, jamais de joueur au-delà de la ligne médiane. */
+.feuille-terrain-mixte {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto minmax(0, 1fr) auto;
+  align-content: stretch;
+}
+.feuille-terrain-mixte .feuille-terrain-rangs {
+  min-height: 0;
+  flex: none;
+}
+.feuille-terrain-mixte .feuille-terrain-centre {
+  justify-self: center;
+  align-self: center;
+}
+
+/* Finition terrain : texture légère, logos en filigrane et marqueurs lisibles. */
+.feuille-terrain {
+  background:
+    radial-gradient(circle at 18% 22%, rgba(255, 255, 255, 0.06) 0 1px, transparent 1.5px),
+    radial-gradient(circle at 74% 68%, rgba(0, 0, 0, 0.08) 0 1px, transparent 1.6px),
+    repeating-linear-gradient(9deg, rgba(255, 255, 255, 0.018) 0 2px, transparent 2px 7px),
+    linear-gradient(180deg, #174b35 0%, #0e3828 100%);
+  background-size: 23px 23px, 31px 31px, auto, auto;
+}
+.feuille-terrain-logo {
+  position: absolute;
+  z-index: 0;
+  width: min(42%, 13rem);
+  height: min(32%, 13rem);
+  object-fit: contain;
+  opacity: 0.14;
+  filter: grayscale(1) brightness(1.7) contrast(0.8);
+  pointer-events: none;
+}
+.feuille-terrain-logo-away {
+  top: 4%;
+  right: 3%;
+}
+.feuille-terrain-logo-home {
+  bottom: 4%;
+  left: 3%;
+}
+.feuille-terrain-rang {
+  gap: clamp(0.25rem, 1.6vw, 0.8rem);
+}
+.feuille-terrain-joueur,
+.feuille-terrain-vide {
+  flex: 0 1 auto;
+  max-width: 25%;
+}
+.feuille-terrain-joueur small {
+  min-height: 1.25rem;
+  overflow: visible;
+  font-size: clamp(0.52rem, 1.7vw, 0.64rem);
+  line-height: 1.05;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.feuille-terrain-rangs-away .feuille-terrain-joueur b {
+  background: #f4f1e8;
+  border-color: #f4f1e8;
+  color: #161612;
+}
+.feuille-terrain-rangs-away .feuille-terrain-joueur small {
+  color: #f4f1e8;
+}
+.feuille-terrain-rangs-home .feuille-terrain-joueur b {
+  background: rgba(20, 35, 29, 0.82);
+  border-color: rgba(244, 241, 232, 0.8);
+  color: #f4f1e8;
+}
+.feuille-terrain-rangs-home .feuille-terrain-joueur small {
+  color: #f4f1e8;
+}
+
+/* Noms sur le terrain : une ligne lisible, comme sur une feuille pro. */
+.feuille-terrain-joueur small {
+  max-width: 100%;
+  min-height: 0;
+  overflow: hidden;
+  font-size: clamp(0.5rem, 1.55vw, 0.62rem);
+  line-height: 1.05;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow-wrap: normal;
+}
+
+/* Terrain mobile professionnel : conteneur unique, positions en pourcentage. */
+.feuille-terrain {
+  width: 100%;
+  height: auto;
+  min-height: 0;
+  aspect-ratio: 2 / 3;
+  padding: 0;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 18% 22%, rgba(255, 255, 255, 0.055) 0 1px, transparent 1.5px),
+    radial-gradient(circle at 74% 68%, rgba(0, 0, 0, 0.08) 0 1px, transparent 1.6px),
+    repeating-linear-gradient(9deg, rgba(255, 255, 255, 0.018) 0 2px, transparent 2px 7px),
+    linear-gradient(180deg, #174b35 0%, #0e3828 100%);
+  background-size: 23px 23px, 31px 31px, auto, auto;
+}
+.feuille-terrain::before,
+.feuille-terrain::after {
+  display: none;
+}
+.feuille-terrain-mixte {
+  position: relative;
+  display: block;
+  min-height: 0;
+  aspect-ratio: 2 / 3;
+}
+.feuille-terrain-mixte .feuille-terrain-rangs {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  flex: none;
+}
+.feuille-terrain-mixte .feuille-terrain-rang {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  min-height: 0;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-evenly;
+  gap: 0;
+  padding: 0 0.35rem;
+}
+.feuille-terrain-mixte .feuille-terrain-cercle {
+  z-index: 0;
+  top: 50%;
+  left: 50%;
+  width: 22%;
+  height: auto;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+}
+.feuille-terrain-mixte .feuille-terrain-ligne {
+  z-index: 0;
+  top: 50%;
+  left: 0;
+  right: 0;
+}
+.feuille-terrain-centre {
+  display: none;
+}
+.feuille-terrain-surface {
+  position: absolute;
+  z-index: 0;
+  left: 24%;
+  width: 52%;
+  height: 12%;
+  border: 1px solid rgba(243, 239, 228, 0.32);
+  pointer-events: none;
+}
+.feuille-terrain-surface-away {
+  top: 0;
+  border-top: 0;
+}
+.feuille-terrain-surface-home {
+  bottom: 0;
+  border-bottom: 0;
+}
+.feuille-terrain-but {
+  position: absolute;
+  z-index: 0;
+  left: 39%;
+  width: 22%;
+  height: 1.2%;
+  border: 1px solid rgba(243, 239, 228, 0.45);
+  background: rgba(243, 239, 228, 0.06);
+  pointer-events: none;
+}
+.feuille-terrain-but-away { top: 0; }
+.feuille-terrain-but-home { bottom: 0; }
+.feuille-terrain-logo {
+  z-index: 0;
+  width: 33%;
+  height: 28%;
+  opacity: 0.075;
+  filter: grayscale(1) brightness(1.7) contrast(0.8);
+  pointer-events: none;
+}
+.feuille-terrain-logo-away {
+  top: 7%;
+  right: 3%;
+}
+.feuille-terrain-logo-home {
+  bottom: 7%;
+  left: 3%;
+}
+.feuille-terrain-team {
+  position: absolute;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: 1.35rem auto;
+  grid-template-rows: auto auto;
+  align-items: center;
+  column-gap: 0.35rem;
+  row-gap: 0.02rem;
+  max-width: 48%;
+  padding: 0.2rem 0.35rem;
+  text-transform: uppercase;
+  text-align: left;
+}
+.feuille-terrain-team-away {
+  top: 0.5rem;
+  left: 0.45rem;
+}
+.feuille-terrain-team-home {
+  right: 0.45rem;
+  bottom: 0.5rem;
+  text-align: right;
+}
+.feuille-terrain-team-logo {
+  grid-row: 1 / span 2;
+  width: 1.35rem;
+  height: 1.35rem;
+  object-fit: contain;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.35));
+}
+.feuille-terrain-team strong {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: clamp(0.58rem, 1.8vw, 0.76rem);
+  letter-spacing: 0.07em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.feuille-terrain-team span {
+  justify-self: start;
+  padding: 0.08rem 0.32rem;
+  border: 1px solid rgba(243, 239, 228, 0.5);
+  border-radius: 999px;
+  font-size: clamp(0.52rem, 1.6vw, 0.62rem);
+  letter-spacing: 0.04em;
+}
+.feuille-terrain-team-home span { justify-self: end; }
+.feuille-terrain-joueur,
+.feuille-terrain-vide {
+  flex: 0 1 auto;
+  width: auto;
+  max-width: 25%;
+  min-width: 0;
+  gap: 0.18rem;
+}
+.feuille-terrain-joueur b,
+.feuille-terrain-vide {
+  width: clamp(2rem, 9vw, 2.65rem);
+  height: clamp(2rem, 9vw, 2.65rem);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.24);
+}
+.feuille-terrain-joueur small {
+  max-width: 100%;
+  min-height: 0;
+  overflow: hidden;
+  font-size: clamp(0.5rem, 1.55vw, 0.63rem);
+  line-height: 1.05;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ===== KivuFoot : correctifs terrain tactique ===== */
+
+.feuille-tactique-mixte .feuille-terrain-mixte{
+
+  aspect-ratio:5/8;height:auto;min-height:0;overflow:hidden;
+
+}
+.feuille-tactique-mixte .feuille-terrain-cercle{
+
+  position:absolute;left:50%;top:50%;width:16%;height:auto;aspect-ratio:1;
+
+  transform:translate(-50%,-50%);border-radius:50%;z-index:1;
+
+}
+.feuille-tactique-mixte .feuille-terrain-surface,
+
+.feuille-tactique-mixte .feuille-terrain-but,
+
+.feuille-tactique-mixte .feuille-terrain-ligne{z-index:1}
+.feuille-tactique-mixte .feuille-terrain-logo{
+
+  position:absolute;left:50%;right:auto;bottom:auto;width:42%;height:auto;
+
+  max-width:none;transform:translate(-50%,-50%);opacity:.07;
+
+  z-index:0;pointer-events:none;filter:none;
+
+}
+.feuille-tactique-mixte .feuille-terrain-logo-away{top:25%}
+.feuille-tactique-mixte .feuille-terrain-logo-home{top:75%}
+.feuille-tactique-mixte .feuille-terrain-rangs{position:absolute;inset:0;z-index:2}
+.feuille-tactique-mixte .feuille-terrain-joueur{
+
+  display:flex;flex-direction:column;align-items:center;gap:3px;min-width:0;max-width:25%;width:auto;
+
+}
+.feuille-tactique-mixte .feuille-terrain-joueur b{
+
+  display:grid;place-items:center;width:clamp(30px,9.5vw,36px);aspect-ratio:1;
+
+  border-radius:50%;font-size:12px;font-weight:800;box-shadow:0 2px 6px rgba(0,0,0,.35);
+
+}
+.feuille-tactique-mixte .feuille-terrain-rangs-away .feuille-terrain-joueur b{
+
+  background:#f4f1ea;color:#0f2a1d;border:2px solid #fff;
+
+}
+.feuille-tactique-mixte .feuille-terrain-rangs-home .feuille-terrain-joueur b{
+
+  background:#0f241a;color:#fff;border:2px solid rgba(255,255,255,.85);
+
+}
+.feuille-tactique-mixte .feuille-terrain-joueur small{
+
+  font-size:10px;letter-spacing:-.01em;font-weight:700;color:#fff;max-width:100%;white-space:nowrap;
+
+  overflow:hidden;text-overflow:ellipsis;text-shadow:0 1px 2px rgba(0,0,0,.7);
+
+}
+.feuille-tactique-mixte .feuille-terrain-team{
+
+  position:absolute;z-index:3;display:flex;flex-direction:column;gap:2px;
+
+  width:calc(24% - 10px);max-width:calc(24% - 10px);padding:0;background:none;border:0;line-height:1.15;
+
+}
+.feuille-tactique-mixte .feuille-terrain-team-away{top:6px;left:6px;bottom:auto;right:auto;align-items:flex-start;text-align:left}
+.feuille-tactique-mixte .feuille-terrain-team-home{bottom:6px;right:6px;top:auto;left:auto;align-items:flex-end;text-align:right}
+.feuille-tactique-mixte .feuille-terrain-team strong{font-size:9px;letter-spacing:.04em;text-transform:uppercase;overflow-wrap:anywhere}
+.feuille-tactique-mixte .feuille-terrain-team span{font-size:9px;padding:1px 6px;border:1px solid rgba(255,255,255,.4);border-radius:999px}
+.feuille-tactique-mixte .feuille-terrain-team-logo{width:24px;height:24px;border-radius:50%;object-fit:cover;background:transparent}
+
+/* Badge terrain : libérer le nom sans le laisser chevaucher les joueurs. */
+.feuille-tactique-mixte .feuille-terrain-team strong {
+  max-width: 100%;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  line-height: 1.05;
+}
+.feuille-tactique-mixte .feuille-terrain-joueur{width:auto;max-width:25%}
+.feuille-tactique-mixte .feuille-terrain-joueur small{font-size:10px;letter-spacing:-.01em}
+.feuille-tactique-mixte .feuille-terrain-dense .feuille-terrain-joueur{gap:2px}
+.feuille-tactique-mixte .feuille-terrain-dense .feuille-terrain-joueur b{width:27px;font-size:11px}
+.feuille-tactique-mixte .feuille-terrain-dense .feuille-terrain-joueur b{height:27px}
+.feuille-tactique-mixte .feuille-terrain-dense .feuille-terrain-joueur small{font-size:9px}
+.feuille-tactique-mixte .feuille-terrain-team span{white-space:nowrap;font-size:8.5px;padding:1px 5px}
