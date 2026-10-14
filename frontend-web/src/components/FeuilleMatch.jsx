@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { labelPoste, stripDemo } from "../display.js";
 
@@ -45,6 +46,15 @@ function joueursPlaces(bloc) {
   });
 }
 
+function LogoEquipe({ bloc, compact = false }) {
+  const nom = stripDemo(bloc.club_nom) || "Équipe";
+  return (
+    <span className={`feuille-equipe-logo ${compact ? "is-compact" : ""}`} aria-hidden="true">
+      {bloc.logo_url ? <img src={bloc.logo_url} alt="" /> : nom.charAt(0).toUpperCase()}
+    </span>
+  );
+}
+
 function JoueurPublic({ joueur }) {
   return (
     <Link to={`/joueurs/${joueur.id}`} className="feuille-public-joueur">
@@ -57,10 +67,8 @@ function JoueurPublic({ joueur }) {
   );
 }
 
-function RangsTerrain({ bloc, inverser = false }) {
-  const lignes = joueursPlaces(bloc);
-  const ordre = inverser ? [...lignes].reverse() : lignes;
-  return ordre.map((ligne) => (
+function RangsTerrain({ bloc }) {
+  return joueursPlaces(bloc).map((ligne) => (
     <div className="feuille-terrain-rang" key={`${ligne.label}-${ligne.poste}`}>
       {Array.from({ length: ligne.places }).map((_, index) => {
         const joueur = ligne.joueurs[index];
@@ -77,43 +85,42 @@ function RangsTerrain({ bloc, inverser = false }) {
   ));
 }
 
-function TerrainMixte({ domicile, exterieur }) {
-  const nomDomicile = stripDemo(domicile.club_nom) || "Domicile";
-  const nomExterieur = stripDemo(exterieur.club_nom) || "Extérieur";
-  const formationDomicile = String(domicile.formation || "").trim();
-  const formationExterieur = String(exterieur.formation || "").trim();
+function TerrainLecture({ bloc }) {
+  const nom = stripDemo(bloc.club_nom) || "Équipe";
+  const formation = String(bloc.formation || "").trim();
   return (
-    <section className="feuille-tactique feuille-tactique-mixte" aria-label="Terrain tactique des deux équipes">
+    <section className="feuille-tactique" aria-label={`Terrain tactique de ${nom}`}>
       <div className="feuille-tactique-head">
         <div>
-          <p className="feuille-tactique-kicker">Feuille tactique</p>
-          <strong>Les deux équipes sur le même terrain</strong>
+          <p className="feuille-tactique-kicker">Aperçu tactique</p>
+          <strong>{formation || "4-3-3 · aperçu"}</strong>
         </div>
-        <span className="feuille-tactique-note">Lecture seule</span>
+        {!formation && <span className="feuille-tactique-note">Formation non renseignée</span>}
       </div>
-      <div className="feuille-terrain feuille-terrain-mixte">
+      <div className="feuille-terrain">
         <div className="feuille-terrain-cercle" aria-hidden="true" />
         <div className="feuille-terrain-ligne" aria-hidden="true" />
-        <div className="feuille-terrain-team feuille-terrain-team-away">
-          <strong>{nomExterieur}</strong>
-          <span>{formationExterieur || "4-3-3 · aperçu"}</span>
-        </div>
-        <div className="feuille-terrain-rangs feuille-terrain-rangs-away">
-          <RangsTerrain bloc={exterieur} />
-        </div>
-        <div className="feuille-terrain-centre" aria-hidden="true">VS</div>
-        <div className="feuille-terrain-rangs feuille-terrain-rangs-home">
-          <RangsTerrain bloc={domicile} inverser />
-        </div>
-        <div className="feuille-terrain-team feuille-terrain-team-home">
-          <strong>{nomDomicile}</strong>
-          <span>{formationDomicile || "4-3-3 · aperçu"}</span>
+        <div className="feuille-terrain-rangs">
+          <RangsTerrain bloc={bloc} />
         </div>
       </div>
-      {(!formationDomicile || !formationExterieur) && (
-        <p className="feuille-tactique-foot">Le placement utilise un modèle 4-3-3 uniquement pour l’aperçu lorsque la formation officielle n’est pas renseignée.</p>
-      )}
+      {!formation && <p className="feuille-tactique-foot">Le modèle 4-3-3 sert uniquement à positionner visuellement les 11 joueurs lorsque la formation officielle n’est pas renseignée.</p>}
     </section>
+  );
+}
+
+function CoachPublic({ staff }) {
+  if (!staff) return <p className="feuille-coach-absent">Entraîneur non renseigné.</p>;
+  return (
+    <div className="feuille-public-coach">
+      <span className="feuille-photo" aria-hidden="true">
+        {staff.photo_url ? <img src={staff.photo_url} alt="" /> : (staff.nom_complet || "?").charAt(0)}
+      </span>
+      <span>
+        <small>Entraîneur</small>
+        <strong>{staff.nom_complet}</strong>
+      </span>
+    </div>
   );
 }
 
@@ -121,20 +128,18 @@ function BlocEquipe({ bloc }) {
   const nom = stripDemo(bloc.club_nom) || "Équipe à nommer";
   const titulaires = bloc.titulaires || [];
   const banc = bloc.banc || [];
-  const staff = bloc.staff;
   const complet = titulaires.length === 11;
 
   return (
     <section className="feuille-equipe">
       <header className="feuille-tete">
-        <span className="feuille-logo" aria-hidden="true">
-          {bloc.logo_url ? <img className="logo-libre" src={bloc.logo_url} alt="" /> : (nom || "?").charAt(0)}
-        </span>
+        <LogoEquipe bloc={bloc} />
         <span className="feuille-club">
           <strong>{nom}</strong>
-          {bloc.formation && <span className="feuille-formation">{bloc.formation}</span>}
+          <small>{bloc.formation || "Formation non renseignée"}</small>
         </span>
       </header>
+      <CoachPublic staff={bloc.staff} />
       {titulaires.length === 0 && banc.length === 0 ? (
         <p className="feuille-vide">Composition non publiée.</p>
       ) : !complet ? (
@@ -144,6 +149,7 @@ function BlocEquipe({ bloc }) {
         </div>
       ) : (
         <>
+          <TerrainLecture bloc={bloc} />
           <div className="feuille-public-listes">
             <div>
               <h3 className="feuille-section">Titulaires · {titulaires.length}/11</h3>
@@ -152,7 +158,7 @@ function BlocEquipe({ bloc }) {
               </ol>
             </div>
             <div>
-              <h3 className="feuille-section">Banc</h3>
+              <h3 className="feuille-section">Remplaçants</h3>
               {banc.length === 0 ? (
                 <p className="feuille-vide">Aucun remplaçant déclaré.</p>
               ) : (
@@ -162,41 +168,48 @@ function BlocEquipe({ bloc }) {
               )}
             </div>
           </div>
-          <h3 className="feuille-section">Entraîneur</h3>
-          {staff ? (
-            <span className="feuille-coach">
-              <span className="feuille-photo" aria-hidden="true">
-                {staff.photo_url ? <img src={staff.photo_url} alt="" /> : (staff.nom_complet || "?").charAt(0)}
-              </span>
-              <span className="feuille-nom">{staff.nom_complet}</span>
-              <span className="feuille-poste">{staff.role_label || posteStaff(staff.role)}</span>
-            </span>
-          ) : (
-            <p className="feuille-vide">Entraîneur à compléter.</p>
-          )}
         </>
       )}
     </section>
   );
 }
 
-function posteStaff(r) {
-  const t = String(r || "").replace(/_/g, " ").trim();
-  return t ? t.charAt(0).toUpperCase() + t.slice(1) : "";
-}
-
 export default function FeuilleMatch({ compo }) {
+  const [equipeActive, setEquipeActive] = useState("domicile");
   if (!compo) return <p className="empty">Chargement…</p>;
   const domicile = compo.domicile || { titulaires: [], banc: [] };
   const exterieur = compo.exterieur || { titulaires: [], banc: [] };
-  const terrainDisponible = domicile.titulaires.length === 11 && exterieur.titulaires.length === 11;
+  const blocActif = equipeActive === "exterieur" ? exterieur : domicile;
+  const nomDomicile = stripDemo(domicile.club_nom) || "Domicile";
+  const nomExterieur = stripDemo(exterieur.club_nom) || "Extérieur";
+
   return (
-    <>
-      {terrainDisponible && <TerrainMixte domicile={domicile} exterieur={exterieur} />}
-      <div className="feuille">
-        <BlocEquipe bloc={domicile} />
-        <BlocEquipe bloc={exterieur} />
+    <section className="feuille-public-composition" aria-label="Compositions du match">
+      <div className="feuille-equipes-switcher" role="tablist" aria-label="Choisir l'équipe à consulter">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={equipeActive === "domicile"}
+          className={equipeActive === "domicile" ? "is-active" : ""}
+          onClick={() => setEquipeActive("domicile")}
+        >
+          <LogoEquipe bloc={domicile} compact />
+          <span>{nomDomicile}</span>
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={equipeActive === "exterieur"}
+          className={equipeActive === "exterieur" ? "is-active" : ""}
+          onClick={() => setEquipeActive("exterieur")}
+        >
+          <LogoEquipe bloc={exterieur} compact />
+          <span>{nomExterieur}</span>
+        </button>
       </div>
-    </>
+      <div className="feuille">
+        <BlocEquipe bloc={blocActif} />
+      </div>
+    </section>
   );
 }
