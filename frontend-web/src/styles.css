@@ -4813,3 +4813,311 @@ html[data-theme="dark"] .feuille-remplacements {
   .kf-public-match-score { min-width: 52px; font-size: 26px; }
   .kf-public-rank-table th:nth-child(2), .kf-public-rank-table td:nth-child(2) { width: 135px; max-width: 135px; }
 }
+
+/* ==== Public redesign étendu : toutes les pages publiques ==== */
+.kf-public-frame .kf-public-shell > .hero,
+.kf-public-frame .kf-public-shell > .actualites-page,
+.kf-public-frame .kf-public-shell > .actualite-detail,
+.kf-public-frame .kf-public-shell > .competition-page {
+  min-width: 0;
+  padding: 0;
+  color: var(--kf-paper);
+}
+.kf-public-frame .kf-public-shell > .hero h1,
+.kf-public-frame .kf-public-shell > .actualites-page h1,
+.kf-public-frame .kf-public-shell > .actualite-detail h1,
+.kf-public-frame .kf-public-shell > .competition-page h1 {
+  margin: 0;
+  color: var(--kf-paper);
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  font-size: 29px;
+  font-weight: 850;
+  line-height: 1.06;
+  letter-spacing: -.045em;
+}
+.kf-public-frame .kf-public-shell .kicker {
+  color: var(--kf-ink-soft);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+}
+.kf-public-frame .kf-public-shell .lead,
+.kf-public-frame .kf-public-shell .journee-date,
+.kf-public-frame .kf-public-shell .meta-line,
+.kf-public-frame .kf-public-shell .empty,
+.kf-public-frame .kf-public-shell .muted,
+.kf-public-frame .kf-public-shell .section-note {
+  color: var(--kf-ink-soft);
+}
+.kf-public-frame .kf-public-shell .empty {
+  margin: 18px 0;
+  padding: 18px;
+  border: 1px dashed var(--kf-line-strong);
+  border-radius: 14px;
+  background: rgba(255,255,255,.025);
+}
+.kf-public-frame .kf-public-shell .section-head {
+  align-items: baseline;
+  margin: 28px 0 10px;
+  padding: 0 0 8px;
+  border-bottom: 1px solid var(--kf-line);
+}
+.kf-public-frame .kf-public-shell .section-head h2,
+.kf-public-frame .kf-public-shell .section-head h3 {
+  margin: 0;
+  color: var(--kf-paper);
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  font-size: 19px;
+  font-weight: 850;
+  letter-spacing: -.025em;
+}
+.kf-public-frame .kf-public-shell .section-head a,
+.kf-public-frame .kf-public-shell .bulletin-tous,
+.kf-public-frame .kf-public-shell .table-more a {
+  color: var(--kf-accent);
+  font-size: 12px;
+  font-weight: 850;
+}
+
+/* Accueil public : bulletin, actualité, matchs et aperçu classement. */
+.kf-public-frame .bulletin-hero {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 0 16px;
+}
+.kf-public-frame .bulletin-hero h1 {
+  max-width: 12rem;
+  margin: 4px 0 0;
+  color: var(--kf-paper);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 32px;
+  line-height: 1.02;
+  letter-spacing: -.04em;
+}
+.kf-public-frame .bulletin-hero .lead { margin: 10px 0 0; font-size: 16px; }
+.kf-public-frame .hero-num {
+  flex: 0 0 auto;
+  margin: 0 0 3px;
+  color: var(--kf-paper);
+  font-size: 21px;
+  font-weight: 900;
+  text-align: right;
+}
+.kf-public-frame .hero-num span {
+  display: block;
+  margin-top: 5px;
+  color: var(--kf-ink-dim);
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+}
+.kf-public-frame .jour-barre {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 28px 0 10px;
+  padding: 0;
+  border: 0;
+}
+.kf-public-frame .jour-barre h2,
+.kf-public-frame .jour-barre h3 { margin: 0; color: var(--kf-paper); font-size: 19px; font-weight: 850; }
+.kf-public-frame .jour-barre-sub { margin-top: 16px; }
+.kf-public-frame .jour-nav { color: var(--kf-paper); }
+.kf-public-frame .jour-nav button { color: var(--kf-ink-soft); }
+.kf-public-frame .actualite-accueil {
+  margin: 16px 0 0;
+  padding: 16px;
+  border: 1px solid rgba(200,240,74,.46);
+  border-radius: 15px;
+  background: rgba(19,40,32,.74);
+}
+.kf-public-frame .actualite-accueil-en-tete,
+.kf-public-frame .actualite-accueil-carte { display: flex; gap: 12px; }
+.kf-public-frame .actualite-accueil-en-tete { align-items: flex-start; justify-content: space-between; }
+.kf-public-frame .actualite-accueil h2 { margin: 2px 0 0; color: var(--kf-paper); font-size: 19px; }
+.kf-public-frame .actualite-priorite { color: var(--kf-ink-soft); font-size: 10px; font-weight: 850; letter-spacing: .1em; text-transform: uppercase; }
+.kf-public-frame .actualite-priorite-une { color: var(--kf-accent); }
+.kf-public-frame .actualite-accueil-carte { align-items: center; margin-top: 14px; color: inherit; }
+.kf-public-frame .actualite-accueil-carte img,
+.kf-public-frame .actualite-accueil-image-vide { width: 86px; height: 86px; flex: 0 0 86px; border-radius: 10px; object-fit: cover; }
+.kf-public-frame .actualite-accueil-image-vide { display: grid; place-items: center; background: var(--kf-surface-2); color: var(--kf-ink-soft); font-size: 11px; }
+.kf-public-frame .actualite-accueil-carte h3 { margin: 3px 0; color: var(--kf-paper); font-size: 17px; line-height: 1.12; }
+.kf-public-frame .actualite-accueil-carte p { margin: 3px 0; color: var(--kf-ink-soft); font-size: 12px; }
+.kf-public-frame .actualite-accueil-carte strong { display: inline-block; margin-top: 6px; color: var(--kf-accent); font-size: 12px; }
+.kf-public-frame .actualite-accueil-toutes { display: inline-block; margin-top: 14px; color: var(--kf-ink-soft); font-size: 12px; }
+.kf-public-frame .avenir-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  margin: 8px 0;
+  padding: 14px 13px;
+  border: 1px solid var(--kf-line);
+  border-radius: 14px;
+  background: rgba(19,40,32,.82);
+  color: var(--kf-paper);
+}
+.kf-public-frame .avenir-row .avenir-heure { color: var(--kf-accent); }
+.kf-public-frame .avenir-noms { color: var(--kf-paper); }
+.kf-public-frame .avenir-noms > span:first-child { font-weight: 850; }
+.kf-public-frame .table.table-accueil {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 6px;
+  table-layout: fixed;
+  color: var(--kf-paper);
+}
+.kf-public-frame .table.table-accueil th { padding: 0 7px 4px; border: 0; color: var(--kf-ink-dim); font-size: 10px; }
+.kf-public-frame .table.table-accueil td { padding: 11px 7px; border: 0; background: rgba(255,255,255,.045); color: var(--kf-paper); }
+.kf-public-frame .table.table-accueil tr td:first-child { border-radius: 12px 0 0 12px; }
+.kf-public-frame .table.table-accueil tr td:last-child { border-radius: 0 12px 12px 0; }
+.kf-public-frame .table.table-accueil .classement-club-cell { min-width: 0; color: inherit; }
+.kf-public-frame .table.table-accueil .classement-logo { width: 28px; height: 28px; border: 0; background: #08110d; }
+.kf-public-frame .table.table-accueil .classement-logo-vide { color: var(--kf-ink-dim); }
+
+/* Clubs et fiches publiques. */
+.kf-public-frame .club-initiale,
+.kf-public-frame .logo-libre {
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
+  border: 0;
+  border-radius: 50%;
+  background: #08110d;
+  color: var(--kf-paper);
+  object-fit: contain;
+}
+.kf-public-frame .club-initiale { display: grid; place-items: center; font-weight: 850; }
+.kf-public-frame .id-head { display: flex; align-items: center; gap: 14px; margin: 0 0 18px; }
+.kf-public-frame .id-head h1 { margin: 0; }
+.kf-public-frame .id-mark {
+  width: 68px;
+  height: 68px;
+  flex: 0 0 68px;
+  border: 1px solid var(--kf-line-strong);
+  background: var(--kf-surface);
+  color: var(--kf-paper);
+}
+.kf-public-frame .id-mark-photo { border-radius: 50%; }
+.kf-public-frame .sheet,
+.kf-public-frame .card,
+.kf-public-frame .competition-fiche,
+.kf-public-frame .performance-status,
+.kf-public-frame .performance-note,
+.kf-public-frame .player-match-card,
+.kf-public-frame .install-step,
+.kf-public-frame .install-card {
+  border: 1px solid var(--kf-line);
+  border-radius: 14px;
+  background: rgba(19,40,32,.82);
+  color: var(--kf-paper);
+  box-shadow: none;
+}
+.kf-public-frame .sheet { padding: 14px; }
+.kf-public-frame .id-sheet { display: grid; gap: 0; padding: 0 14px; }
+.kf-public-frame .id-row { padding: 13px 0; border-color: var(--kf-line); }
+.kf-public-frame .id-row span { color: var(--kf-ink-soft); }
+.kf-public-frame .id-row strong { color: var(--kf-paper); }
+.kf-public-frame .stats-joueur-row { margin: 8px 0; padding: 12px; border: 1px solid var(--kf-line); border-radius: 14px; background: rgba(19,40,32,.82); }
+.kf-public-frame .stats-joueur-photo { border: 0; background: #08110d; }
+.kf-public-frame .stats-joueur-infos strong { color: var(--kf-paper); }
+.kf-public-frame .stats-joueur-infos span { color: var(--kf-ink-soft); }
+.kf-public-frame .termine-score { color: var(--kf-paper); }
+
+/* Actualités, recherche et contenus publics. */
+.kf-public-frame .actualites-en-tete { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; }
+.kf-public-frame .actualites-filtres { display: flex; gap: 6px; margin: 18px 0 10px; overflow-x: auto; }
+.kf-public-frame .actualites-filtres button,
+.kf-public-frame .pills .pill,
+.kf-public-frame .compte-tabs button,
+.kf-public-frame .mc-tabs button {
+  border: 1px solid var(--kf-line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--kf-ink-soft);
+}
+.kf-public-frame .actualites-filtres button.active,
+.kf-public-frame .pills .pill-active,
+.kf-public-frame .compte-tabs button.on,
+.kf-public-frame .mc-tabs button.on { border-color: var(--kf-accent); background: var(--kf-accent); color: var(--kf-accent-ink); }
+.kf-public-frame .actualite-carte {
+  display: grid;
+  grid-template-columns: 86px minmax(0,1fr);
+  gap: 12px;
+  margin: 10px 0;
+  padding: 12px;
+  border: 1px solid var(--kf-line);
+  border-radius: 14px;
+  background: rgba(19,40,32,.82);
+  color: inherit;
+}
+.kf-public-frame .actualite-vignette { width: 86px; height: 86px; border-radius: 10px; object-fit: cover; background: var(--kf-surface-2); }
+.kf-public-frame .actualite-carte-corps h2 { margin: 4px 0; color: var(--kf-paper); font-size: 17px; line-height: 1.12; }
+.kf-public-frame .actualite-meta,
+.kf-public-frame .actualite-contexte,
+.kf-public-frame .actualite-bas,
+.kf-public-frame .actualite-competition,
+.kf-public-frame .actualite-detail-date { color: var(--kf-ink-soft); font-size: 12px; }
+.kf-public-frame .actualite-detail-categorie { color: var(--kf-accent); font-size: 11px; font-weight: 850; letter-spacing: .12em; text-transform: uppercase; }
+.kf-public-frame .actualite-texte { color: var(--kf-paper-soft); line-height: 1.65; }
+.kf-public-frame .actualite-galerie img { border-radius: 12px; }
+.kf-public-frame .search-box,
+.kf-public-frame .field input,
+.kf-public-frame .field select,
+.kf-public-frame .field textarea,
+.kf-public-frame .compte-form input {
+  border: 1px solid var(--kf-line-strong);
+  border-radius: 12px;
+  background: rgba(255,255,255,.045);
+  color: var(--kf-paper);
+}
+.kf-public-frame .search-result,
+.kf-public-frame .notice { border-color: var(--kf-line); background: rgba(19,40,32,.82); color: var(--kf-paper); }
+
+/* Boutons, onglets et états publics. */
+.kf-public-frame .btn {
+  border: 1px solid var(--kf-line-strong);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--kf-paper);
+}
+.kf-public-frame .btn-primary { border-color: var(--kf-accent); background: var(--kf-accent); color: var(--kf-accent-ink); }
+.kf-public-frame .mc-tabs { gap: 6px; margin: 18px 0 10px; border-bottom: 0; }
+.kf-public-frame .mc-tabs button { min-height: 42px; padding: 0 14px; font-size: 12px; }
+.kf-public-frame .match-note { border-color: rgba(200,240,74,.35); border-left-color: var(--kf-accent); background: rgba(200,240,74,.07); color: var(--kf-paper); }
+.kf-public-frame .stamp,
+.kf-public-frame .status-pill { border-color: var(--kf-accent); color: var(--kf-accent); }
+.kf-public-frame .erreur { color: var(--kf-live); }
+
+@media (max-width: 360px) {
+  .kf-public-frame .bulletin-hero h1 { font-size: 28px; }
+  .kf-public-frame .actualite-carte { grid-template-columns: 72px minmax(0,1fr); }
+  .kf-public-frame .actualite-vignette { width: 72px; height: 72px; }
+}
+
+.kf-public-install-page {
+  min-height: 100dvh;
+  width: min(100%, 390px);
+  margin: 0 auto;
+  padding: 24px 16px 42px;
+  background: linear-gradient(180deg, #0d1b16 0, #0b1210 26rem);
+  color: #f4efe3;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+}
+.kf-public-install-page .install-retour { color: #c8f04a; font-size: 13px; font-weight: 850; }
+.kf-public-install-page .install-intro { margin-top: 30px; }
+.kf-public-install-page .install-logo { display: block; width: 76px; height: 76px; margin-bottom: 18px; border-radius: 20px; }
+.kf-public-install-page h1 { margin: 0; color: #f4efe3; font-family: Inter, ui-sans-serif, system-ui, sans-serif; font-size: 30px; font-weight: 850; }
+.kf-public-install-page .install-intro > p:last-child { color: #c5c6bb; line-height: 1.55; }
+.kf-public-install-page .install-action { width: 100%; min-height: 48px; margin: 18px 0 12px; border-radius: 999px; background: #c8f04a; color: #101d17; }
+.kf-public-install-page .install-message { padding: 12px; border: 1px solid rgba(200,240,74,.36); border-radius: 12px; color: #c8f04a; background: rgba(200,240,74,.08); }
+.kf-public-install-page .install-instructions { margin-top: 26px; }
+.kf-public-install-page .install-step { margin: 10px 0; padding: 14px; border: 1px solid rgba(244,239,227,.16); border-radius: 14px; background: rgba(19,40,32,.82); }
+.kf-public-install-page .install-step strong { color: #f4efe3; }
+.kf-public-install-page .install-step p,
+.kf-public-install-page .install-note { color: #c5c6bb; font-size: 13px; line-height: 1.55; }

@@ -87,9 +87,14 @@ function Cloche() {
   );
 }
 
+function isPublicPath(pathname) {
+  const privatePrefixes = ["/login", "/activation", "/historique", "/orga", "/collecteur", "/club", "/coach", "/admin"];
+  return !privatePrefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
+}
+
 export default function Layout() {
   const location = useLocation();
-  const publicRedesign = location.pathname === "/classement" || location.pathname === "/matchs";
+  const publicRedesign = isPublicPath(location.pathname);
   const { competition, competitions, choisirCompetition, saisons, saison, choisirSaison, error } = useKivu();
   const { prenom } = useAuth();
   const [actualites, setActualites] = useState([]);

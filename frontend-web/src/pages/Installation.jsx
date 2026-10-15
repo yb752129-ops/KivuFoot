@@ -81,7 +81,7 @@ export default function Installation() {
       : "Comment installer KivuFoot";
 
   return (
-    <main className="install-page">
+    <main className="install-page kf-public-install-page">
       <Link to="/" className="install-retour">← Retour à KivuFoot</Link>
       <section className="install-intro" aria-labelledby="installation-titre">
         <img className="install-logo" src="/icone-192.png" alt="" width="96" height="96" />
