@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api.js";
-import { useAuth } from "../auth.jsx";
 import { useKivu } from "../context.jsx";
-import { AVenirLigne, LiveUne, TermineLigne } from "../components/LignesMatch.jsx";
 import {
   addCivilDays,
   civilDate,
   dernierFaitLive,
+  formatMinute,
+  labelEvenement,
   stripDemo,
   todayCivil,
 } from "../display.js";
@@ -17,257 +17,445 @@ import {
   displayValue,
   findPublicClub,
   followedPublicClubId,
+  formatPublicDate,
+  formatPublicDay,
+  formatPublicRound,
   PublicClubLogo,
 } from "../components/PublicDesign.jsx";
+import { IcoCalendrier, IcoEpingle } from "../icons.jsx";
 
-function fusionner(a, b) {
-  const map = new Map();
-  for (const m of a || []) map.set(m.id, m);
-  for (const m of b || []) map.set(m.id, m);
-  return [...map.values()];
+const CATEGORIES = {
+  annonce: "Annonce officielle",
+  match_competition: "Match / compétition",
+  retour_journee: "Retour de journée",
+  homme_du_match: "Homme du match",
+  performance: "Performance",
+  photo_moment: "Photo / moment",
+  fair_play: "Fair-play",
+  information_importante: "Information importante",
+};
+
+function textClub(clubsById, saisonClubs, id) {
+  const club = findPublicClub(clubsById, saisonClubs, id);
+  return club?.nom ? stripDemo(club.nom) : "—";
 }
 
-function dateEditoriale(value) {
-  if (!value) return "";
-  return new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
+function titreActualite(item) {
+  const titre = String(item?.titre || "");
+  const sansPictogrammes = titre
+    .replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\uFE0F]/gu, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+  return sansPictogrammes || "—";
 }
 
-function prioriteEditoriale(item) {
-  if (item.mise_en_avant) return "À la une";
-  const age = item.date_publication ? Date.now() - new Date(item.date_publication).getTime() : -1;
-  if (age >= 0 && age <= 7 * 24 * 60 * 60 * 1000) return "Récent";
-  return "Actualité";
+function isFinished(match) {
+  return ["termine", "valide"].includes(match?.statut);
+}
+
+function isLive(match) {
+  return match?.statut === "en_cours" && !match?.ended_at;
+}
+
+function isScheduled(match) {
+  return match?.statut === "programme";
+}
+
+function dejaInstallee() {
+  if (typeof window === "undefined") return false;
+  return window.matchMedia?.("(display-mode: standalone)").matches
+    || window.navigator.standalone === true
+    || document.referrer.startsWith("android-app://");
+}
+
+function HomeSkeleton() {
+  return (
+    <section className="kf-home-skeleton" aria-label="Chargement de l’accueil" aria-busy="true">
+      <div className="kf-loading-title-block" aria-hidden="true">
+        <span className="kf-skeleton kf-skeleton-kicker" />
+        <span className="kf-skeleton kf-skeleton-title" />
+        <span className="kf-skeleton kf-skeleton-subtitle" />
+      </div>
+      <div className="kf-home-skeleton-card" aria-hidden="true">
+        <span className="kf-skeleton kf-skeleton-card-line kf-skeleton-card-line-short" />
+        <span className="kf-skeleton kf-skeleton-card-score" />
+        <span className="kf-skeleton kf-skeleton-card-line" />
+      </div>
+      <div className="kf-loading-ranking" aria-hidden="true">
+        <div className="kf-loading-ranking-head">
+          <span className="kf-skeleton kf-skeleton-section-title" />
+          <span className="kf-skeleton kf-skeleton-section-meta" />
+        </div>
+        {Array.from({ length: 5 }, (_, index) => (
+          <div className="kf-loading-ranking-row" key={index}>
+            <span className="kf-skeleton kf-skeleton-row-rank" />
+            <span className="kf-skeleton kf-skeleton-row-club" />
+            <span className="kf-skeleton kf-skeleton-row-stat" />
+            <span className="kf-skeleton kf-skeleton-row-stat" />
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function HomeTeam({ club, name, align = "left" }) {
+  return (
+    <span className={`kf-home-team kf-home-team-${align}`}>
+      <PublicClubLogo club={club} name={name} />
+      <span>{name}</span>
+    </span>
+  );
+}
+
+function HomeMatchMeta({ match }) {
+  return (
+    <div className="kf-home-match-meta">
+      <span><IcoCalendrier /> {formatPublicDate(match.date_heure)}</span>
+      <span><IcoEpingle /> {match.stade || "—"}</span>
+      <span>{formatPublicRound(match.journee)}</span>
+    </div>
+  );
+}
+
+function HomeResultCard({ match, clubsById, saisonClubs }) {
+  const home = findPublicClub(clubsById, saisonClubs, match.equipe_domicile_id);
+  const away = findPublicClub(clubsById, saisonClubs, match.equipe_exterieur_id);
+  const homeName = textClub(clubsById, saisonClubs, match.equipe_domicile_id);
+  const awayName = textClub(clubsById, saisonClubs, match.equipe_exterieur_id);
+  const homeScore = displayValue(match.score_domicile);
+  const awayScore = displayValue(match.score_exterieur);
+  const homeWinner = Number.isFinite(Number(match.score_domicile)) && Number.isFinite(Number(match.score_exterieur))
+    && Number(match.score_domicile) > Number(match.score_exterieur);
+  const awayWinner = Number.isFinite(Number(match.score_domicile)) && Number.isFinite(Number(match.score_exterieur))
+    && Number(match.score_exterieur) > Number(match.score_domicile);
+
+  return (
+    <Link to={`/matchs/${match.id}`} className="kf-home-match-card kf-home-result-card">
+      <div className="kf-home-card-top">
+        <span className="kf-home-status">Résultat officiel</span>
+        <span>{formatPublicRound(match.journee)}</span>
+      </div>
+      <div className="kf-home-card-teams">
+        <HomeTeam club={home} name={homeName} />
+        <strong className="kf-home-card-score" aria-label={`Score ${homeScore} à ${awayScore}`}>
+          <span className={homeWinner ? "winner" : ""}>{homeScore}</span>
+          <i>–</i>
+          <span className={awayWinner ? "winner" : ""}>{awayScore}</span>
+        </strong>
+        <HomeTeam club={away} name={awayName} align="right" />
+      </div>
+      <HomeMatchMeta match={match} />
+    </Link>
+  );
+}
+
+function HomeUpcomingCard({ match, clubsById, saisonClubs }) {
+  const home = findPublicClub(clubsById, saisonClubs, match.equipe_domicile_id);
+  const away = findPublicClub(clubsById, saisonClubs, match.equipe_exterieur_id);
+  const homeName = textClub(clubsById, saisonClubs, match.equipe_domicile_id);
+  const awayName = textClub(clubsById, saisonClubs, match.equipe_exterieur_id);
+
+  return (
+    <Link to={`/matchs/${match.id}`} className="kf-home-match-card kf-home-upcoming-card">
+      <div className="kf-home-card-top">
+        <span className="kf-home-status">À venir</span>
+        <span>{formatPublicDate(match.date_heure)}</span>
+      </div>
+      <div className="kf-home-upcoming-title" title={`${homeName} — ${awayName}`}>
+        <HomeTeam club={home} name={homeName} />
+        <strong>—</strong>
+        <HomeTeam club={away} name={awayName} align="right" />
+      </div>
+      <HomeMatchMeta match={match} />
+    </Link>
+  );
+}
+
+function HomeLiveCard({ match, clubsById, saisonClubs, event }) {
+  const home = findPublicClub(clubsById, saisonClubs, match.equipe_domicile_id);
+  const away = findPublicClub(clubsById, saisonClubs, match.equipe_exterieur_id);
+  const homeName = textClub(clubsById, saisonClubs, match.equipe_domicile_id);
+  const awayName = textClub(clubsById, saisonClubs, match.equipe_exterieur_id);
+  const eventText = event ? `${formatMinute(event.minute, event.minute_additionnelle)} · ${labelEvenement(event)}` : "";
+
+  return (
+    <Link to={`/matchs/${match.id}`} className="kf-home-live-card">
+      <div className="kf-home-live-top">
+        <span><i /> LIVE</span>
+        <span>{formatPublicRound(match.journee)}</span>
+      </div>
+      <div className="kf-home-live-teams">
+        <HomeTeam club={home} name={homeName} />
+        <strong>{displayValue(match.score_domicile)}–{displayValue(match.score_exterieur)}</strong>
+        <HomeTeam club={away} name={awayName} align="right" />
+      </div>
+      {eventText && <p>{eventText}</p>}
+    </Link>
+  );
+}
+
+function HomeDayRow({ match, clubsById, saisonClubs }) {
+  const homeName = textClub(clubsById, saisonClubs, match.equipe_domicile_id);
+  const awayName = textClub(clubsById, saisonClubs, match.equipe_exterieur_id);
+  const home = findPublicClub(clubsById, saisonClubs, match.equipe_domicile_id);
+  const away = findPublicClub(clubsById, saisonClubs, match.equipe_exterieur_id);
+  const score = isScheduled(match)
+    ? "—"
+    : `${displayValue(match.score_domicile)}–${displayValue(match.score_exterieur)}`;
+  const status = isLive(match) ? "En direct" : isFinished(match) ? "Résultat" : "À venir";
+
+  return (
+    <Link to={`/matchs/${match.id}`} className="kf-home-day-row">
+      <span className="kf-home-day-time">{match.date_heure ? new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit", timeZone: "Africa/Bujumbura" }).format(new Date(match.date_heure)) : "—"}</span>
+      <span className="kf-home-day-teams">
+        <span><PublicClubLogo club={home} name={homeName} />{homeName}</span>
+        <span><PublicClubLogo club={away} name={awayName} />{awayName}</span>
+      </span>
+      <span className={`kf-home-day-score${isLive(match) ? " live" : ""}`}>
+        <small>{status}</small>
+        {score}
+      </span>
+    </Link>
+  );
+}
+
+function HomeRanking({ classement, clubsById, saisonClubs, saison }) {
+  const rows = [...classement].sort(compareClassementRows).slice(0, 5);
+  const followedClubId = followedPublicClubId();
+
+  return (
+    <section className="kf-home-section kf-home-ranking" aria-labelledby="home-ranking-title">
+      <div className="kf-home-section-head kf-home-ranking-head">
+        <div>
+          <h2 id="home-ranking-title">Mini-classement</h2>
+          <p>{saison?.nom || "—"}</p>
+        </div>
+        <Link to="/classement">Classement complet <span aria-hidden="true">→</span></Link>
+      </div>
+      {rows.length === 0 ? (
+        <p className="kf-home-empty">Aucun classement disponible pour le moment.</p>
+      ) : (
+        <div className="kf-home-rank-table" role="table" aria-label="Mini-classement de l’édition active">
+          <div className="kf-home-rank-head" role="row">
+            <span role="columnheader">#</span>
+            <span role="columnheader">CLUB</span>
+            <span role="columnheader">PTS</span>
+            <span role="columnheader">J</span>
+            <span role="columnheader">DIFF</span>
+          </div>
+          {rows.map((row, index) => {
+            const club = findPublicClub(clubsById, saisonClubs, row.club_id);
+            const name = stripDemo(row.club_nom || club?.nom || "—") || "—";
+            const followed = followedClubId !== null && Number(row.club_id) === followedClubId;
+            return (
+              <Link
+                key={row.club_id ?? `${name}-${index}`}
+                to={row.club_id ? `/clubs/${row.club_id}` : "/clubs"}
+                className={`kf-home-rank-row${followed ? " followed" : ""}`}
+                role="row"
+              >
+                <strong role="cell">{index + 1}</strong>
+                <span className="kf-home-rank-club" role="cell"><PublicClubLogo club={club} name={name} /><span>{name}</span></span>
+                <strong role="cell">{displayValue(row.points)}</strong>
+                <span role="cell">{displayValue(row.matchs_joues)}</span>
+                <span role="cell">{displayDifference(row.difference_buts)}</span>
+              </Link>
+            );
+          })}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function HomeNews({ actualites }) {
+  return (
+    <section className="kf-home-section kf-home-news" aria-labelledby="home-news-title">
+      <div className="kf-home-section-head">
+        <h2 id="home-news-title">Actualités</h2>
+        <Link to="/actualites">Tout voir <span aria-hidden="true">→</span></Link>
+      </div>
+      {actualites.length === 0 ? (
+        <p className="kf-home-empty">Aucune actualité pour le moment.</p>
+      ) : (
+        <div className="kf-home-news-grid">
+          {actualites.slice(0, 2).map((item) => (
+            <Link key={item.id} to={`/actualites/${item.id}`} className="kf-home-news-card">
+              {item.image_principale_url ? <img src={item.image_principale_url} alt="" /> : <span className="kf-home-news-image" aria-hidden="true" />}
+              <span className="kf-home-news-body">
+                <small>{CATEGORIES[item.categorie] || "Publication"}</small>
+                <strong>{titreActualite(item)}</strong>
+                <span>{formatPublicDate(item.date_publication)}</span>
+              </span>
+            </Link>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function HomeInstall({ installationEvent }) {
+  const [message, setMessage] = useState("");
+
+  async function installer() {
+    if (!installationEvent) return;
+    try {
+      await installationEvent.prompt();
+      const choice = await installationEvent.userChoice;
+      setMessage(choice?.outcome === "accepted" ? "Installation lancée." : "Installation annulée.");
+    } catch {
+      setMessage("Installation indisponible pour le moment.");
+    }
+  }
+
+  return (
+    <section className="kf-home-install" aria-labelledby="home-install-title">
+      <div>
+        <p className="kf-home-install-kicker">Accès rapide</p>
+        <h2 id="home-install-title">Installer l’application</h2>
+        <p>Retrouvez KivuFoot depuis votre écran d’accueil.</p>
+      </div>
+      <button type="button" className="btn btn-primary" onClick={installer}>Installer</button>
+      {message && <p className="kf-home-install-message" role="status">{message}</p>}
+    </section>
+  );
 }
 
 export default function Home() {
   const { saison, saisonClubs, clubsById, competition } = useKivu();
-  const { user } = useAuth();
-  const staff = user?.role === "organisateur" || user?.role === "admin";
   const [classement, setClassement] = useState([]);
   const [matchs, setMatchs] = useState([]);
   const [evtsById, setEvtsById] = useState({});
   const [actualites, setActualites] = useState([]);
+  const [chargement, setChargement] = useState(true);
   const [jourOffset, setJourOffset] = useState(0);
-  const [maintenant, setMaintenant] = useState(() => Date.now());
+  const [installationEvent, setInstallationEvent] = useState(null);
+  const [installee, setInstallee] = useState(dejaInstallee);
 
   useEffect(() => {
-    let stop = false;
-    function chargeActualites() {
-      api.actualites({ competitionId: competition?.id || "", limit: 50 })
-        .then((rows) => { if (!stop) setActualites(rows || []); })
-        .catch(() => { if (!stop) setActualites([]); });
+    function onBeforeInstallPrompt(event) {
+      event.preventDefault();
+      setInstallationEvent(event);
     }
-    chargeActualites();
-    const timer = setInterval(chargeActualites, 30000);
-    return () => { stop = true; clearInterval(timer); };
-  }, [competition?.id]);
-
-  useEffect(() => {
-    const timer = setInterval(() => setMaintenant(Date.now()), 30000);
-    return () => clearInterval(timer);
+    function onInstalled() {
+      setInstallationEvent(null);
+      setInstallee(true);
+    }
+    window.addEventListener("beforeinstallprompt", onBeforeInstallPrompt);
+    window.addEventListener("appinstalled", onInstalled);
+    return () => {
+      window.removeEventListener("beforeinstallprompt", onBeforeInstallPrompt);
+      window.removeEventListener("appinstalled", onInstalled);
+    };
   }, []);
 
   useEffect(() => {
-    if (!saison) return;
-    let stop = false;
-    function refresh() {
-      api.classement(saison.id).then((c) => { if (!stop) setClassement(c); }).catch(() => { if (!stop) setClassement([]); });
-      const pub = api.matchs(saison.id).catch(() => []);
-      const gest = staff ? api.matchsGestion(saison.id).catch(() => []) : Promise.resolve([]);
-      Promise.all([pub, gest]).then(async ([p, g]) => {
-        if (stop) return;
-        const rows = fusionner(p, g);
-        setMatchs(rows);
-        const lives = rows.filter((m) => m.statut === "en_cours" && !m.ended_at);
-        if (!lives.length) {
-          setEvtsById({});
-          return;
-        }
-        const pairs = await Promise.all(
-          lives.map((m) =>
-            api.evenementsPublics(m.id)
-              .then((evts) => [m.id, dernierFaitLive(evts)])
-              .catch(() => [m.id, null]),
-          ),
-        );
-        if (!stop) setEvtsById(Object.fromEntries(pairs));
-      });
+    if (!saison) {
+      setClassement([]);
+      setMatchs([]);
+      setActualites([]);
+      setEvtsById({});
+      setChargement(false);
+      return undefined;
     }
-    refresh();
-    const t = setInterval(refresh, 5000);
+    let stop = false;
+    setChargement(true);
+
+    async function charge() {
+      const [classementResult, matchsResult, actualitesResult] = await Promise.all([
+        api.classement(saison.id).catch(() => []),
+        api.matchs(saison.id).catch(() => []),
+        api.actualites({ competitionId: competition?.id || "", saisonId: saison.id, limit: 50 }).catch(() => []),
+      ]);
+      if (stop) return;
+      const matches = Array.isArray(matchsResult) ? matchsResult : [];
+      setClassement(Array.isArray(classementResult) ? classementResult : []);
+      setMatchs(matches);
+      setActualites(Array.isArray(actualitesResult) ? actualitesResult : []);
+      setChargement(false);
+
+      const lives = matches.filter(isLive);
+      if (!lives.length) {
+        setEvtsById({});
+        return;
+      }
+      const pairs = await Promise.all(
+        lives.map((match) => api.evenementsPublics(match.id)
+          .then((events) => [match.id, dernierFaitLive(events)])
+          .catch(() => [match.id, null])),
+      );
+      if (!stop) setEvtsById(Object.fromEntries(pairs));
+    }
+
+    charge();
+    const timer = window.setInterval(charge, 30000);
     return () => {
       stop = true;
-      clearInterval(t);
+      window.clearInterval(timer);
     };
-  }, [saison, staff]);
+  }, [competition?.id, saison]);
 
-  const lives = matchs.filter((m) => m.statut === "en_cours" && !m.ended_at);
-  // Le bulletin reste limité à aujourd'hui / demain.
-  // Un jour vide reste vide : aucun programme n'est inventé.
-  const jour = jourOffset === 0 ? todayCivil() : addCivilDays(todayCivil(), 1);
-  const programmes = matchs
-    .filter((m) => m.statut === "programme")
+  if (chargement) return <HomeSkeleton />;
+
+  const lives = matchs.filter(isLive).sort((a, b) => new Date(a.date_heure) - new Date(b.date_heure));
+  const resultats = matchs.filter(isFinished).sort((a, b) => new Date(b.date_heure) - new Date(a.date_heure));
+  const programmes = matchs.filter(isScheduled).sort((a, b) => new Date(a.date_heure) - new Date(b.date_heure));
+  const aujourdHui = todayCivil();
+  const jour = addCivilDays(aujourdHui, jourOffset);
+  const matchsDuJour = matchs
+    .filter((match) => civilDate(match.date_heure) === jour)
     .sort((a, b) => new Date(a.date_heure) - new Date(b.date_heure));
-  const aVenir = programmes.filter((m) => civilDate(m.date_heure) === jour);
-  const termines = matchs
-    .filter((m) => (m.statut === "termine" || m.statut === "valide") && civilDate(m.date_heure) === jour)
-    .sort((a, b) => new Date(a.date_heure) - new Date(b.date_heure));
-  const apercu = [...classement].sort(compareClassementRows).slice(0, 5);
-  const followedClubId = followedPublicClubId();
-  const nomComp = competition ? stripDemo(competition.nom) : "";
-  const actualiteAccueil = actualites.find((item) => item.mise_en_avant)
-    || actualites.find((item) => {
-      if (!item.date_publication) return false;
-      const age = maintenant - new Date(item.date_publication).getTime();
-      return age >= 0 && age < 10 * 60 * 1000;
-    })
-    || null;
-  const numJ =
-    lives[0]?.journee
-    || aVenir[0]?.journee
-    || termines[termines.length - 1]?.journee
-    || programmes[programmes.length - 1]?.journee
-    || 0;
+  const installable = Boolean(installationEvent) && !installee;
 
   return (
-    <>
-      <header className="bulletin-hero">
-        <div>
-          <p className="kicker">Bulletin de compétition</p>
-          <h1>Le terrain, sans détour.</h1>
-          {nomComp && <p className="lead">{nomComp}</p>}
+    <section className="kf-home-page" aria-label="Accueil">
+      <section className="kf-home-live-section" aria-labelledby="home-live-title">
+        <div className="kf-home-section-head">
+          <h2 id="home-live-title">LIVE</h2>
         </div>
-        {numJ ? (
-          <p className="hero-num">
-            N° {String(numJ).padStart(2, "0")}
-            <span>feuille officielle</span>
-          </p>
-        ) : null}
-      </header>
-
-      {lives.map((m) => (
-        <LiveUne key={m.id} match={m} clubsById={clubsById} evt={evtsById[m.id] || null} />
-      ))}
-
-      {actualiteAccueil && (
-        <section className="actualite-accueil" aria-labelledby="actualite-accueil-titre">
-          <div className="actualite-accueil-en-tete">
-            <div>
-              <p className="kicker">📰 Actualités</p>
-              <h2 id="actualite-accueil-titre">
-                {actualiteAccueil.categorie === "annonce" ? "Communication officielle" : "Une information est disponible"}
-              </h2>
-            </div>
-            <span className={`actualite-priorite ${actualiteAccueil.mise_en_avant ? "actualite-priorite-une" : ""}`}>
-              {prioriteEditoriale(actualiteAccueil)}
-            </span>
+        {lives.length === 0 ? (
+          <p className="kf-home-empty">Aucun match en direct</p>
+        ) : (
+          <div className="kf-home-live-list">
+            {lives.map((match) => <HomeLiveCard key={match.id} match={match} clubsById={clubsById} saisonClubs={saisonClubs} event={evtsById[match.id] || null} />)}
           </div>
-          <Link to={`/actualites/${actualiteAccueil.id}`} className="actualite-accueil-carte">
-            {actualiteAccueil.image_principale_url ? (
-              <img src={actualiteAccueil.image_principale_url} alt="" />
-            ) : (
-              <div className="actualite-accueil-image-vide">KivuFoot</div>
-            )}
-            <div>
-              <p className="actualite-accueil-date">{dateEditoriale(actualiteAccueil.date_publication)}</p>
-              {actualiteAccueil.categorie === "annonce" && <p className="actualite-accueil-source">Source : Comité d’Organisation</p>}
-              <h3>{actualiteAccueil.titre}</h3>
-              {actualiteAccueil.competition_nom && <p>{actualiteAccueil.competition_nom}</p>}
-              <strong>Lire l’actualité →</strong>
-            </div>
-          </Link>
-          <Link className="actualite-accueil-toutes" to="/actualites">Voir toutes les actualités</Link>
-        </section>
-      )}
-
-      <section>
-        <div className="jour-barre">
-          <h2>Le bulletin</h2>
-          <Link className="bulletin-tous" to="/matchs">Tous les matchs</Link>
-        </div>
-        <div className="jour-barre jour-barre-sub">
-          <h3>À venir</h3>
-          <div className="jour-nav" aria-label="Navigation des prochains matchs">
-            <button
-              type="button"
-              aria-label="Afficher les matchs d'aujourd'hui"
-              disabled={jourOffset === 0}
-              onClick={() => setJourOffset(0)}
-            >
-              ‹
-            </button>
-            <span>{jourOffset === 0 ? "Aujourd'hui" : "Demain"}</span>
-            <button
-              type="button"
-              aria-label="Afficher les matchs de demain"
-              disabled={jourOffset === 1}
-              onClick={() => setJourOffset(1)}
-            >
-              ›
-            </button>
-          </div>
-        </div>
-        {aVenir.length === 0 && <p className="empty">Pas de match prévu ce jour.</p>}
-        {aVenir.map((m) => (
-          <AVenirLigne key={m.id} match={m} clubsById={clubsById} />
-        ))}
+        )}
       </section>
 
-      <section>
-        <div className="section-head">
-          <h2>Terminés</h2>
+      <section className="kf-home-section" aria-labelledby="home-result-title">
+        <div className="kf-home-section-head">
+          <h2 id="home-result-title">Dernier résultat</h2>
+          <Link to="/matchs">Tous les matchs <span aria-hidden="true">→</span></Link>
         </div>
-        {termines.length === 0 && <p className="empty">Pas encore de match terminé ce jour.</p>}
-        {termines.map((m) => (
-          <TermineLigne key={m.id} match={m} clubsById={clubsById} />
-        ))}
+        {resultats[0] ? <HomeResultCard match={resultats[0]} clubsById={clubsById} saisonClubs={saisonClubs} /> : <p className="kf-home-empty">Aucun résultat disponible pour le moment.</p>}
       </section>
 
-      <section className="kf-public-home-ranking">
-        <div className="kf-public-home-ranking-head">
+      <section className="kf-home-section" aria-labelledby="home-next-title">
+        <div className="kf-home-section-head">
+          <h2 id="home-next-title">Prochain match</h2>
+        </div>
+        {programmes[0] ? <HomeUpcomingCard match={programmes[0]} clubsById={clubsById} saisonClubs={saisonClubs} /> : <p className="kf-home-empty">Aucun match programmé pour le moment</p>}
+      </section>
+
+      <section className="kf-home-section kf-home-day-schedule" aria-labelledby="home-day-title">
+        <div className="kf-home-section-head">
           <div>
-            <h2>Mini-classement</h2>
-            <p>{saison?.nom || "—"}</p>
+            <h2 id="home-day-title">Matchs du jour</h2>
+            <p>{jourOffset === 0 ? "Aujourd’hui" : "Demain"}</p>
           </div>
-          <Link to="/classement">Classement complet <span aria-hidden="true">→</span></Link>
+          <div className="kf-home-day-nav" aria-label="Navigation des matchs par jour">
+            <button type="button" aria-label="Afficher aujourd’hui" disabled={jourOffset === 0} onClick={() => setJourOffset(0)}>‹</button>
+            <button type="button" aria-label="Afficher demain" disabled={jourOffset === 1} onClick={() => setJourOffset(1)}>›</button>
+          </div>
         </div>
-        {classement.length === 0 && (
-          <p className="empty">Le classement se calcule sur les matchs validés.</p>
-        )}
-        {apercu.length > 0 && (
-          <div className="kf-public-mini-rank" role="table" aria-label="Mini-classement">
-            <div className="kf-public-mini-rank-head" role="row">
-              <span role="columnheader">#</span>
-              <span role="columnheader">Club</span>
-              <span role="columnheader">Pts</span>
-              <span role="columnheader">J</span>
-              <span role="columnheader">Diff</span>
-            </div>
-            {apercu.map((ligne, index) => {
-              const club = findPublicClub(clubsById, saisonClubs, ligne.club_id);
-              const followed = followedClubId !== null && Number(ligne.club_id) === followedClubId;
-              const name = stripDemo(ligne.club_nom || club?.nom || "—");
-              return (
-                <Link
-                  key={ligne.club_id ?? index}
-                  to={ligne.club_id ? `/clubs/${ligne.club_id}` : "/clubs"}
-                  className={`kf-public-mini-rank-row${followed ? " followed" : ""}`}
-                  role="row"
-                >
-                  <strong role="cell">{index + 1}</strong>
-                  <span className="kf-public-mini-rank-club" role="cell">
-                    <PublicClubLogo club={club} name={name} />
-                    <span>{name}</span>
-                  </span>
-                  <strong role="cell">{displayValue(ligne.points)}</strong>
-                  <span role="cell">{displayValue(ligne.matchs_joues)}</span>
-                  <span role="cell">{displayDifference(ligne.difference_buts)}</span>
-                </Link>
-              );
-            })}
-          </div>
-        )}
+        {matchsDuJour.length === 0 ? <p className="kf-home-empty">Aucun match pour ce jour.</p> : matchsDuJour.map((match) => <HomeDayRow key={match.id} match={match} clubsById={clubsById} saisonClubs={saisonClubs} />)}
       </section>
-    </>
+
+      <HomeRanking classement={classement} clubsById={clubsById} saisonClubs={saisonClubs} saison={saison} />
+      <HomeNews actualites={actualites} />
+      {installable && <HomeInstall installationEvent={installationEvent} />}
+    </section>
   );
 }
