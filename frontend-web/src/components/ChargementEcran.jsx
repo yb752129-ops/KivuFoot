@@ -1,5 +1,6 @@
+import { useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
-import { IcoBouclier, IcoCalendrier, IcoClassement, IcoHome, IcoPersonne } from "../icons.jsx";
+import { IcoBouclier, IcoCalendrier, IcoClassement, IcoCloche, IcoHome, IcoPersonne, IcoRecherche } from "../icons.jsx";
 import Marque from "./Marque.jsx";
 
 const SOMMAIRE = [
@@ -9,96 +10,103 @@ const SOMMAIRE = [
   { to: "/clubs", label: "Clubs", Icon: IcoBouclier },
 ];
 
-function BallonCharge() {
+function LoadingHeader() {
   return (
-    <span className="charge-orbite" aria-hidden="true">
-      <span className="charge-anneau" />
-      <span className="charge-anneau charge-anneau-2" />
-      <span className="charge-anneau-spin">
-        <span className="charge-point" />
-      </span>
-      <svg className="charge-ballon-spin" viewBox="0 0 64 64">
-        <circle cx="32" cy="32" r="27" fill="#f4f1ea" stroke="#1c1914" strokeWidth="2.2" />
-        <polygon points="32,18.2 40.2,24.2 37.1,34.2 26.9,34.2 23.8,24.2" fill="#1f4d36" />
-        <path fill="#1f4d36" d="M32 5.4 41.2 9.2 38.2 15.4 32 12.8 25.8 15.4 22.8 9.2Z" />
-        <path fill="#1f4d36" d="M53.2 20.4 56.6 29.2 50.2 33.4 45.6 25.6 49.4 18.8Z" />
-        <path fill="#1f4d36" d="M46.4 47.2 39.6 56.4 32 53.2 35.4 44.2 42.8 42.6Z" />
-        <path fill="#1f4d36" d="M17.6 47.2 21.2 42.6 28.6 44.2 32 53.2 24.4 56.4Z" />
-        <path fill="#1f4d36" d="M10.8 20.4 14.6 18.8 18.4 25.6 13.8 33.4 7.4 29.2Z" />
-        <g fill="none" stroke="#1c1914" strokeWidth="1.6" strokeLinejoin="round">
-          <path d="M32 18.2V12.8" />
-          <path d="M40.2 24.2 45.6 25.6" />
-          <path d="M37.1 34.2 35.4 44.2" />
-          <path d="M26.9 34.2 28.6 44.2" />
-          <path d="M23.8 24.2 18.4 25.6" />
-        </g>
-      </svg>
-    </span>
+    <header className="kf-loading-masthead">
+      <div className="kf-public-topbar">
+        <span className="kf-public-brand" aria-label="KivuFoot, Sud-Kivu">
+          <Marque />
+        </span>
+        <div className="kf-public-actions" aria-hidden="true">
+          <span className="kf-public-action"><IcoRecherche className="round-ico" /></span>
+          <span className="kf-public-action"><IcoCloche className="round-ico" /></span>
+          <span className="compte-personne"><IcoPersonne className="compte-ico" /></span>
+        </div>
+      </div>
+      <div className="kf-public-edition-bar kf-loading-edition" aria-label="Édition active">
+        <span>Chargement…</span>
+        <span className="edition-caret" aria-hidden="true">⌄</span>
+      </div>
+    </header>
+  );
+}
+
+function LoadingSkeletons() {
+  return (
+    <>
+      <div className="kf-loading-title-block" aria-hidden="true">
+        <span className="kf-skeleton kf-skeleton-kicker" />
+        <span className="kf-skeleton kf-skeleton-title" />
+        <span className="kf-skeleton kf-skeleton-subtitle" />
+      </div>
+      <section className="kf-loading-cards" aria-hidden="true">
+        <article className="kf-loading-card">
+          <span className="kf-skeleton kf-skeleton-card-line kf-skeleton-card-line-short" />
+          <span className="kf-skeleton kf-skeleton-card-score" />
+          <span className="kf-skeleton kf-skeleton-card-line" />
+        </article>
+        <article className="kf-loading-card">
+          <span className="kf-skeleton kf-skeleton-card-line kf-skeleton-card-line-short" />
+          <span className="kf-skeleton kf-skeleton-card-score" />
+          <span className="kf-skeleton kf-skeleton-card-line" />
+        </article>
+      </section>
+      <section className="kf-loading-ranking" aria-hidden="true">
+        <div className="kf-loading-ranking-head">
+          <span className="kf-skeleton kf-skeleton-section-title" />
+          <span className="kf-skeleton kf-skeleton-section-meta" />
+        </div>
+        <div className="kf-loading-ranking-columns">
+          <span className="kf-skeleton kf-skeleton-column-rank" />
+          <span className="kf-skeleton kf-skeleton-column-club" />
+          <span className="kf-skeleton kf-skeleton-column-stat" />
+          <span className="kf-skeleton kf-skeleton-column-stat" />
+        </div>
+        {Array.from({ length: 6 }, (_, index) => (
+          <div className="kf-loading-ranking-row" key={index}>
+            <span className="kf-skeleton kf-skeleton-row-rank" />
+            <span className="kf-skeleton kf-skeleton-row-club" />
+            <span className="kf-skeleton kf-skeleton-row-stat" />
+            <span className="kf-skeleton kf-skeleton-row-stat" />
+          </div>
+        ))}
+      </section>
+    </>
   );
 }
 
 export default function ChargementEcran({ erreur, onRetry }) {
+  const [serveurLent, setServeurLent] = useState(false);
   const fail = Boolean(erreur);
 
+  useEffect(() => {
+    if (fail) return undefined;
+    const timer = window.setTimeout(() => setServeurLent(true), 8000);
+    return () => window.clearTimeout(timer);
+  }, [fail]);
+
   return (
-    <div className="charge-app">
-      <header className="masthead">
-        <div className="masthead-inner">
-          <div className="masthead-row">
-            <span className="wordmark">
-              <Marque />
-            </span>
-            <form className="mast-search" onSubmit={(e) => e.preventDefault()} role="search">
-              <input
-                type="search"
-                placeholder="Rechercher sur KivuFoot"
-                aria-label="Rechercher sur KivuFoot"
-                disabled
-              />
-            </form>
-            <span className="compte-personne" aria-hidden="true">
-              <IcoPersonne className="compte-ico" />
-            </span>
-          </div>
+    <div className="kf-public-frame kf-loading-frame">
+      <LoadingHeader />
+      <main className="kf-loading-main" role="status" aria-live="polite" aria-busy={!fail}>
+        <div className="kf-loading-message">
+          <p className="kf-loading-status">
+            {fail
+              ? "Le serveur ne répond pas."
+              : serveurLent
+                ? "Le serveur démarre, quelques secondes encore…"
+                : "Chargement…"}
+          </p>
+          {fail && erreur && <p className="kf-loading-error">{erreur}</p>}
+          {fail && onRetry && (
+            <button className="btn btn-primary kf-loading-retry" type="button" onClick={onRetry}>
+              Réessayer
+            </button>
+          )}
         </div>
-      </header>
-
-      <div
-        className="charge-ecran"
-        role="status"
-        aria-live="polite"
-        aria-busy={!fail}
-      >
-        <BallonCharge />
-        {fail ? (
-          <>
-            <p className="charge-kicker">Connexion impossible</p>
-            <h1 className="charge-titre">Le terrain ne répond pas.</h1>
-            <p className="charge-texte">{erreur}</p>
-            {onRetry && (
-              <button className="btn btn-primary charge-retry" type="button" onClick={onRetry}>
-                Réessayer
-              </button>
-            )}
-          </>
-        ) : (
-          <>
-            <p className="visually-hidden">
-              Connexion en cours. Le terrain se prépare. Nous synchronisons les scores et les feuilles officielles du championnat.
-            </p>
-            <p className="charge-kicker">Connexion en cours</p>
-            <h1 className="charge-titre">Le terrain se prépare.</h1>
-            <p className="charge-texte">
-              Nous synchronisons les scores et les feuilles officielles du championnat.
-            </p>
-            <p className="charge-dots" aria-hidden="true">
-              <i /><i /><i />
-            </p>
-          </>
-        )}
-      </div>
-
-      <nav className="bottom-nav" aria-label="Sommaire">
+        <LoadingSkeletons />
+      </main>
+      <nav className="kf-public-bottom-nav" aria-label="Sommaire">
         {SOMMAIRE.map((item) => (
           <NavLink key={item.to} to={item.to} end={item.end}>
             <item.Icon className="nav-ico" />
