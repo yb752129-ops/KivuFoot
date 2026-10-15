@@ -11,6 +11,14 @@ import {
   stripDemo,
   todayCivil,
 } from "../display.js";
+import {
+  compareClassementRows,
+  displayDifference,
+  displayValue,
+  findPublicClub,
+  followedPublicClubId,
+  PublicClubLogo,
+} from "../components/PublicDesign.jsx";
 
 function fusionner(a, b) {
   const map = new Map();
@@ -24,13 +32,6 @@ function dateEditoriale(value) {
   return new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
 }
 
-function LogoClub({ club, nom }) {
-  if (club?.logo_url) {
-    return <img className="classement-logo" src={club.logo_url} alt={`Logo ${stripDemo(nom)}`} loading="lazy" />;
-  }
-  return <span className="classement-logo classement-logo-vide" aria-hidden="true">{stripDemo(nom || "?").slice(0, 2).toUpperCase()}</span>;
-}
-
 function prioriteEditoriale(item) {
   if (item.mise_en_avant) return "À la une";
   const age = item.date_publication ? Date.now() - new Date(item.date_publication).getTime() : -1;
@@ -39,7 +40,7 @@ function prioriteEditoriale(item) {
 }
 
 export default function Home() {
-  const { saison, clubsById, competition } = useKivu();
+  const { saison, saisonClubs, clubsById, competition } = useKivu();
   const { user } = useAuth();
   const staff = user?.role === "organisateur" || user?.role === "admin";
   const [classement, setClassement] = useState([]);
@@ -111,7 +112,8 @@ export default function Home() {
   const termines = matchs
     .filter((m) => (m.statut === "termine" || m.statut === "valide") && civilDate(m.date_heure) === jour)
     .sort((a, b) => new Date(a.date_heure) - new Date(b.date_heure));
-  const apercu = classement.slice(0, 5);
+  const apercu = [...classement].sort(compareClassementRows).slice(0, 5);
+  const followedClubId = followedPublicClubId();
   const nomComp = competition ? stripDemo(competition.nom) : "";
   const actualiteAccueil = actualites.find((item) => item.mise_en_avant)
     || actualites.find((item) => {
@@ -221,50 +223,49 @@ export default function Home() {
         ))}
       </section>
 
-      <section>
-        <div className="section-head">
-          <h2>Classement</h2>
-          <Link to="/classement">Tableau complet</Link>
+      <section className="kf-public-home-ranking">
+        <div className="kf-public-home-ranking-head">
+          <div>
+            <h2>Mini-classement</h2>
+            <p>{saison?.nom || "—"}</p>
+          </div>
+          <Link to="/classement">Classement complet <span aria-hidden="true">→</span></Link>
         </div>
         {classement.length === 0 && (
           <p className="empty">Le classement se calcule sur les matchs validés.</p>
         )}
         {apercu.length > 0 && (
-          <table className="table table-accueil">
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Club</th>
-                <th>Pts</th>
-                <th>J</th>
-                <th>Diff</th>
-              </tr>
-            </thead>
-            <tbody>
-              {apercu.map((l, i) => {
-                const club = clubsById[l.club_id];
-                return (
-                  <tr key={l.club_id}>
-                    <td className="pos">{i + 1}</td>
-                    <td>
-                      <Link to={`/clubs/${l.club_id}`} className="classement-club-cell">
-                        <LogoClub club={club} nom={l.club_nom} />
-                        <span>{stripDemo(l.club_nom)}</span>
-                      </Link>
-                    </td>
-                    <td><strong>{l.points}</strong></td>
-                    <td>{l.matchs_joues}</td>
-                    <td>{l.difference_buts > 0 ? `+${l.difference_buts}` : l.difference_buts}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        )}
-        {classement.length > 0 && (
-          <p className="table-more">
-            <Link to="/classement">Voir le tableau complet</Link>
-          </p>
+          <div className="kf-public-mini-rank" role="table" aria-label="Mini-classement">
+            <div className="kf-public-mini-rank-head" role="row">
+              <span role="columnheader">#</span>
+              <span role="columnheader">Club</span>
+              <span role="columnheader">Pts</span>
+              <span role="columnheader">J</span>
+              <span role="columnheader">Diff</span>
+            </div>
+            {apercu.map((ligne, index) => {
+              const club = findPublicClub(clubsById, saisonClubs, ligne.club_id);
+              const followed = followedClubId !== null && Number(ligne.club_id) === followedClubId;
+              const name = stripDemo(ligne.club_nom || club?.nom || "—");
+              return (
+                <Link
+                  key={ligne.club_id ?? index}
+                  to={ligne.club_id ? `/clubs/${ligne.club_id}` : "/clubs"}
+                  className={`kf-public-mini-rank-row${followed ? " followed" : ""}`}
+                  role="row"
+                >
+                  <strong role="cell">{index + 1}</strong>
+                  <span className="kf-public-mini-rank-club" role="cell">
+                    <PublicClubLogo club={club} name={name} />
+                    <span>{name}</span>
+                  </span>
+                  <strong role="cell">{displayValue(ligne.points)}</strong>
+                  <span role="cell">{displayValue(ligne.matchs_joues)}</span>
+                  <span role="cell">{displayDifference(ligne.difference_buts)}</span>
+                </Link>
+              );
+            })}
+          </div>
         )}
       </section>
     </>

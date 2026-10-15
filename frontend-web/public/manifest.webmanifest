@@ -9,8 +9,8 @@
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#14120e",
-  "theme_color": "#14120e",
+  "background_color": "#0a1411",
+  "theme_color": "#0a1411",
   "prefer_related_applications": false,
   "categories": ["sports", "news"],
   "icons": [

@@ -5091,7 +5091,7 @@ html[data-theme="dark"] .feuille-remplacements {
 .kf-public-frame .mc-tabs button { min-height: 42px; padding: 0 14px; font-size: 12px; }
 .kf-public-frame .match-note { border-color: rgba(200,240,74,.35); border-left-color: var(--kf-accent); background: rgba(200,240,74,.07); color: var(--kf-paper); }
 .kf-public-frame .stamp,
-.kf-public-frame .status-pill { border-color: var(--kf-accent); color: var(--kf-accent); }
+.kf-public-frame .status-pill { border-color: var(--kf-accent); color: var(--kf-accent); transform: none; border-radius: 999px; }
 .kf-public-frame .erreur { color: var(--kf-live); }
 
 @media (max-width: 360px) {
@@ -5121,3 +5121,242 @@ html[data-theme="dark"] .feuille-remplacements {
 .kf-public-install-page .install-step strong { color: #f4efe3; }
 .kf-public-install-page .install-step p,
 .kf-public-install-page .install-note { color: #c5c6bb; font-size: 13px; line-height: 1.55; }
+/* ==== Corrections Android / finition publique — base post-redesign ==== */
+:root {
+  --kf-public-nav-height: 58px;
+  --kf-public-header-offset: 108px;
+}
+html:has(.kf-public-frame),
+body:has(.kf-public-frame),
+#root:has(.kf-public-frame),
+.kf-public-frame {
+  overflow-x: clip;
+  overflow-y: visible;
+}
+body:has(.kf-public-frame) { padding-bottom: 0; }
+.kf-public-frame {
+  min-height: 100dvh;
+  padding-bottom: 0;
+}
+.kf-public-frame .kf-public-shell {
+  padding-bottom: calc(var(--kf-public-nav-height) + env(safe-area-inset-bottom));
+}
+.kf-public-frame .kf-public-masthead {
+  min-height: 0;
+}
+.kf-public-frame .kf-public-topbar {
+  min-height: 64px;
+  padding: 10px 16px 8px;
+}
+.kf-public-frame .kf-public-actions .kf-public-action,
+.kf-public-frame .kf-public-actions .mast-round,
+.kf-public-frame .kf-public-actions .compte-personne {
+  width: 40px;
+  min-width: 40px;
+  height: 40px;
+  min-height: 40px;
+}
+.kf-public-frame .kf-public-edition-bar {
+  min-height: 36px;
+  margin-top: 7px;
+  padding-top: 5px;
+  padding-bottom: 5px;
+}
+.kf-public-frame .kf-public-bottom-nav {
+  height: calc(var(--kf-public-nav-height) + env(safe-area-inset-bottom));
+  padding: 4px 8px env(safe-area-inset-bottom);
+  border-top-color: rgba(200,240,74,.18);
+  box-shadow: 0 -8px 24px rgba(0,0,0,.18);
+}
+.kf-public-frame .kf-public-bottom-nav a {
+  min-height: 46px;
+  padding: 3px 3px;
+  border-radius: 10px;
+  gap: 2px;
+}
+.kf-public-frame .kf-public-bottom-nav .nav-ico { width: 18px; height: 18px; }
+
+/* Chaque logo de club public reste un écusson circulaire sans fond parasite. */
+.kf-public-frame img.club-logo,
+.kf-public-frame img.classement-logo,
+.kf-public-frame img.logo-libre,
+.kf-public-frame img.bulletin-logo,
+.kf-public-frame img.cloche-logo,
+.kf-public-frame img.ecu-img,
+.kf-public-frame img.sb-logo,
+.kf-public-frame img.feuille-terrain-logo,
+.kf-public-frame img.feuille-terrain-team-logo,
+.kf-public-frame img.id-mark-photo {
+  display: block;
+  overflow: hidden;
+  border-radius: 50%;
+  object-fit: cover;
+  background: transparent !important;
+}
+.kf-public-frame .club-logo-missing,
+.kf-public-frame .bulletin-logo-vide,
+.kf-public-frame .club-initiale {
+  overflow: hidden;
+  border-radius: 50%;
+  background: transparent;
+}
+
+/* Mini-classement de l'accueil : grille stable, données réelles, alignement centré. */
+.kf-public-home-ranking {
+  margin-top: 28px;
+}
+.kf-public-home-ranking-head {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--kf-line);
+}
+.kf-public-home-ranking-head h2 { margin: 0; color: var(--kf-paper); font-size: 19px; letter-spacing: -.025em; }
+.kf-public-home-ranking-head p { margin: 4px 0 0; color: var(--kf-ink-soft); font-size: 12px; }
+.kf-public-home-ranking-head a { color: var(--kf-accent); font-size: 12px; font-weight: 850; white-space: nowrap; }
+.kf-public-mini-rank {
+  display: grid;
+  gap: 6px;
+  font-variant-numeric: tabular-nums;
+}
+.kf-public-mini-rank-head,
+.kf-public-mini-rank-row {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) 38px 30px 48px;
+  align-items: center;
+  column-gap: 4px;
+}
+.kf-public-mini-rank-head {
+  padding: 0 10px 2px;
+  color: var(--kf-ink-dim);
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: .08em;
+  text-align: right;
+  text-transform: uppercase;
+}
+.kf-public-mini-rank-head span:nth-child(2) { text-align: left; }
+.kf-public-mini-rank-row {
+  min-height: 52px;
+  padding: 7px 10px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: rgba(255,255,255,.045);
+  color: var(--kf-paper);
+  font-size: 13px;
+  text-align: right;
+  text-decoration: none;
+  transition: background .16s ease, border-color .16s ease;
+}
+.kf-public-mini-rank-row:hover { border-color: var(--kf-line-strong); background: rgba(255,255,255,.08); }
+.kf-public-mini-rank-row.followed { border-color: rgba(200,240,74,.32); background: rgba(200,240,74,.12); }
+.kf-public-mini-rank-row > strong { font-weight: 850; }
+.kf-public-mini-rank-club {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  color: inherit;
+  text-align: left;
+}
+.kf-public-mini-rank-club > span:last-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-weight: 800;
+  line-height: 1.12;
+}
+.kf-public-mini-rank-club .club-logo,
+.kf-public-mini-rank-club .club-logo-missing {
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+}
+
+/* Le tableau public reste lisible pendant le défilement sous le header applicatif. */
+.kf-public-ranking .kf-public-table-scroll {
+  overflow-x: clip;
+  overflow-y: visible;
+}
+.kf-public-ranking .kf-public-rank-table thead th {
+  position: sticky;
+  top: var(--kf-public-header-offset);
+  z-index: 12;
+  background: #0d2119;
+  box-shadow: 0 1px 0 rgba(200,240,74,.16), 0 8px 16px rgba(0,0,0,.14);
+}
+.kf-public-ranking .kf-public-rank-table.details thead th:nth-child(2) {
+  left: 0;
+  z-index: 14;
+  background: #0d2119;
+}
+
+/* Statistiques publiques : seules les données de résultat restent dans le DOM public. */
+.kf-public-frame .stats-feuille {
+  width: 100%;
+  margin: 8px 0 0;
+  border-collapse: separate;
+  border-spacing: 0 5px;
+  table-layout: fixed;
+}
+.kf-public-frame .stats-feuille th,
+.kf-public-frame .stats-feuille td {
+  padding: 11px 12px;
+  text-align: center;
+  vertical-align: middle;
+}
+.kf-public-frame .stats-feuille th:first-child,
+.kf-public-frame .stats-feuille td:first-child { padding-left: 16px; }
+.kf-public-frame .stats-feuille th:last-child,
+.kf-public-frame .stats-feuille td:last-child { padding-right: 16px; }
+.kf-public-frame .stats-possession {
+  margin: 14px 0 0;
+  padding: 14px 14px 16px;
+}
+.kf-public-frame .stats-possession .possession-public-head {
+  align-items: center;
+  padding: 0 0 10px;
+}
+.kf-public-frame .stats-possession .possession-public-head h2 { margin: 0; }
+.kf-public-frame .possession-public-status {
+  color: var(--kf-ink-soft);
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.kf-public-frame .stats-possession .possession-scoreline {
+  grid-template-columns: minmax(0, 1fr) auto auto auto minmax(0, 1fr);
+  gap: 6px;
+  padding: 16px 0 12px;
+  align-items: center;
+}
+.kf-public-frame .stats-possession .possession-scoreline strong { font-size: 1rem; line-height: 1.1; }
+.kf-public-frame .stats-possession .possession-scoreline strong:nth-child(2),
+.kf-public-frame .stats-possession .possession-scoreline strong:nth-child(4) { white-space: nowrap; color: var(--kf-paper); }
+.kf-public-frame .stats-possession .possession-scoreline span { font-size: .9rem; color: var(--kf-ink-soft); }
+.kf-public-frame .stats-possession .possession-bars {
+  height: 10px;
+  gap: 3px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.09);
+}
+.kf-public-frame .stats-possession .possession-bars span { min-width: 0; }
+.kf-public-frame .stats-possession .possession-bars span:first-child { background: #c8f04a; }
+.kf-public-frame .stats-possession .possession-bars span:last-child { background: #f4efe3; }
+.kf-public-frame .possession-admin-meta {
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px solid var(--kf-line);
+}
+.kf-public-frame .possession-admin-meta p { margin: 5px 0; }
+
+@media (max-width: 360px) {
+  .kf-public-mini-rank-head,
+  .kf-public-mini-rank-row { grid-template-columns: 24px minmax(0, 1fr) 34px 27px 43px; }
+  .kf-public-mini-rank-row { padding-left: 7px; padding-right: 7px; }
+  .kf-public-frame .stats-possession .possession-scoreline { gap: 3px; }
+  .kf-public-frame .stats-possession .possession-scoreline strong { font-size: .88rem; }
+}

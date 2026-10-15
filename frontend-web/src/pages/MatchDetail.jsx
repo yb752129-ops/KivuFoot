@@ -112,6 +112,7 @@ export default function MatchDetail() {
       : possession?.statut === "PROVISOIRE"
         ? "PROVISOIRE"
         : "Non disponible";
+  const possessionAdminView = Boolean(moi && ["admin", "organisateur"].includes(moi.role));
 
   return (
     <section className="hero">
@@ -131,7 +132,7 @@ export default function MatchDetail() {
           </div>
         </>
       )}
-      {match.statut === "valide" && <p className="stamp">Validé</p>}
+      {possessionAdminView && match.statut === "valide" && <p className="stamp">Validé</p>}
       {moi && ["admin", "organisateur"].includes(moi.role) && match.statut === "valide" && (
         <section className="sheet document-actions" aria-label="Document officiel">
           <p className="kicker">Document officiel</p>
@@ -215,37 +216,35 @@ export default function MatchDetail() {
           aria-live={possessionLive ? "polite" : undefined}
         >
           <div className="possession-public-head">
-            <div>
-              <p className="kicker">Protocole {possession?.protocole || "KIVUFOOT_POSSESSION_V1"}</p>
-              <h2>Possession</h2>
-            </div>
-            {possession?.disponible && (
-              <span className={`stamp ${possessionLive ? "stamp-live" : ""}`}>
-                {possessionStatut}
-              </span>
-            )}
+            <h2>Possession</h2>
+            {possession?.disponible && <span className="possession-public-status">Résultat officiel</span>}
           </div>
-          <p className="muted small possession-provenance">
-            Statut : {possessionStatut} · {possession?.message || "Possession non disponible"} · Provenance : {possession?.mapping || "TEAM_A=domicile, TEAM_B=extérieur"}
-          </p>
           {!possession?.disponible ? (
             <p className="empty">Possession non disponible</p>
           ) : (
             <>
               <div className="possession-scoreline">
                 <strong>{possession.equipe_a_nom || stripDemo(home?.nom) || "Domicile"}</strong>
-                <strong>{possession.pourcentage_a}%</strong>
-                <span>contre</span>
-                <strong>{possession.pourcentage_b}%</strong>
+                <strong>{possession.pourcentage_a} %</strong>
+                <span>/</span>
+                <strong>{possession.pourcentage_b} %</strong>
                 <strong>{possession.equipe_b_nom || stripDemo(away?.nom) || "Extérieur"}</strong>
               </div>
               <div className="possession-bars" aria-label="Répartition de la possession">
                 <span style={{ width: `${possession.pourcentage_a}%` }} />
                 <span style={{ width: `${possession.pourcentage_b}%` }} />
               </div>
-              <p className="muted small">
-                Temps mesuré : {Math.round((possession.temps_mesure_ms || 0) / 1000)} s. Le temps en pause ou non attribué n'entre pas dans le dénominateur.
-              </p>
+              {possessionAdminView && (
+                <div className="possession-admin-meta" aria-label="Métadonnées de contrôle de la possession">
+                  <p className="kicker">Vue admin / organisateur</p>
+                  <p className="muted small">
+                    Statut : {possessionStatut} · {possession?.message || "Possession non disponible"} · Provenance : {possession?.mapping || "TEAM_A=domicile, TEAM_B=extérieur"}
+                  </p>
+                  <p className="muted small">
+                    Protocole : {possession?.protocole || "KIVUFOOT_POSSESSION_V1"} · Temps mesuré : {Math.round((possession.temps_mesure_ms || 0) / 1000)} s · Non attribué : {Math.round((possession.temps_non_attribue || 0) / 1000)} s
+                  </p>
+                </div>
+              )}
             </>
           )}
         </section>

@@ -33,9 +33,21 @@ export function compareClassementRows(a, b) {
   return 0;
 }
 
+export function followedPublicClubId() {
+  if (typeof window === "undefined") return null;
+  try {
+    const id = Number(window.localStorage.getItem("kivufoot_club_suivi"));
+    return Number.isInteger(id) && id > 0 ? id : null;
+  } catch {
+    return null;
+  }
+}
+
 export function findPublicClub(clubsById, saisonClubs, id) {
+  const numericId = Number(id);
   return clubsById?.[id]
-    || (saisonClubs || []).find((club) => club.id === id || club.club_id === id)
+    || clubsById?.[numericId]
+    || (saisonClubs || []).find((club) => Number(club.id ?? club.club_id) === numericId)
     || null;
 }
 

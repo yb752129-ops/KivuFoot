@@ -2,23 +2,25 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api.js";
 import { useKivu } from "../context.jsx";
+import { stripDemo } from "../display.js";
 import {
   compareClassementRows,
   displayDifference,
   displayValue,
   findPublicClub,
+  followedPublicClubId,
   PublicClubLogo,
 } from "../components/PublicDesign.jsx";
 
 const GROUPES = ["A", "B", "C", "D"];
 
 function nomClub(ligne, club) {
-  return ligne.club_nom || club?.nom || "—";
+  return stripDemo(ligne.club_nom || club?.nom || "—");
 }
 
-function RankingRow({ ligne, index, club, details }) {
+function RankingRow({ ligne, index, club, details, followedClubId }) {
   const nom = nomClub(ligne, club);
-  const followed = nom === "G.G.T-2026";
+  const followed = followedClubId !== null && Number(ligne.club_id) === followedClubId;
   const contenu = (
     <>
       <PublicClubLogo club={club} name={nom} />
@@ -87,7 +89,11 @@ export default function Classement() {
   }, [saison, groupe]);
 
   const lignesTriees = useMemo(() => [...lignes].sort(compareClassementRows), [lignes]);
-  const equipesSuivies = lignesTriees.some((ligne) => nomClub(ligne, findPublicClub(clubsById, saisonClubs, ligne.club_id)) === "G.G.T-2026");
+  const followedClubId = followedPublicClubId();
+  const clubSuivi = followedClubId === null
+    ? null
+    : lignesTriees.find((ligne) => Number(ligne.club_id) === followedClubId);
+  const equipesSuivies = Boolean(clubSuivi);
   const titreGroupe = groupe ? `Classement du groupe ${groupe}` : "Classement général";
 
   return (
@@ -132,7 +138,7 @@ export default function Classement() {
       </div>
 
       <div className="kf-public-ranking-tools">
-        {equipesSuivies ? <span className="kf-public-followed-note">G.G.T-2026 · équipe suivie</span> : <span />}
+        {equipesSuivies ? <span className="kf-public-followed-note">{nomClub(clubSuivi, findPublicClub(clubsById, saisonClubs, clubSuivi.club_id))} · équipe suivie</span> : <span />}
         <button
           type="button"
           className="kf-public-outline-button"
@@ -162,6 +168,7 @@ export default function Classement() {
                   index={index}
                   club={findPublicClub(clubsById, saisonClubs, ligne.club_id)}
                   details={details}
+                  followedClubId={followedClubId}
                 />
               ))}
             </tbody>

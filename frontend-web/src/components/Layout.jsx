@@ -88,7 +88,7 @@ function Cloche() {
 }
 
 function isPublicPath(pathname) {
-  const privatePrefixes = ["/login", "/activation", "/historique", "/orga", "/collecteur", "/club", "/coach", "/admin"];
+  const privatePrefixes = ["/login", "/activation", "/historique", "/compte", "/orga", "/collecteur", "/club", "/coach", "/admin"];
   return !privatePrefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
 }
 
