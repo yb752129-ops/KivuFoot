@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
-import { Link, NavLink, Outlet } from "react-router-dom";
+import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import { api, getActualiteClientToken } from "../api.js";
 import { useActualitesLues } from "../actualitesRead.js";
 import { useAuth } from "../auth.jsx";
 import { clubName, useKivu } from "../context.jsx";
 import { stripDemo } from "../display.js";
-import { IcoBouclier, IcoCalendrier, IcoClassement, IcoCloche, IcoHome, IcoPersonne } from "../icons.jsx";
+import { IcoBouclier, IcoCalendrier, IcoClassement, IcoCloche, IcoHome, IcoPersonne, IcoRecherche } from "../icons.jsx";
 import Chrono from "./Chrono.jsx";
 import Marque from "./Marque.jsx";
 
@@ -88,6 +88,8 @@ function Cloche() {
 }
 
 export default function Layout() {
+  const location = useLocation();
+  const publicRedesign = location.pathname === "/classement" || location.pathname === "/matchs";
   const { competition, competitions, choisirCompetition, saisons, saison, choisirSaison, error } = useKivu();
   const { prenom } = useAuth();
   const [actualites, setActualites] = useState([]);
@@ -108,77 +110,114 @@ export default function Layout() {
   const actualitesNonLues = actualites.filter((item) => !item.lu && !actualitesLues.has(Number(item.id)));
 
   return (
-    <>
-      <header className="masthead">
-        <div className="masthead-inner">
-          <div className="masthead-row">
-            <NavLink to="/" className="wordmark" aria-label="KivuFoot, Sud-Kivu">
+    <div className={publicRedesign ? "kf-public-frame" : undefined}>
+      {publicRedesign ? (
+        <header className="masthead kf-public-masthead">
+          <div className="kf-public-topbar">
+            <NavLink to="/" className="kf-public-brand" aria-label="KivuFoot, Sud-Kivu">
               <Marque />
             </NavLink>
-            <RechercheChamp />
-            <Cloche />
-            <NavLink
-              to="/compte"
-              className="compte-personne"
-              aria-label={prenom ? `Compte ${prenom}` : "Compte"}
-            >
-              <IcoPersonne className="compte-ico" />
-            </NavLink>
+            <div className="kf-public-actions">
+              <NavLink to="/recherche" className="kf-public-action" aria-label="Rechercher">
+                <IcoRecherche className="round-ico" />
+              </NavLink>
+              <Cloche />
+              <NavLink
+                to="/compte"
+                className="compte-personne"
+                aria-label={prenom ? `Compte ${prenom}` : "Compte"}
+              >
+                <IcoPersonne className="compte-ico" />
+              </NavLink>
+            </div>
           </div>
           {competitions.length > 0 && (
-            <div className="comp-selection">
-              <p className="comp-nom">
-                {competition
-                  ? competition.est_demo
-                    ? `Démo — ${stripDemo(competition.nom)}`
-                    : stripDemo(competition.nom)
-                  : ""}
-              </p>
-              {saisons.length > 1 && (
-                <label className="season-selector">
-                  Édition
-                  <select value={saison?.id || ""} onChange={(event) => choisirSaison(event.target.value)}>
-                    {saisons.map((edition) => (
-                      <option key={edition.id} value={edition.id}>{edition.nom || edition.date_debut || `Édition #${edition.id}`}</option>
-                    ))}
-                  </select>
-                </label>
+            <div className="kf-public-edition-bar" aria-label="Édition active">
+              <span>{competition?.nom ? stripDemo(competition.nom) : "—"}</span>
+              {saisons.length > 1 ? (
+                <select value={saison?.id || ""} onChange={(event) => choisirSaison(event.target.value)} aria-label="Choisir une édition">
+                  {saisons.map((edition) => (
+                    <option key={edition.id} value={edition.id}>{edition.nom || edition.date_debut || "—"}</option>
+                  ))}
+                </select>
+              ) : (
+                <span className="edition-caret" aria-hidden="true">⌄</span>
               )}
             </div>
           )}
-          <div className="masthead-raccourcis">
-            <NavLink
-              to="/actualites"
-              className={({ isActive }) => `masthead-actualites-link${isActive ? " actif" : ""}`}
-              aria-label={actualitesNonLues.length ? `Actualités : ${actualitesNonLues.length} non lue${actualitesNonLues.length > 1 ? "s" : ""}` : "Actualités"}
-            >
-              <span aria-hidden="true">📰</span>
-              <span>Actualités</span>
-              {actualitesNonLues.length > 0 && (
-                <span className="masthead-actualites-badge" aria-label={`${actualitesNonLues.length} actualité${actualitesNonLues.length > 1 ? "s" : ""} non lue${actualitesNonLues.length > 1 ? "s" : ""}`}>
-                  {actualitesNonLues.length > 99 ? "99+" : actualitesNonLues.length}
-                </span>
-              )}
-            </NavLink>
-            <NavLink
-              to="/install"
-              className={({ isActive }) => `masthead-install-link${isActive ? " actif" : ""}`}
-              aria-label="Installer KivuFoot"
-            >
-              <span aria-hidden="true">⇩</span>
-              <span>Installer</span>
-            </NavLink>
+        </header>
+      ) : (
+        <header className="masthead">
+          <div className="masthead-inner">
+            <div className="masthead-row">
+              <NavLink to="/" className="wordmark" aria-label="KivuFoot, Sud-Kivu">
+                <Marque />
+              </NavLink>
+              <RechercheChamp />
+              <Cloche />
+              <NavLink
+                to="/compte"
+                className="compte-personne"
+                aria-label={prenom ? `Compte ${prenom}` : "Compte"}
+              >
+                <IcoPersonne className="compte-ico" />
+              </NavLink>
+            </div>
+            {competitions.length > 0 && (
+              <div className="comp-selection">
+                <p className="comp-nom">
+                  {competition
+                    ? competition.est_demo
+                      ? `Démo — ${stripDemo(competition.nom)}`
+                      : stripDemo(competition.nom)
+                    : ""}
+                </p>
+                {saisons.length > 1 && (
+                  <label className="season-selector">
+                    Édition
+                    <select value={saison?.id || ""} onChange={(event) => choisirSaison(event.target.value)}>
+                      {saisons.map((edition) => (
+                        <option key={edition.id} value={edition.id}>{edition.nom || edition.date_debut || `Édition #${edition.id}`}</option>
+                      ))}
+                    </select>
+                  </label>
+                )}
+              </div>
+            )}
+            <div className="masthead-raccourcis">
+              <NavLink
+                to="/actualites"
+                className={({ isActive }) => `masthead-actualites-link${isActive ? " actif" : ""}`}
+                aria-label={actualitesNonLues.length ? `Actualités : ${actualitesNonLues.length} non lue${actualitesNonLues.length > 1 ? "s" : ""}` : "Actualités"}
+              >
+                <span aria-hidden="true">📰</span>
+                <span>Actualités</span>
+                {actualitesNonLues.length > 0 && (
+                  <span className="masthead-actualites-badge" aria-label={`${actualitesNonLues.length} actualité${actualitesNonLues.length > 1 ? "s" : ""} non lue${actualitesNonLues.length > 1 ? "s" : ""}`}>
+                    {actualitesNonLues.length > 99 ? "99+" : actualitesNonLues.length}
+                  </span>
+                )}
+              </NavLink>
+              <NavLink
+                to="/install"
+                className={({ isActive }) => `masthead-install-link${isActive ? " actif" : ""}`}
+                aria-label="Installer KivuFoot"
+              >
+                <span aria-hidden="true">⇩</span>
+                <span>Installer</span>
+              </NavLink>
+            </div>
+            {competition?.est_demo && (
+              <p className="demo-line">Données de démonstration</p>
+            )}
           </div>
-          {competition?.est_demo && (
-            <p className="demo-line">Données de démonstration</p>
-          )}
-        </div>
-      </header>
-      <div className="shell">
+        </header>
+      )}
+      <div className={`shell${publicRedesign ? " kf-public-shell" : ""}`}>
         {error && <p className="erreur">{error}</p>}
         <Outlet />
       </div>
-      <nav className="bottom-nav" aria-label="Sommaire">
+      <nav className={`bottom-nav${publicRedesign ? " kf-public-bottom-nav" : ""}`} aria-label="Sommaire">
         {SOMMAIRE.map((item) => (
           <NavLink key={item.to} to={item.to} end={item.end}>
             <item.Icon className="nav-ico" />
@@ -186,6 +225,6 @@ export default function Layout() {
           </NavLink>
         ))}
       </nav>
-    </>
+    </div>
   );
 }

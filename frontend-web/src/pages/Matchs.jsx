@@ -1,218 +1,243 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { api } from "../api.js";
 import { useKivu } from "../context.jsx";
-import { AVenirLigne, LiveUne, TermineLigne } from "../components/LignesMatch.jsx";
+import { IcoCalendrier, IcoEpingle } from "../icons.jsx";
 import {
-  addCivilDays,
-  civilDate,
-  dernierFaitLive,
-  formatDateNavigation,
-  groupMatchsByJournee,
-  journeeTitre,
-  todayCivil,
-} from "../display.js";
+  displayValue,
+  findPublicClub,
+  formatPublicDate,
+  formatPublicDay,
+  formatPublicRound,
+  formatPublicScore,
+  numericValue,
+  PublicClubLogo,
+  publicClubName,
+} from "../components/PublicDesign.jsx";
+import { dernierFaitLive, formatMinute, groupMatchsByJournee, labelEvenement, journeeTitre } from "../display.js";
 
-function datesDuWeekEnd(reference = todayCivil()) {
-  const jourSemaine = new Date(`${reference}T12:00:00`).getDay();
-  const decalageSamedi = jourSemaine === 6 ? 0 : jourSemaine === 0 ? -1 : 6 - jourSemaine;
-  const samedi = addCivilDays(reference, decalageSamedi);
-  return [samedi, addCivilDays(samedi, 1)];
+const FILTRES = [
+  ["tous", "Tous"],
+  ["avenir", "À venir"],
+  ["termines", "Terminés"],
+  ["direct", "En direct"],
+];
+
+function statutLabel(statut) {
+  if (statut === "programme") return "À venir";
+  if (statut === "en_cours") return "En direct";
+  if (statut === "termine" || statut === "valide") return "Résultat";
+  return "—";
 }
 
-function groupMatchsByDate(matchs) {
-  const map = new Map();
-  for (const match of matchs) {
-    const date = civilDate(match.date_heure);
-    if (!map.has(date)) map.set(date, []);
-    map.get(date).push(match);
-  }
-  return [...map.entries()]
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([date, items]) => ({
-      date,
-      items: [...items].sort((a, b) => new Date(a.date_heure) - new Date(b.date_heure)),
-    }));
+function classeHalo(match) {
+  if (match.statut === "programme") return "halo-accent";
+  if (match.statut === "en_cours") return "halo-live";
+  return match.id % 2 === 0 ? "halo-blue" : "halo-gold";
+}
+
+function scoreWinners(match) {
+  if (match.statut === "programme") return { home: false, away: false };
+  const home = numericValue(match.score_domicile);
+  const away = numericValue(match.score_exterieur);
+  if (home === null || away === null || home === away) return { home: false, away: false };
+  return { home: home > away, away: away > home };
+}
+
+function PublicMatchCard({ match, clubsById, saisonClubs, event }) {
+  const home = findPublicClub(clubsById, saisonClubs, match.equipe_domicile_id);
+  const away = findPublicClub(clubsById, saisonClubs, match.equipe_exterieur_id);
+  const homeName = publicClubName(clubsById, saisonClubs, match.equipe_domicile_id);
+  const awayName = publicClubName(clubsById, saisonClubs, match.equipe_exterieur_id);
+  const winners = scoreWinners(match);
+  const official = match.statut === "valide";
+  return (
+    <Link to={`/matchs/${match.id}`} className={`kf-public-match-card ${classeHalo(match)}`}>
+      <div className="kf-public-match-top">
+        <span className="kf-public-match-status">{statutLabel(match.statut)}</span>
+        <span>{formatPublicDate(match.date_heure)}</span>
+      </div>
+      <div className="kf-public-match-teams">
+        <span className={`kf-public-match-team${winners.home ? " winner" : ""}`}>
+          <PublicClubLogo club={home} name={homeName} />
+          <strong>{homeName}</strong>
+        </span>
+        <strong className="kf-public-match-score">{formatPublicScore(match)}</strong>
+        <span className={`kf-public-match-team away${winners.away ? " winner" : ""}`}>
+          <PublicClubLogo club={away} name={awayName} />
+          <strong>{awayName}</strong>
+        </span>
+      </div>
+      {event && (
+        <p className="kf-public-live-event">
+          {formatMinute(event.minute, event.minute_additionnelle)} · {labelEvenement(event)}
+        </p>
+      )}
+      <div className="kf-public-match-bottom">
+        <span><IcoEpingle /> {match.stade || "—"}</span>
+        <span><IcoCalendrier /> {formatPublicRound(match.journee)}</span>
+      </div>
+      {official && <span className="kf-public-official-note">Résultat officiel</span>}
+    </Link>
+  );
+}
+
+function GroupeMatchs({ groupe, clubsById, saisonClubs, evtsById }) {
+  const stadium = groupe.items.find((match) => match.stade)?.stade || "—";
+  return (
+    <section className="kf-public-match-group">
+      <div className="kf-public-group-label">
+        <strong>{groupe.code === "—" ? "—" : `${journeeTitre(groupe.code)} · ${formatPublicDay(groupe.date)}`}</strong>
+        <span>{stadium}</span>
+      </div>
+      <div className="kf-public-result-group">
+        {groupe.items.map((match) => (
+          <PublicMatchCard
+            key={match.id}
+            match={match}
+            clubsById={clubsById}
+            saisonClubs={saisonClubs}
+            event={evtsById[match.id] || null}
+          />
+        ))}
+      </div>
+    </section>
+  );
 }
 
 export default function Matchs() {
-  const { saison, clubsById } = useKivu();
+  const { saison, clubsById, saisonClubs } = useKivu();
   const [matchs, setMatchs] = useState([]);
-  const [dateSelection, setDateSelection] = useState("");
-  const [weekendSelection, setWeekendSelection] = useState(null);
+  const [filtre, setFiltre] = useState("tous");
   const [evtsById, setEvtsById] = useState({});
+  const [err, setErr] = useState("");
 
   useEffect(() => {
-    if (!saison) return;
+    if (!saison) {
+      setMatchs([]);
+      setEvtsById({});
+      return undefined;
+    }
     let stop = false;
-    api.matchs(saison.id).then(async (rows) => {
-      if (stop) return;
-      const list = rows || [];
-      setMatchs(list);
-      const lives = list.filter((m) => m.statut === "en_cours" && !m.ended_at);
-      if (!lives.length) {
-        setEvtsById({});
-        return;
-      }
-      const pairs = await Promise.all(
-        lives.map((m) =>
-          api.evenementsPublics(m.id)
-            .then((evts) => [m.id, dernierFaitLive(evts)])
-            .catch(() => [m.id, null]),
-        ),
-      );
-      if (!stop) setEvtsById(Object.fromEntries(pairs));
-    }).catch(() => setMatchs([]));
+    setErr("");
+    api.matchs(saison.id)
+      .then(async (rows) => {
+        if (stop) return;
+        const list = Array.isArray(rows) ? rows : [];
+        setMatchs(list);
+        const lives = list.filter((match) => match.statut === "en_cours" && !match.ended_at);
+        if (!lives.length) {
+          setEvtsById({});
+          return;
+        }
+        const pairs = await Promise.all(
+          lives.map((match) => api.evenementsPublics(match.id)
+            .then((events) => [match.id, dernierFaitLive(events)])
+            .catch(() => [match.id, null])),
+        );
+        if (!stop) setEvtsById(Object.fromEntries(pairs));
+      })
+      .catch((error) => {
+        if (!stop) {
+          setMatchs([]);
+          setErr(error.message || "Impossible de charger les matchs.");
+        }
+      });
     return () => { stop = true; };
   }, [saison]);
 
-  const weekendActif = Array.isArray(weekendSelection);
-  const matchsAffiches = weekendActif
-    ? matchs.filter((m) => weekendSelection.includes(civilDate(m.date_heure)))
-    : dateSelection
-      ? matchs.filter((m) => civilDate(m.date_heure) === dateSelection)
-      : matchs;
-  const lives = matchs.filter((m) => m.statut === "en_cours" && !m.ended_at);
-  const aVenir = matchsAffiches
-    .filter((m) => m.statut === "programme")
+  const affiches = useMemo(() => {
+    if (filtre === "avenir") return matchs.filter((match) => match.statut === "programme");
+    if (filtre === "termines") return matchs.filter((match) => ["termine", "valide"].includes(match.statut));
+    if (filtre === "direct") return matchs.filter((match) => match.statut === "en_cours" && !match.ended_at);
+    return matchs.filter((match) => ["programme", "en_cours", "termine", "valide"].includes(match.statut));
+  }, [filtre, matchs]);
+
+  const aVenir = [...affiches]
+    .filter((match) => match.statut === "programme")
     .sort((a, b) => new Date(a.date_heure) - new Date(b.date_heure));
-  const termines = matchsAffiches
-    .filter((m) => m.statut === "termine" || m.statut === "valide")
+  const lives = [...affiches]
+    .filter((match) => match.statut === "en_cours" && !match.ended_at)
+    .sort((a, b) => new Date(a.date_heure) - new Date(b.date_heure));
+  const termines = [...affiches]
+    .filter((match) => ["termine", "valide"].includes(match.statut))
     .sort((a, b) => new Date(b.date_heure) - new Date(a.date_heure));
-  const groupesAvenir = groupMatchsByJournee(aVenir);
   const groupesTermines = groupMatchsByJournee(termines);
-  const groupesWeekend = groupMatchsByDate(
-    matchsAffiches.filter((m) => ["programme", "termine", "valide"].includes(m.statut)),
-  );
-  const PHASES = [
-    ["quart", "Quarts de finale"],
-    ["demi", "Demi-finales"],
-    ["finale", "Finale"],
-  ];
-  const phases = PHASES.map(([code, titre]) => ({
-    code,
-    titre,
-    items: matchsAffiches
-      .filter((m) => m.phase === code)
-      .sort((a, b) => new Date(a.date_heure) - new Date(b.date_heure)),
-  })).filter((p) => p.items.length > 0);
-
-  function toutesLesDates() {
-    setDateSelection("");
-    setWeekendSelection(null);
-  }
-
-  function choisirDate(date) {
-    setDateSelection(date);
-    setWeekendSelection(null);
-  }
-
-  function choisirWeekEnd() {
-    setDateSelection("");
-    setWeekendSelection(datesDuWeekEnd());
-  }
+  const groupesAvenir = groupMatchsByJournee(aVenir);
 
   return (
-    <section className="hero">
-      <h1>Matchs</h1>
-      <div className="calendar-nav" aria-label="Navigation temporelle">
-        <button className={`btn${weekendActif ? " btn-primary" : ""}`} type="button" onClick={choisirWeekEnd}>
-          Ce week-end
-        </button>
-        <button className={`btn${!dateSelection && !weekendActif ? " btn-primary" : ""}`} type="button" onClick={toutesLesDates}>
-          Toutes les dates
-        </button>
-        <button className="btn" type="button" onClick={() => choisirDate(todayCivil())}>
-          Aujourd'hui
-        </button>
-        <button className="btn" type="button" onClick={() => choisirDate(addCivilDays(dateSelection || todayCivil(), 1))}>
-          Demain →
-        </button>
-        <label className="field calendar-date-field">
-          Date
-          <input
-            type="date"
-            value={dateSelection}
-            onChange={(event) => choisirDate(event.target.value)}
-          />
-        </label>
+    <section className="kf-public-page kf-public-matches">
+      <h1 className="screen-title">Matchs</h1>
+      <p className="screen-subtitle">{saison?.nom || "—"} · {matchs.length} résultats</p>
+
+      <div className="kf-public-tabs kf-public-match-tabs" role="tablist" aria-label="Filtrer les matchs">
+        {FILTRES.map(([value, label]) => (
+          <button
+            key={value}
+            type="button"
+            role="tab"
+            aria-selected={filtre === value}
+            className={filtre === value ? "active" : ""}
+            onClick={() => setFiltre(value)}
+          >
+            {label}
+          </button>
+        ))}
       </div>
-      {weekendActif && (
-        <p className="journee-date">
-          Week-end du {formatDateNavigation(weekendSelection[0])} au {formatDateNavigation(weekendSelection[1])}
-        </p>
+
+      {err && <p className="kf-public-error">{err}</p>}
+
+      {filtre === "direct" && lives.length === 0 && (
+        <div className="kf-public-empty"><strong>Aucun match en direct</strong></div>
       )}
-      {dateSelection && !weekendActif && (
-        <p className="journee-date">
-          Matchs du {formatDateNavigation(dateSelection)}
-        </p>
+      {lives.length > 0 && (
+        <section className="kf-public-match-section">
+          <div className="kf-public-group-label"><strong>En direct</strong><span>{lives.length} match{lives.length > 1 ? "s" : ""}</span></div>
+          <div className="kf-public-result-group">
+            {lives.map((match) => (
+              <PublicMatchCard
+                key={match.id}
+                match={match}
+                clubsById={clubsById}
+                saisonClubs={saisonClubs}
+                event={evtsById[match.id] || null}
+              />
+            ))}
+          </div>
+        </section>
       )}
 
-      {lives.map((m) => (
-        <LiveUne key={m.id} match={m} clubsById={clubsById} evt={evtsById[m.id] || null} />
-      ))}
-
-      {weekendActif ? (
-        <>
-          {groupesWeekend.length === 0 && <p className="empty">Aucun match publié ce week-end.</p>}
-          {groupesWeekend.map((g) => (
-            <div key={g.date} className="journee-block">
-              <p className="journee-date">{formatDateNavigation(g.date)}</p>
-              {g.items.map((m) => (
-                m.statut === "programme" ? (
-                  <AVenirLigne key={m.id} match={m} clubsById={clubsById} />
-                ) : (
-                  <TermineLigne key={m.id} match={m} clubsById={clubsById} />
-                )
-              ))}
-            </div>
-          ))}
-        </>
-      ) : (
-        <>
-          {phases.length > 0 && (
-            <div className="section-head">
-              <h2>Phase finale</h2>
-            </div>
+      {filtre !== "termines" && filtre !== "direct" && (
+        <section className="kf-public-match-section">
+          <div className="kf-public-group-label"><strong>À venir</strong><span>{aVenir.length} match{aVenir.length > 1 ? "s" : ""}</span></div>
+          {groupesAvenir.length === 0 ? (
+            <div className="kf-public-empty"><strong>Aucun match programmé</strong></div>
+          ) : (
+            groupesAvenir.map((groupe) => (
+              <GroupeMatchs key={groupe.code} groupe={groupe} clubsById={clubsById} saisonClubs={saisonClubs} evtsById={evtsById} />
+            ))
           )}
-          {phases.map((p) => (
-            <div key={p.code} className="journee-block">
-              <p className="journee-date">{p.titre}</p>
-              {p.items.map((m) =>
-                m.statut === "programme" ? (
-                  <AVenirLigne key={m.id} match={m} clubsById={clubsById} />
-                ) : (
-                  <TermineLigne key={m.id} match={m} clubsById={clubsById} />
-                ),
-              )}
-            </div>
-          ))}
+        </section>
+      )}
 
-          <div className="section-head">
-            <h2>À venir</h2>
-          </div>
-          {aVenir.length === 0 && <p className="empty">Pas de match programmé.</p>}
-          {groupesAvenir.map((g) => (
-            <div key={g.code} className="journee-block">
-              <p className="journee-date">{journeeTitre(g.code)}</p>
-              {g.items.map((m) => (
-                <AVenirLigne key={m.id} match={m} clubsById={clubsById} />
+      {filtre !== "avenir" && filtre !== "direct" && (
+        <section className="kf-public-match-section">
+          <div className="kf-public-group-label"><strong>Terminés</strong><span>{termines.length} résultats</span></div>
+          {groupesTermines.length === 0 ? (
+            <div className="kf-public-empty"><strong>Pas encore de résultat public</strong></div>
+          ) : (
+            <>
+              <p className="kf-public-official-summary">Résultats officiels</p>
+              {groupesTermines.map((groupe) => (
+                <GroupeMatchs key={groupe.code} groupe={groupe} clubsById={clubsById} saisonClubs={saisonClubs} evtsById={evtsById} />
               ))}
-            </div>
-          ))}
+            </>
+          )}
+        </section>
+      )}
 
-          <div className="section-head">
-            <h2>Terminés</h2>
-          </div>
-          {termines.length === 0 && <p className="empty">Pas encore de résultat public.</p>}
-          {groupesTermines.map((g) => (
-            <div key={g.code} className="journee-block">
-              <p className="journee-date">{journeeTitre(g.code)}</p>
-              {g.items.map((m) => (
-                <TermineLigne key={m.id} match={m} clubsById={clubsById} />
-              ))}
-            </div>
-          ))}
-        </>
+      {affiches.length === 0 && !err && filtre !== "direct" && (
+        <div className="kf-public-empty"><strong>Aucun match à afficher</strong></div>
       )}
     </section>
   );
