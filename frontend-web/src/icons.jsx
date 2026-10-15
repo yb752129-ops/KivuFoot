@@ -1,7 +1,8 @@
+import { useId } from "react";
+
 /** Langage visuel KivuFoot — pack icons-v2 (8 sept 2026).
- *  Glyphes d’événements PLEINS, standard LiveScore validé par Yves le 8 sept 09:15.
- *  Remplacement = formule SofaScore (flèche rouge sort, flèche verte entre).
- *  Aucun VAR. Nav/UI restent en traits jusqu’au pack portes (13–14 sept).
+ *  Événements publics : dessin SVG standard validé, badges proportionnels,
+ *  et crampon bas incliné pour les passes décisives.
  */
 
 const plein = {
@@ -10,60 +11,107 @@ const plein = {
   "aria-hidden": "true",
 };
 
-const styleFait = { width: "1.25rem", height: "1.25rem", display: "block", flexShrink: 0 };
+const styleFait = (size = 18) => ({
+  width: `${size}px`,
+  height: `${size}px`,
+  display: "block",
+  flexShrink: 0,
+  overflow: "visible",
+});
 
-/** Ballon plein : cercle noir, pentagone et encoches blanches. */
-export function Ballon({ className }) {
+function useBallonClipId() {
+  const raw = useId();
+  return `kf-ballon-clip-${raw.replace(/[^a-zA-Z0-9_-]/g, "")}`;
+}
+
+/** Ballon standard : cercle blanc r=11, clip r=10.6, six pentagones et traits #101612. */
+function BallonDessin({ clipId }) {
   return (
-    <svg {...plein} className={className} style={styleFait} fillRule="nonzero">
-      <path d="M2.00,12.00 a10.00,10.00 0 1,1 20.00,0 a10.00,10.00 0 1,1 -20.00,0 Z M8.58,10.89 L9.88,14.91 L14.12,14.91 L15.42,10.89 L12.00,8.40 Z M15.97,3.51 a2.20,2.20 0 1,0 4.40,0 a2.20,2.20 0 1,0 -4.40,0 Z M19.79,15.24 a2.20,2.20 0 1,0 4.40,0 a2.20,2.20 0 1,0 -4.40,0 Z M9.80,22.50 a2.20,2.20 0 1,0 4.40,0 a2.20,2.20 0 1,0 -4.40,0 Z M-0.19,15.24 a2.20,2.20 0 1,0 4.40,0 a2.20,2.20 0 1,0 -4.40,0 Z M3.63,3.51 a2.20,2.20 0 1,0 4.40,0 a2.20,2.20 0 1,0 -4.40,0 Z" />
+    <>
+      <defs>
+        <clipPath id={clipId}><circle cx="12" cy="12" r="10.6" /></clipPath>
+      </defs>
+      <circle cx="12" cy="12" r="11" fill="#fff" />
+      <g clipPath={`url(#${clipId})`} fill="#101612">
+        <polygon points="12.0,8.7 15.1,11.0 13.9,14.7 10.1,14.7 8.9,11.0" />
+        <polygon points="12.0,4.0 7.9,1.0 9.5,-3.8 14.5,-3.8 16.1,1.0" />
+        <polygon points="19.6,9.5 21.2,4.7 26.2,4.7 27.8,9.5 23.7,12.5" />
+        <polygon points="16.7,18.5 21.8,18.5 23.3,23.3 19.2,26.3 15.1,23.3" />
+        <polygon points="7.3,18.5 8.9,23.3 4.8,26.3 0.7,23.3 2.2,18.5" />
+        <polygon points="4.4,9.5 0.3,12.5 -3.8,9.5 -2.2,4.7 2.8,4.7" />
+      </g>
+      <g clipPath={`url(#${clipId})`} fill="none" stroke="#101612" strokeWidth="0.9" strokeLinecap="round">
+        <line x1="12.0" y1="8.7" x2="12.0" y2="4.0" />
+        <line x1="15.1" y1="11.0" x2="19.6" y2="9.5" />
+        <line x1="13.9" y1="14.7" x2="16.7" y2="18.5" />
+        <line x1="10.1" y1="14.7" x2="7.3" y2="18.5" />
+        <line x1="8.9" y1="11.0" x2="4.4" y2="9.5" />
+      </g>
+      <circle cx="12" cy="12" r="10.6" fill="none" stroke="#101612" strokeWidth="0.8" />
+    </>
+  );
+}
+
+export function Ballon({ className, size = 18 }) {
+  const clipId = useBallonClipId();
+  return (
+    <svg viewBox="0 0 24 24" className={className} style={styleFait(size)} aria-hidden="true" focusable="false">
+      <BallonDessin clipId={clipId} />
     </svg>
   );
 }
 
-/** Crampon plein de profil : tige, pointe, semelle. */
-export function Botte({ className }) {
+function BallonBadge({ className, size = 18, couleur, marque }) {
+  const clipId = useBallonClipId();
+  const scored = marque === "check";
   return (
-    <svg {...plein} className={className} fillRule="nonzero"
-      style={{ width: "1.35rem", height: "1.35rem", verticalAlign: "middle", marginRight: "0.4rem", flexShrink: 0, display: "inline-block" }}>
-      <path d="M8.0,2.8 h6.2 v6.4 c0,0.9 0.4,1.5 1.2,1.9 l3.6,1.8 c1.5,0.7 2.3,1.9 2.3,3.4 v1.9 H5.8 v-7.6 c0,-1.1 0.4,-1.9 1.1,-2.6 l1.1,-1.1 Z" />
+    <svg viewBox="0 0 25 25" className={className} style={styleFait(size)} overflow="visible" aria-hidden="true" focusable="false">
+      <BallonDessin clipId={clipId} />
+      <g>
+        <circle cx="19.6" cy="19.6" r="4.9" fill={couleur} stroke="#0b1410" strokeWidth="1.6" />
+        {scored ? (
+          <path d="M17.3 19.7 L19.1 21.5 L22 17.8" stroke="#fff" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+        ) : (
+          <path d="M17.6 17.6 L21.6 21.6 M21.6 17.6 L17.6 21.6" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" />
+        )}
+      </g>
     </svg>
   );
 }
 
-/** But contre son camp : ballon cerclé. */
-export function IcoCsc({ className }) {
+/** Crampon bas incliné exact, sans tige montante. */
+export function Botte({ className, size = 14 }) {
   return (
-    <svg {...plein} className={className} style={styleFait} fillRule="nonzero">
-      <path d="M1.00,12.00 a11.00,11.00 0 1,1 22.00,0 a11.00,11.00 0 1,1 -22.00,0 Z M5.00,12.00 a7.00,7.00 0 1,1 14.00,0 a7.00,7.00 0 1,1 -14.00,0 Z M3.40,12.00 a8.60,8.60 0 1,0 17.20,0 a8.60,8.60 0 1,0 -17.20,0 Z M9.72,11.26 L10.59,13.94 L13.41,13.94 L14.28,11.26 L12.00,9.60 Z" />
+    <svg viewBox="0 0 24 24" className={className} width={size} height={size} fill="none" aria-hidden="true" focusable="false" style={{ width: `${size}px`, height: `${size}px`, verticalAlign: "middle", flexShrink: 0, display: "inline-block" }}>
+      <g transform="rotate(-14 12 12)">
+        <path d="M2.4 10.6 C2.4 9.5 3.3 8.9 4.3 9.2 L7.8 10.2 C8.7 10.5 9.4 11.2 10.4 11.7 C12.5 12.7 14.8 12.9 17 13.7 C19.9 14.7 22 15.4 22 17 V17.4 H2.4 Z" fill="#B9C3BE" />
+        <path d="M2.4 18.1 H22 V19 H2.4 Z" fill="#B9C3BE" />
+        <path d="M4 19 h2 l-.5 2.4 h-1 z M8.2 19 h2 l-.4 2.4 h-1 z M14.4 19 h2 l-.4 2.4 h-1 z M18.8 19 h2 l-.5 2.4 h-1 z" fill="#B9C3BE" />
+        <path d="M10.6 11.9 l1.3 -1.6 M12.7 12.7 l1.3 -1.6 M14.8 13.2 l1.3 -1.5" stroke="#0b1410" strokeWidth="1" strokeLinecap="round" />
+      </g>
     </svg>
   );
 }
 
-/** But refusé / penalty raté : ballon + badge croix. Jamais de mention VAR. */
-export function IcoRefuse({ className }) {
-  return (
-    <svg {...plein} className={className} style={styleFait} fillRule="nonzero">
-      <path d="M2.00,12.00 a10.00,10.00 0 1,1 20.00,0 a10.00,10.00 0 1,1 -20.00,0 Z M8.58,10.89 L9.88,14.91 L14.12,14.91 L15.42,10.89 L12.00,8.40 Z M15.97,3.51 a2.20,2.20 0 1,0 4.40,0 a2.20,2.20 0 1,0 -4.40,0 Z M19.79,15.24 a2.20,2.20 0 1,0 4.40,0 a2.20,2.20 0 1,0 -4.40,0 Z M9.80,22.50 a2.20,2.20 0 1,0 4.40,0 a2.20,2.20 0 1,0 -4.40,0 Z M-0.19,15.24 a2.20,2.20 0 1,0 4.40,0 a2.20,2.20 0 1,0 -4.40,0 Z M3.63,3.51 a2.20,2.20 0 1,0 4.40,0 a2.20,2.20 0 1,0 -4.40,0 Z" />
-      <circle cx="17.2" cy="17.2" r="5.15" fill="var(--paper, #f3efe4)" stroke="currentColor" strokeWidth="1.2" />
-      <path d="m14.9 14.9 4.6 4.6m0-4.6-4.6 4.6" fill="none" stroke="var(--err, #b84b42)" strokeWidth="2" strokeLinecap="round" />
-    </svg>
-  );
+/** CSC : même ballon standard ; le suffixe « csc » est porté par le texte. */
+export function IcoCsc({ className, size = 18 }) {
+  return <Ballon className={className} size={size} />;
 }
 
-/** Penalty : ballon posé sur son point. */
-export function IcoPenalty({ className }) {
-  return (
-    <svg {...plein} className={className} style={styleFait} fillRule="nonzero">
-      <path d="M4.40,9.60 a7.60,7.60 0 1,1 15.20,0 a7.60,7.60 0 1,1 -15.20,0 Z M8.20,18.60 h7.60 v2.20 h-7.60 Z M9.43,8.77 L10.41,11.78 L13.59,11.78 L14.57,8.77 L12.00,6.90 Z M14.90,3.13 a1.80,1.80 0 1,0 3.60,0 a1.80,1.80 0 1,0 -3.60,0 Z M17.81,12.07 a1.80,1.80 0 1,0 3.60,0 a1.80,1.80 0 1,0 -3.60,0 Z M10.20,17.60 a1.80,1.80 0 1,0 3.60,0 a1.80,1.80 0 1,0 -3.60,0 Z M2.59,12.07 a1.80,1.80 0 1,0 3.60,0 a1.80,1.80 0 1,0 -3.60,0 Z M5.50,3.13 a1.80,1.80 0 1,0 3.60,0 a1.80,1.80 0 1,0 -3.60,0 Z" />
-    </svg>
-  );
+/** Penalty raté : ballon standard noir et blanc + badge rouge exact. */
+export function IcoRefuse({ className, size = 18 }) {
+  return <BallonBadge className={className} size={size} couleur="#E5484D" marque="cross" />;
+}
+
+/** Penalty marqué : ballon standard noir et blanc + badge vert exact. */
+export function IcoPenalty({ className, size = 18 }) {
+  return <BallonBadge className={className} size={size} couleur="#22C55E" marque="check" />;
 }
 
 /** Remplacement, formule SofaScore : flèche rouge sort, flèche verte entre. */
 export function IcoRemplacement({ className }) {
   return (
-    <svg viewBox="0 0 24 24" className={className} style={styleFait} aria-hidden="true">
+    <svg viewBox="0 0 24 24" className={className} style={styleFait(18)} aria-hidden="true">
       <path d="M9.00,6.30 h10.60 v2.60 h-10.60 Z M9.40,4.20 L9.40,11.00 L4.20,7.60 Z" fill="#EF4444" />
       <path d="M4.40,15.10 h10.60 v2.60 h-10.60 Z M14.60,13.00 L14.60,19.80 L19.80,16.40 Z" fill="#10B981" />
     </svg>

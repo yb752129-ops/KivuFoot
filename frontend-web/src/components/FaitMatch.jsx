@@ -1,20 +1,17 @@
-import { Ballon, Botte, Carton, FlecheIn, FlecheOut, IcoRefuse } from "../icons.jsx";
+import { Ballon, Botte, Carton, FlecheIn, FlecheOut, IcoPenalty, IcoRefuse } from "../icons.jsx";
 import { formatMinute, labelEvenement, MOTIF_REFUS } from "../display.js";
+
+function penaltyRate(e) {
+  return e.type === "penalty" && (e.resultat === "rate" || e.resultat === "raté");
+}
 
 function Ico({ e }) {
   if (e.type === "carton_jaune") return <Carton couleur="jaune" />;
   if (e.type === "carton_rouge") return <Carton couleur="rouge" />;
-  const ballon = e.type === "but" || e.type === "but_contre_son_camp"
-    || (e.type === "penalty" && e.resultat !== "rate" && e.resultat !== "raté");
-  if (ballon) {
-    return (
-      <span className="feuille-ballon-wrap">
-        <Ballon className="fait-ballon" />
-        {e.refuse && <span className="fait-rate" aria-hidden="true">×</span>}
-      </span>
-    );
-  }
-  if (e.type === "penalty") return <IcoRefuse className="fait-ballon" />;
+  if (e.type === "remplacement") return null;
+  if (e.refuse || penaltyRate(e)) return <IcoRefuse className="fait-ballon" size={18} />;
+  if (e.type === "penalty") return <IcoPenalty className="fait-ballon" size={18} />;
+  if (e.type === "but" || e.type === "but_contre_son_camp") return <Ballon className="fait-ballon" size={18} />;
   return null;
 }
 
@@ -24,16 +21,17 @@ export default function FaitMatch({ e, nom, children }) {
   const joueur = nom(e.joueur_id);
   const second = e.joueur_secondaire_id ? nom(e.joueur_secondaire_id) : "";
   const motif = MOTIF_REFUS[e.motif_refus] || e.motif_refus;
-  const penaltyRate = e.type === "penalty" && (e.resultat === "rate" || e.resultat === "raté");
   const sub = e.type === "remplacement";
+  const csc = e.type === "but_contre_son_camp";
+  const penalty = e.type === "penalty";
   const assist = !refuse && e.type === "but" && second;
   const deuxJaune = e.type === "carton_rouge" && e.source === "deuxieme_jaune";
 
-  const libelle = penaltyRate
+  const libelle = penaltyRate(e)
     ? "Penalty raté"
-    : e.type === "penalty"
+    : penalty
       ? "Penalty"
-      : e.type === "but_contre_son_camp"
+      : csc
         ? "CSC"
         : deuxJaune
           ? "Rouge (2e jaune)"
@@ -55,6 +53,18 @@ export default function FaitMatch({ e, nom, children }) {
               <FlecheOut className="fait-fleche" /> {joueur || "Sortant"}
             </span>
           </p>
+        ) : csc ? (
+          <p className="fait-ligne fait-csc-ligne">
+            <span className="fait-csc-copy">
+              <span className="fait-nom">{joueur}</span>
+              <span className="fait-csc-suffix">csc</span>
+            </span>
+          </p>
+        ) : penalty ? (
+          <p className="fait-ligne fait-stacked">
+            <span className="fait-tag">{libelle}</span>
+            <span className="fait-nom">{joueur}</span>
+          </p>
         ) : (
           <p className="fait-ligne">
             {libelle && libelle !== "But" && <span className="fait-tag">{libelle}</span>}
@@ -63,13 +73,13 @@ export default function FaitMatch({ e, nom, children }) {
         )}
         {assist && (
           <p className="fait-assist">
-            <Botte className="fait-botte" />
-            {second}
+            <Botte className="fait-botte" size={14} />
+            <span>{second}</span>
           </p>
         )}
         {refuse && (
           <p className="fait-refus">
-            {e.type === "penalty" ? "Penalty refusé" : "But refusé"}
+            {penalty ? "Penalty refusé" : "But refusé"}
             {motif ? ` [${motif}]` : ""}
           </p>
         )}
