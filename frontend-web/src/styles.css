@@ -4726,34 +4726,34 @@ html[data-theme="dark"] .feuille-remplacements {
 .kf-public-match-card {
   position: relative;
   display: grid;
-  gap: 11px;
+  gap: 8px;
   min-width: 0;
-  padding: 14px 14px 13px 17px;
+  padding: 11px 12px 10px 15px;
   overflow: hidden;
   border: 1px solid var(--kf-line);
-  border-radius: 14px;
+  border-radius: 12px;
   background: rgba(19,40,32,.88);
   color: inherit;
 }
-.kf-public-match-card::before { content: ""; position: absolute; inset: 9px auto 9px 0; width: 3px; border-radius: 99px; background: var(--kf-card-halo, var(--kf-accent)); box-shadow: 0 0 16px var(--kf-card-halo, var(--kf-accent)); }
+.kf-public-match-card::before { content: ""; position: absolute; inset: 8px auto 8px 0; width: 3px; border-radius: 99px; background: var(--kf-card-halo, var(--kf-accent)); box-shadow: 0 0 14px var(--kf-card-halo, var(--kf-accent)); }
 .kf-public-match-card.halo-blue { --kf-card-halo: rgba(244,239,227,.65); }
 .kf-public-match-card.halo-gold { --kf-card-halo: rgba(200,240,74,.64); }
 .kf-public-match-card.halo-accent { --kf-card-halo: var(--kf-accent); }
 .kf-public-match-card.halo-live { --kf-card-halo: var(--kf-live); border-color: rgba(255,91,88,.35); }
 .kf-public-match-top, .kf-public-match-bottom { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.kf-public-match-top { color: var(--kf-ink-soft); font-size: 12px; }
-.kf-public-match-status { color: var(--kf-ink-soft); font-size: 11px; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; }
+.kf-public-match-top { color: var(--kf-ink-soft); font-size: 11px; }
+.kf-public-match-status { color: var(--kf-ink-soft); font-size: 10px; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; }
 .kf-public-match-card.halo-live .kf-public-match-status { color: var(--kf-live); }
-.kf-public-match-teams { display: grid; grid-template-columns: minmax(0,1fr) auto minmax(0,1fr); align-items: center; gap: 4px; }
-.kf-public-match-team { display: flex; flex-direction: column; align-items: center; gap: 5px; min-width: 0; text-align: center; }
-.kf-public-match-team.away { text-align: center; }
-.kf-public-match-team .club-logo { width: 36px; height: 36px; flex: 0 0 auto; object-fit: contain; border-radius: 50%; background: #08110d; }
-.kf-public-match-team .club-logo-missing { display: grid; place-items: center; color: var(--kf-ink-dim); font-size: 12px; }
-.kf-public-match-team strong { min-width: 0; max-width: 100%; overflow-wrap: anywhere; color: var(--kf-paper); font-size: 15px; font-weight: 850; line-height: 1.1; }
+.kf-public-match-teams { display: grid; grid-template-columns: minmax(0,1fr) auto minmax(0,1fr); align-items: center; gap: 8px; }
+.kf-public-match-team { display: flex; flex-direction: row; align-items: center; gap: 7px; min-width: 0; text-align: left; }
+.kf-public-match-team.away { flex-direction: row-reverse; text-align: right; }
+.kf-public-match-team .club-logo { width: 30px; height: 30px; flex: 0 0 auto; object-fit: contain; border-radius: 50%; background: #08110d; }
+.kf-public-match-team .club-logo-missing { display: grid; place-items: center; color: var(--kf-ink-dim); font-size: 11px; }
+.kf-public-match-team strong { min-width: 0; max-width: 100%; overflow-wrap: anywhere; color: var(--kf-paper); font-size: 13px; font-weight: 850; line-height: 1.1; }
 .kf-public-match-team.winner strong { font-weight: 950; color: var(--kf-paper); }
-.kf-public-match-score { min-width: 60px; color: var(--kf-paper); font-size: 30px; font-weight: 950; letter-spacing: -.06em; text-align: center; }
-.kf-public-match-kickoff { margin: -3px 0 0; color: var(--kf-accent); font-size: 12px; font-weight: 800; text-align: center; }
-.kf-public-match-bottom { color: var(--kf-ink-dim); font-size: 12px; }
+.kf-public-match-score { min-width: 46px; color: var(--kf-paper); font-size: 25px; font-weight: 950; letter-spacing: -.06em; text-align: center; }
+.kf-public-match-kickoff { margin: -1px 0 0; color: var(--kf-accent); font-size: 12px; font-weight: 800; text-align: center; }
+.kf-public-match-bottom { color: var(--kf-ink-dim); font-size: 11px; }
 .kf-public-match-bottom span { display: inline-flex; align-items: center; gap: 4px; min-width: 0; }
 .kf-public-match-bottom span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .kf-public-match-bottom svg { width: 13px; height: 13px; flex: 0 0 auto; }
@@ -5691,6 +5691,11 @@ body,
 }
 .kf-home-card-score i { color: var(--kf-ink-soft); font-style: normal; font-size: 21px; }
 .kf-home-card-score .winner { color: var(--kf-paper); }
+.kf-home-result-card { gap: 9px; padding: 12px 13px; border-radius: 13px; }
+.kf-home-result-card .kf-home-team { font-size: 12px; }
+.kf-home-result-card .kf-home-team .club-logo,
+.kf-home-result-card .kf-home-team .club-logo-missing { width: 32px; height: 32px; flex-basis: 32px; }
+.kf-home-result-card .kf-home-card-score { font-size: 26px; }
 .kf-home-match-meta {
   display: flex;
   flex-wrap: wrap;
@@ -5700,7 +5705,11 @@ body,
 }
 .kf-home-match-meta span { display: inline-flex; align-items: center; gap: 4px; min-width: 0; }
 .kf-home-match-meta svg { width: 13px; height: 13px; flex: 0 0 auto; }
-.kf-home-upcoming-card { border-color: rgba(200,240,74,.3); }
+.kf-home-upcoming-list { display: grid; gap: 8px; }
+.kf-home-upcoming-card { gap: 9px; padding: 12px 13px; border-color: rgba(200,240,74,.3); border-radius: 13px; }
+.kf-home-upcoming-card .kf-home-team { font-size: 12px; }
+.kf-home-upcoming-card .kf-home-team .club-logo,
+.kf-home-upcoming-card .kf-home-team .club-logo-missing { width: 32px; height: 32px; flex-basis: 32px; }
 .kf-home-upcoming-title {
   display: grid;
   grid-template-columns: minmax(0,1fr) auto minmax(0,1fr);

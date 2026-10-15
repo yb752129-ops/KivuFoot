@@ -118,7 +118,7 @@ function HomeMatchMeta({ match }) {
     <div className="kf-home-match-meta">
       <span><IcoCalendrier /> {date}</span>
       <span><IcoEpingle /> {match.stade || "—"}</span>
-      <span>{formatPublicRound(match.journee)}</span>
+      {scorePublicVisible(match) && <span>{formatPublicRound(match.journee)}</span>}
     </div>
   );
 }
@@ -420,18 +420,16 @@ export default function Home() {
 
   return (
     <section className="kf-home-page" aria-label="Accueil">
-      <section className="kf-home-live-section" aria-labelledby="home-live-title">
-        <div className="kf-home-section-head">
-          <h2 id="home-live-title">LIVE</h2>
-        </div>
-        {lives.length === 0 ? (
-          <p className="kf-home-empty">Aucun match en direct</p>
-        ) : (
+      {lives.length > 0 && (
+        <section className="kf-home-live-section" aria-labelledby="home-live-title">
+          <div className="kf-home-section-head">
+            <h2 id="home-live-title">LIVE</h2>
+          </div>
           <div className="kf-home-live-list">
             {lives.map((match) => <HomeLiveCard key={match.id} match={match} clubsById={clubsById} saisonClubs={saisonClubs} event={evtsById[match.id] || null} />)}
           </div>
-        )}
-      </section>
+        </section>
+      )}
 
       <section className="kf-home-section" aria-labelledby="home-result-title">
         <div className="kf-home-section-head">
@@ -443,9 +441,21 @@ export default function Home() {
 
       <section className="kf-home-section" aria-labelledby="home-next-title">
         <div className="kf-home-section-head">
-          <h2 id="home-next-title">Prochain match</h2>
+          <div>
+            <h2 id="home-next-title">Prochains matchs</h2>
+            <p>Les prochaines affiches de l’édition active</p>
+          </div>
+          <Link to="/matchs">Tout voir <span aria-hidden="true">→</span></Link>
         </div>
-        {programmes[0] ? <HomeUpcomingCard match={programmes[0]} clubsById={clubsById} saisonClubs={saisonClubs} /> : <p className="kf-home-empty">Aucun match programmé pour le moment</p>}
+        {programmes.length === 0 ? (
+          <p className="kf-home-empty">Aucun match programmé pour le moment</p>
+        ) : (
+          <div className="kf-home-upcoming-list">
+            {programmes.slice(0, 3).map((match) => (
+              <HomeUpcomingCard key={match.id} match={match} clubsById={clubsById} saisonClubs={saisonClubs} />
+            ))}
+          </div>
+        )}
       </section>
 
       <section className="kf-home-section kf-home-day-schedule" aria-labelledby="home-day-title">

@@ -79,7 +79,7 @@ function PublicMatchCard({ match, clubsById, saisonClubs, event }) {
       )}
       <div className="kf-public-match-bottom">
         <span><IcoEpingle /> {match.stade || "—"}</span>
-        <span><IcoCalendrier /> {formatPublicRound(match.journee)}</span>
+        {!upcoming && <span><IcoCalendrier /> {formatPublicRound(match.journee)}</span>}
       </div>
       {official && <span className="kf-public-official-note">Résultat officiel</span>}
     </Link>
