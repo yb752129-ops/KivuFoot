@@ -8,9 +8,11 @@ import {
   findPublicClub,
   formatPublicDate,
   formatPublicDay,
+  formatPublicKickoff,
   formatPublicRound,
   formatPublicScore,
   numericValue,
+  scorePublicVisible,
   PublicClubLogo,
   publicClubName,
 } from "../components/PublicDesign.jsx";
@@ -24,10 +26,10 @@ const FILTRES = [
 ];
 
 function statutLabel(statut) {
-  if (statut === "programme") return "À venir";
+  if (statut === "programme") return "À VENIR";
   if (statut === "en_cours") return "En direct";
   if (statut === "termine" || statut === "valide") return "Résultat";
-  return "—";
+  return "À VENIR";
 }
 
 function classeHalo(match) {
@@ -37,7 +39,7 @@ function classeHalo(match) {
 }
 
 function scoreWinners(match) {
-  if (match.statut === "programme") return { home: false, away: false };
+  if (!scorePublicVisible(match)) return { home: false, away: false };
   const home = numericValue(match.score_domicile);
   const away = numericValue(match.score_exterieur);
   if (home === null || away === null || home === away) return { home: false, away: false };
@@ -50,12 +52,13 @@ function PublicMatchCard({ match, clubsById, saisonClubs, event }) {
   const homeName = publicClubName(clubsById, saisonClubs, match.equipe_domicile_id);
   const awayName = publicClubName(clubsById, saisonClubs, match.equipe_exterieur_id);
   const winners = scoreWinners(match);
+  const upcoming = !scorePublicVisible(match);
   const official = match.statut === "valide";
   return (
     <Link to={`/matchs/${match.id}`} className={`kf-public-match-card ${classeHalo(match)}`}>
       <div className="kf-public-match-top">
         <span className="kf-public-match-status">{statutLabel(match.statut)}</span>
-        <span>{formatPublicDate(match.date_heure)}</span>
+        <span>{upcoming ? formatPublicRound(match.journee) : formatPublicDate(match.date_heure)}</span>
       </div>
       <div className="kf-public-match-teams">
         <span className={`kf-public-match-team${winners.home ? " winner" : ""}`}>
@@ -68,6 +71,7 @@ function PublicMatchCard({ match, clubsById, saisonClubs, event }) {
           <strong>{awayName}</strong>
         </span>
       </div>
+      {upcoming && <p className="kf-public-match-kickoff">{formatPublicKickoff(match.date_heure)}</p>}
       {event && (
         <p className="kf-public-live-event">
           {formatMinute(event.minute, event.minute_additionnelle)} · {labelEvenement(event)}

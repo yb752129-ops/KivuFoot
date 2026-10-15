@@ -1,4 +1,5 @@
 import { Ballon, Botte, Carton, IcoCsc, IcoPenalty, IcoRefuse, IcoRemplacement, IcoSifflet } from "../icons.jsx";
+import { scorePublicVisible } from "./PublicDesign.jsx";
 import { estPeriodeUn, formatMinute, labelEvenement, MOTIF_REFUS } from "../display.js";
 
 function Ico({ e }) {
@@ -81,6 +82,10 @@ export default function FeuilleApercu({ faits, nom, match }) {
         </li>
       );
     });
+  }
+
+  if (!scorePublicVisible(match)) {
+    return <p className="empty">Le match n'a pas encore commencé.</p>;
   }
 
   if (!chrono.length && !montreHt && !montreFin && !montreCoup) {

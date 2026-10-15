@@ -17,6 +17,12 @@ export function numericValue(value) {
   return Number.isFinite(number) ? number : null;
 }
 
+export const PUBLIC_SCORE_STATUSES = ["en_cours", "termine", "valide"];
+
+export function scorePublicVisible(match) {
+  return PUBLIC_SCORE_STATUSES.includes(match?.statut);
+}
+
 export function compareClassementRows(a, b) {
   for (const [leftKey, rightKey] of [
     ["points", "points"],
@@ -76,6 +82,25 @@ export function formatPublicDate(iso) {
   }).format(date);
 }
 
+export function formatPublicKickoff(iso) {
+  if (!iso || !/[T ]\d{2}:\d{2}/.test(String(iso))) return "Heure à confirmer";
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "Heure à confirmer";
+  const jour = new Intl.DateTimeFormat("fr-FR", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    timeZone: TZ_SUD_KIVU,
+  }).format(date);
+  const heure = new Intl.DateTimeFormat("fr-FR", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone: TZ_SUD_KIVU,
+  }).format(date);
+  return `${jour} · ${heure}`;
+}
+
 export function formatPublicDay(iso) {
   if (!iso) return "—";
   const date = new Date(iso);
@@ -92,6 +117,6 @@ export function formatPublicRound(value) {
 }
 
 export function formatPublicScore(match) {
-  if (match?.statut === "programme") return "—";
+  if (!scorePublicVisible(match)) return "—";
   return `${displayValue(match?.score_domicile)}–${displayValue(match?.score_exterieur)}`;
 }

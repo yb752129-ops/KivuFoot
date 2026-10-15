@@ -6,6 +6,7 @@ import Scoreboard from "../components/Scoreboard.jsx";
 import FeuilleApercu from "../components/FeuilleApercu.jsx";
 import FeuilleMatch from "../components/FeuilleMatch.jsx";
 import { LiveUne } from "../components/LignesMatch.jsx";
+import { scorePublicVisible } from "../components/PublicDesign.jsx";
 import { dernierFaitLive, formatJour, grouperFaits, journeeTitre, statsDesFaits, stripDemo } from "../display.js";
 
 const ONGLETS = [
@@ -13,6 +14,17 @@ const ONGLETS = [
   { id: "stats", label: "Statistiques" },
   { id: "compo", label: "Compositions" },
 ];
+
+function compositionPubliee(compo) {
+  if (!compo) return false;
+  return [compo.domicile, compo.exterieur].some((bloc) => (
+    bloc
+    && (bloc.formation
+      || bloc.staff?.nom_complet
+      || (Array.isArray(bloc.titulaires) && bloc.titulaires.length > 0)
+      || (Array.isArray(bloc.banc) && bloc.banc.length > 0))
+  ));
+}
 
 export default function MatchDetail() {
   const { id } = useParams();
@@ -102,6 +114,8 @@ export default function MatchDetail() {
   const nom = (jid) => joueurs[jid]?.nom_complet || "à compléter";
   const faits = grouperFaits(evts);
   const stats = statsDesFaits(evts);
+  const scoreVisible = scorePublicVisible(match);
+  const compositionVisible = compositionPubliee(compo);
   const dernier = faits[faits.length - 1] || null;
   const possessionLive = Boolean(possession?.disponible && possession?.est_live);
   const possessionOfficielle = possession?.disponible && possession?.statut === "OFFICIELLE";
@@ -178,7 +192,8 @@ export default function MatchDetail() {
       )}
 
       {onglet === "stats" && (
-        <>
+        scoreVisible ? (
+          <>
           <table className="table stats-feuille table-accueil">
           <thead>
             <tr>
@@ -248,12 +263,19 @@ export default function MatchDetail() {
             </>
           )}
         </section>
-        </>
+          </>
+        ) : (
+          <p className="empty">Les statistiques seront disponibles après le coup d'envoi.</p>
+        )
       )}
 
       {onglet === "compo" && (
         <>
-          <FeuilleMatch compo={compo} logos={{ domicile: home?.logo_url, exterieur: away?.logo_url }} />
+          {compositionVisible ? (
+            <FeuilleMatch compo={compo} logos={{ domicile: home?.logo_url, exterieur: away?.logo_url }} />
+          ) : (
+            <p className="empty">Compositions pas encore publiées.</p>
+          )}
           {moi && moi.club_id && moi.club_id === match.equipe_domicile_id || moi && moi.club_id && moi.club_id === match.equipe_exterieur_id ? (
             <Link className="feuille-lien-editeur" to={`/club/matchs/${id}/composition`}>Préparer la feuille de mon équipe</Link>
           ) : null}

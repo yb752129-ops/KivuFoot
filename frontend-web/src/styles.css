@@ -4752,6 +4752,7 @@ html[data-theme="dark"] .feuille-remplacements {
 .kf-public-match-team strong { min-width: 0; max-width: 100%; overflow-wrap: anywhere; color: var(--kf-paper); font-size: 15px; font-weight: 850; line-height: 1.1; }
 .kf-public-match-team.winner strong { font-weight: 950; color: var(--kf-paper); }
 .kf-public-match-score { min-width: 60px; color: var(--kf-paper); font-size: 30px; font-weight: 950; letter-spacing: -.06em; text-align: center; }
+.kf-public-match-kickoff { margin: -3px 0 0; color: var(--kf-accent); font-size: 12px; font-weight: 800; text-align: center; }
 .kf-public-match-bottom { color: var(--kf-ink-dim); font-size: 12px; }
 .kf-public-match-bottom span { display: inline-flex; align-items: center; gap: 4px; min-width: 0; }
 .kf-public-match-bottom span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -4860,6 +4861,8 @@ html[data-theme="dark"] .feuille-remplacements {
   font-size: 12px;
   font-weight: 850;
 }
+.kf-public-frame .sb-meta-upcoming { color: var(--kf-accent); }
+.kf-public-frame .sb-meta-lieu { color: var(--kf-ink-soft); }
 
 .kf-public-frame .jour-nav { color: var(--kf-paper); }
 .kf-public-frame .jour-nav button { color: var(--kf-ink-soft); }

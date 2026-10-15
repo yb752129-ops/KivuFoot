@@ -19,8 +19,10 @@ import {
   followedPublicClubId,
   formatPublicDate,
   formatPublicDay,
+  formatPublicKickoff,
   formatPublicRound,
   PublicClubLogo,
+  scorePublicVisible,
 } from "../components/PublicDesign.jsx";
 import { IcoCalendrier, IcoEpingle } from "../icons.jsx";
 
@@ -109,9 +111,12 @@ function HomeTeam({ club, name, align = "left" }) {
 }
 
 function HomeMatchMeta({ match }) {
+  const date = scorePublicVisible(match)
+    ? formatPublicDate(match.date_heure)
+    : formatPublicKickoff(match.date_heure);
   return (
     <div className="kf-home-match-meta">
-      <span><IcoCalendrier /> {formatPublicDate(match.date_heure)}</span>
+      <span><IcoCalendrier /> {date}</span>
       <span><IcoEpingle /> {match.stade || "—"}</span>
       <span>{formatPublicRound(match.journee)}</span>
     </div>
@@ -159,8 +164,8 @@ function HomeUpcomingCard({ match, clubsById, saisonClubs }) {
   return (
     <Link to={`/matchs/${match.id}`} className="kf-home-match-card kf-home-upcoming-card">
       <div className="kf-home-card-top">
-        <span className="kf-home-status">À venir</span>
-        <span>{formatPublicDate(match.date_heure)}</span>
+        <span className="kf-home-status">À VENIR</span>
+        <span>{formatPublicRound(match.journee)}</span>
       </div>
       <div className="kf-home-upcoming-title" title={`${homeName} — ${awayName}`}>
         <HomeTeam club={home} name={homeName} />
@@ -200,10 +205,14 @@ function HomeDayRow({ match, clubsById, saisonClubs }) {
   const awayName = textClub(clubsById, saisonClubs, match.equipe_exterieur_id);
   const home = findPublicClub(clubsById, saisonClubs, match.equipe_domicile_id);
   const away = findPublicClub(clubsById, saisonClubs, match.equipe_exterieur_id);
-  const score = isScheduled(match)
-    ? "—"
-    : `${displayValue(match.score_domicile)}–${displayValue(match.score_exterieur)}`;
-  const status = isLive(match) ? "En direct" : isFinished(match) ? "Résultat" : "À venir";
+  const score = scorePublicVisible(match)
+    ? `${displayValue(match.score_domicile)}–${displayValue(match.score_exterieur)}`
+    : "—";
+  const status = match.statut === "en_cours"
+    ? "EN DIRECT"
+    : scorePublicVisible(match)
+      ? "RÉSULTAT"
+      : "À VENIR";
 
   return (
     <Link to={`/matchs/${match.id}`} className="kf-home-day-row">

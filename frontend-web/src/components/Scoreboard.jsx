@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { clubName } from "../context.jsx";
+import { formatPublicKickoff, scorePublicVisible } from "./PublicDesign.jsx";
 import { formatDateline, journeeTitre } from "../display.js";
 
 function displayName(name) {
@@ -11,10 +12,12 @@ export default function Scoreboard({ match, clubsById, to }) {
   const away = displayName(clubName(clubsById, match.equipe_exterieur_id));
   const sd = match.score_domicile;
   const se = match.score_exterieur;
-  const played = sd != null && se != null;
+  const played = scorePublicVisible(match) && sd != null && se != null;
+  const upcoming = !scorePublicVisible(match);
   const homeWin = played && sd > se;
   const awayWin = played && se > sd;
   const lieu = formatDateline(match.date_heure, match.stade);
+  const meta = upcoming ? formatPublicKickoff(match.date_heure) : lieu;
   const logoHome = clubsById[match.equipe_domicile_id]?.logo_url;
   const logoAway = clubsById[match.equipe_exterieur_id]?.logo_url;
 
@@ -33,7 +36,7 @@ export default function Scoreboard({ match, clubsById, to }) {
               {se}
             </>
           ) : (
-            <span className="sb-dash">–</span>
+            <span className="sb-dash">—</span>
           )}
         </span>
         <span className={`sb-name away${awayWin ? " is-winner" : ""}${homeWin ? " is-loser" : ""}`}>
@@ -42,8 +45,10 @@ export default function Scoreboard({ match, clubsById, to }) {
         </span>
       </div>
       <div className="sb-meta">
-        <span className="sb-meta-journee">{journeeTitre(match.journee)}</span>
-        {lieu && <span className="sb-meta-lieu">{lieu}</span>}
+        <span className={`sb-meta-journee${upcoming ? " sb-meta-upcoming" : ""}`}>
+          {upcoming ? "À VENIR" : journeeTitre(match.journee)}
+        </span>
+        {meta && <span className="sb-meta-lieu">{meta}</span>}
       </div>
     </>
   );
