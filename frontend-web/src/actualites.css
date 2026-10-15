@@ -138,3 +138,222 @@
   margin: 1rem 0 0;
   text-align: center;
 }
+
+/* ==== Espacement public actualités — version validée en preview ==== */
+.kf-public-frame .kf-public-shell > .actualites-page,
+.kf-public-frame .kf-public-shell > .actualite-detail {
+  padding-top: 0;
+}
+
+.kf-public-frame .actualites-en-tete {
+  align-items: flex-end;
+  gap: 12px;
+  margin: 0;
+  padding: 0 0 10px;
+  border-bottom-color: var(--kf-line);
+}
+.kf-public-frame .actualites-en-tete h1 {
+  margin: 0;
+  font-size: 21px;
+  line-height: 1.08;
+  letter-spacing: -.035em;
+}
+.kf-public-frame .actualites-en-tete .lead {
+  margin: 4px 0 0;
+  color: var(--kf-ink-soft);
+  font-size: 11px;
+  line-height: 1.3;
+}
+.kf-public-frame .actualites-sceau { display: none; }
+
+.kf-public-frame .actualites-filtres {
+  gap: 6px;
+  margin: 13px 0 13px;
+  padding: 0 0 2px;
+  scrollbar-width: none;
+}
+.kf-public-frame .actualites-filtres::-webkit-scrollbar { display: none; }
+.kf-public-frame .actualites-filtres button {
+  min-height: 34px;
+  padding: 0 12px;
+  border-color: var(--kf-line);
+  color: var(--kf-ink-soft);
+  font-size: 11px;
+  font-weight: 800;
+}
+.kf-public-frame .actualites-filtres button.actif {
+  border-color: var(--kf-accent);
+  background: var(--kf-accent);
+  color: var(--kf-accent-ink);
+}
+
+.kf-public-frame .actualites-liste {
+  gap: 10px;
+}
+.kf-public-frame .actualite-carte {
+  grid-template-columns: 82px minmax(0, 1fr);
+  gap: 11px;
+  margin: 0;
+  padding: 10px;
+  border-color: var(--kf-line);
+  border-radius: 14px;
+  background: rgba(19,40,32,.9);
+}
+.kf-public-frame .actualite-carte.actualite-non-lue {
+  border-color: rgba(121,193,141,.75);
+  box-shadow: inset 3px 0 0 var(--kf-accent);
+}
+.kf-public-frame .actualite-vignette {
+  width: 82px;
+  height: 82px;
+  border-radius: 10px;
+  background: var(--kf-surface-2);
+}
+.kf-public-frame .actualite-carte-corps { min-width: 0; }
+.kf-public-frame .actualite-meta {
+  align-items: baseline;
+  gap: 6px;
+  margin: 0 0 4px;
+  color: var(--kf-ink-soft);
+  font-size: 10px;
+  line-height: 1.2;
+  letter-spacing: .08em;
+}
+.kf-public-frame .actualite-meta > span {
+  min-width: 0;
+  color: var(--kf-paper-soft);
+  overflow-wrap: anywhere;
+}
+.kf-public-frame .actualite-meta time {
+  flex: 0 0 auto;
+  color: var(--kf-ink-soft);
+  font-size: 10px;
+}
+.kf-public-frame .actualite-priorite {
+  margin: 0 0 5px;
+  padding: 3px 6px;
+  border-color: var(--kf-line-strong);
+  font-size: 9px;
+  line-height: 1.1;
+}
+.kf-public-frame .actualite-non-lue-label {
+  margin: 0 0 5px 4px;
+  padding: 3px 6px;
+  font-size: 9px;
+  line-height: 1.1;
+}
+.kf-public-frame .actualite-carte-corps h2 {
+  margin: 0 0 5px;
+  color: var(--kf-paper);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 17px;
+  line-height: 1.08;
+  letter-spacing: -.025em;
+}
+.kf-public-frame .actualite-contexte {
+  margin: 0;
+  color: var(--kf-ink-soft);
+  font-size: 11px;
+  line-height: 1.35;
+}
+.kf-public-frame .actualite-bas {
+  margin: 7px 0 0;
+  color: var(--kf-ink-soft);
+  font-size: 11px;
+  line-height: 1.25;
+}
+.kf-public-frame .actualite-bas a { color: var(--kf-accent); }
+
+.kf-public-frame .actualite-detail > .kicker {
+  margin: 18px 0 11px;
+  color: var(--kf-ink-soft);
+  font-size: 11px;
+  letter-spacing: .09em;
+}
+.kf-public-frame .actualite-detail-categorie {
+  margin: 0 0 6px;
+  color: var(--kf-accent);
+  font-size: 10px;
+  line-height: 1.2;
+}
+.kf-public-frame .actualite-priorite-detail { margin: 0 0 6px; }
+.kf-public-frame .actualite-detail h1 {
+  max-width: none;
+  margin: 0;
+  color: var(--kf-paper);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 27px;
+  line-height: 1.04;
+  letter-spacing: -.035em;
+}
+.kf-public-frame .actualite-detail-date {
+  margin: 6px 0 14px;
+  color: var(--kf-ink-soft);
+  font-size: 11px;
+  line-height: 1.35;
+}
+.kf-public-frame .actualite-detail-contexte {
+  margin: -7px 0 14px;
+  color: var(--kf-accent);
+  font-size: 11px;
+  line-height: 1.35;
+}
+.kf-public-frame .actualite-galerie {
+  gap: 10px;
+  margin: 0 0 16px;
+}
+.kf-public-frame .actualite-galerie figure.actualite-image-principale img {
+  width: 100%;
+  height: 180px;
+  max-height: 180px;
+  object-fit: cover;
+  border-radius: 14px;
+}
+.kf-public-frame .actualite-galerie figure:not(.actualite-image-principale) img {
+  max-height: 150px;
+  border-radius: 12px;
+}
+.kf-public-frame .actualite-texte {
+  margin: 16px 0;
+  color: var(--kf-paper-soft);
+  font-size: 15px;
+  line-height: 1.48;
+}
+.kf-public-frame .actualite-texte p { margin: 0 0 12px; }
+.kf-public-frame .actualite-texte p:last-child { margin-bottom: 0; }
+.kf-public-frame .actualite-competition,
+.kf-public-frame .actualite-match,
+.kf-public-frame .actualite-joueur {
+  margin: 17px 0 10px;
+  padding: 14px;
+  border-color: var(--kf-line);
+  border-radius: 0;
+  background: rgba(21,25,20,.78);
+}
+.kf-public-frame .actualite-competition { border-color: rgba(121,193,141,.7); }
+.kf-public-frame .actualite-competition strong { color: var(--kf-paper); font-size: 22px; line-height: 1.15; }
+.kf-public-frame .actualite-competition span,
+.kf-public-frame .actualite-match-meta,
+.kf-public-frame .actualite-joueur span { color: var(--kf-ink-soft); }
+.kf-public-frame .actualite-competition-link,
+.kf-public-frame .actualite-match-link { color: var(--kf-green, #79c18d); font-size: 12px; }
+.kf-public-frame .actualite-match-ligne { gap: 8px; }
+.kf-public-frame .actualite-match-ligne strong { color: var(--kf-paper); font-size: 25px; }
+.kf-public-frame .actualite-joueur { align-items: center; gap: 12px; }
+.kf-public-frame .actualite-joueur img { width: 58px; height: 58px; }
+.kf-public-frame .actualite-actions {
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top-color: var(--kf-line);
+}
+.kf-public-frame .actualite-actions small { color: var(--kf-ink-soft); text-align: left; font-size: 11px; line-height: 1.45; }
+.kf-public-frame .actualite-like { padding: 8px 12px; color: var(--kf-paper); }
+
+@media (max-width: 360px) {
+  .kf-public-frame .actualite-carte { grid-template-columns: 72px minmax(0, 1fr); }
+  .kf-public-frame .actualite-vignette { width: 72px; height: 72px; }
+  .kf-public-frame .actualite-detail h1 { font-size: 25px; }
+}
