@@ -4,6 +4,25 @@ import { api, getActualiteClientToken } from "../api.js";
 import { marquerActualiteLue } from "../actualitesRead.js";
 import { CATEGORIES, dateTexte, libellePriorite } from "./Actualites.jsx";
 
+function IconTelecharger() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path d="M12 3v12" />
+      <path d="m7 10 5 5 5-5" />
+      <path d="M4 20h16" />
+    </svg>
+  );
+}
+
+function IconPouce() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path d="M7 10v11H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3Z" />
+      <path d="M7 10h2.7l1.7-5.9A2.2 2.2 0 0 1 15.7 5L14.2 10H20a2 2 0 0 1 2 2l-1.2 7.5a2 2 0 0 1-2 1.5H7" />
+    </svg>
+  );
+}
+
 function CompetitionLien({ item }) {
   if (!item?.competition_id) return null;
   return (
@@ -82,6 +101,10 @@ export default function ActualiteDetail({ preview = false }) {
   if (err) return <section className="hero"><p className="kicker"><Link to={preview ? "/orga/actualites" : "/actualites"}>← Retour</Link></p><p className="erreur">{err}</p></section>;
   if (!item) return <p className="empty">Chargement…</p>;
 
+  const imageTelechargeable = item.images?.find((image) => image.telechargement_autorise && image.principale)
+    || item.images?.find((image) => image.telechargement_autorise)
+    || null;
+
   return (
     <article className="hero actualite-detail">
       <p className="kicker"><Link to={preview ? "/orga/actualites" : "/actualites"}>← {preview ? "Gestion des actualités" : "Actualités"}</Link></p>
@@ -104,13 +127,30 @@ export default function ActualiteDetail({ preview = false }) {
           {item.images.map((image) => (
             <figure key={image.id} className={image.principale ? "actualite-image-principale" : ""}>
               <img src={image.url} alt="" />
-              {image.telechargement_autorise && (
-                <a href={image.url} download={`kivufoot-actualite-${item.id}-${image.id}`} target="_blank" rel="noreferrer">⬇️ Télécharger</a>
-              )}
             </figure>
           ))}
         </div>
       )}
+      <div className="actualite-photo-actions">
+        {imageTelechargeable && (
+          <a
+            className="actualite-photo-download"
+            href={imageTelechargeable.url}
+            download={`kivufoot-actualite-${item.id}-${imageTelechargeable.id}`}
+            target="_blank"
+            rel="noreferrer"
+            aria-label="Télécharger la photo"
+          >
+            <span className="actualite-photo-download-icon"><IconTelecharger /></span>
+            <span>Télécharger la photo</span>
+          </a>
+        )}
+        <button type="button" className={`actualite-like${item.liked ? " aime" : ""}`} disabled={busy || preview} onClick={aimer}>
+          <span className="actualite-like-icon"><IconPouce /></span>
+          <span>{item.liked ? "Aimé" : "J’aime"}</span>
+          <b>{item.like_count || 0}</b>
+        </button>
+      </div>
       <div className="actualite-texte">
         {item.texte.split(/\n\s*\n/).map((paragraph, index) => <p key={index}>{paragraph}</p>)}
       </div>
@@ -127,9 +167,6 @@ export default function ActualiteDetail({ preview = false }) {
         </aside>
       )}
       <div className="actualite-actions">
-        <button type="button" className={`actualite-like ${item.liked ? "aime" : ""}`} disabled={busy || preview} onClick={aimer}>
-          {item.liked ? "♥ Aimé" : "♡ J’aime"} · {item.like_count || 0}
-        </button>
         <small>{item.categorie === "annonce" ? "KivuFoot diffuse cette communication ; la décision appartient au Comité d’Organisation." : "Résultats validés par les organisateurs et publiés avec KivuFoot."}</small>
       </div>
     </article>
