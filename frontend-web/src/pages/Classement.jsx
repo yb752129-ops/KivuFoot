@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api.js";
 import { useKivu } from "../context.jsx";
@@ -55,6 +55,8 @@ export default function Classement() {
   const [groupes, setGroupes] = useState([]);
   const [groupe, setGroupe] = useState("");
   const [details, setDetails] = useState(false);
+  const [detailsAtEnd, setDetailsAtEnd] = useState(false);
+  const detailsTableScrollRef = useRef(null);
   const [err, setErr] = useState("");
 
   useEffect(() => {
@@ -89,6 +91,23 @@ export default function Classement() {
   }, [saison, groupe]);
 
   const lignesTriees = useMemo(() => [...lignes].sort(compareClassementRows), [lignes]);
+
+  useEffect(() => {
+    setDetailsAtEnd(false);
+    if (!details) return undefined;
+    const element = detailsTableScrollRef.current;
+    if (!element) return undefined;
+    const updateScrollHint = () => {
+      setDetailsAtEnd(element.scrollLeft + element.clientWidth >= element.scrollWidth - 2);
+    };
+    updateScrollHint();
+    element.addEventListener("scroll", updateScrollHint, { passive: true });
+    window.addEventListener("resize", updateScrollHint);
+    return () => {
+      element.removeEventListener("scroll", updateScrollHint);
+      window.removeEventListener("resize", updateScrollHint);
+    };
+  }, [details, lignesTriees.length]);
   const followedClubId = followedPublicClubId();
   const clubSuivi = followedClubId === null
     ? null
@@ -152,7 +171,10 @@ export default function Classement() {
       {lignesTriees.length === 0 ? (
         <div className="kf-public-empty"><strong>Aucune donnée disponible</strong></div>
       ) : (
-        <div className="kf-public-table-scroll">
+        <div
+          ref={detailsTableScrollRef}
+          className={`kf-public-table-scroll${details ? " kf-public-table-scroll-details" : ""}${details && detailsAtEnd ? " is-at-end" : ""}`}
+        >
           <table className={`kf-public-rank-table${details ? " details" : ""}`}>
             <thead>
               <tr>
