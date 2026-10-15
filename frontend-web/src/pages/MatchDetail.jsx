@@ -10,7 +10,7 @@ import { scorePublicVisible } from "../components/PublicDesign.jsx";
 import { dernierFaitLive, formatJour, grouperFaits, journeeTitre, statsDesFaits, stripDemo } from "../display.js";
 
 const ONGLETS = [
-  { id: "apercu", label: "Aperçu" },
+  { id: "apercu", label: "Événements" },
   { id: "stats", label: "Statistiques" },
   { id: "compo", label: "Compositions" },
 ];

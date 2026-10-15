@@ -1199,45 +1199,6 @@ ul.faits { list-style: none; padding: 0; margin: 0; }
   border-bottom-color: var(--rule-strong);
 }
 
-.feuille-legende {
-  margin: 0 0 14px;
-  padding: 10px 11px;
-  border: 1px solid var(--rule);
-  border-radius: 12px;
-  background: rgba(255,255,255,.025);
-}
-.feuille-legende h2 {
-  margin: 0 0 8px;
-  font-family: var(--serif);
-  font-size: 15px;
-}
-.feuille-legende-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 7px 10px;
-}
-.feuille-legende-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-width: 0;
-  color: var(--ink-soft);
-  font-size: 10px;
-  line-height: 1.2;
-}
-.feuille-legende-item > svg {
-  width: 16px;
-  height: 16px;
-  flex: 0 0 16px;
-  overflow: visible;
-}
-.feuille-legende-item .fait-botte {
-  width: 14px;
-  height: 14px;
-  flex-basis: 14px;
-}
-.feuille-legende-item .kf-carton { width: 10px; height: 15px; flex-basis: 10px; }
-.feuille-legende-remplacement { width: 18px; height: 18px; flex-basis: 18px; }
 .feuille-apercu { list-style: none; padding: 0; margin: 0; }
 .feuille-row {
   display: grid;
@@ -5319,20 +5280,6 @@ body:has(.kf-public-frame) { padding-bottom: 0; }
 }
 
 /* Statistiques publiques : seules les données de résultat restent dans le DOM public. */
-.kf-public-frame .feuille-legende {
-  border-color: var(--kf-line);
-  background: rgba(255,255,255,.025);
-}
-.kf-public-frame .feuille-legende h2 { color: var(--kf-paper); }
-.kf-public-frame .feuille-legende-item { color: var(--kf-ink-soft); }
-.kf-public-frame .feuille-row { border-bottom-color: var(--kf-line); }
-.kf-public-frame .feuille-break { border-color: var(--kf-line-strong); color: var(--kf-paper); }
-.kf-public-frame .feuille-min { color: var(--kf-paper); }
-.kf-public-frame .feuille-txt { color: var(--kf-paper); }
-.kf-public-frame .fait-tag { color: var(--kf-ink-soft); }
-.kf-public-frame .fait-csc-suffix { color: var(--kf-live); }
-.kf-public-frame .fait-assist { color: var(--kf-ink-soft); }
-
 .kf-public-frame .stats-feuille {
   width: 100%;
   margin: 8px 0 0;

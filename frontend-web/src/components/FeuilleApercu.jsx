@@ -71,24 +71,6 @@ function Texte({ e, nom }) {
   );
 }
 
-function Legende() {
-  return (
-    <section className="feuille-legende" aria-label="Légende des événements">
-      <h2>Légende</h2>
-      <div className="feuille-legende-grid">
-        <span className="feuille-legende-item"><Ballon size={16} />But</span>
-        <span className="feuille-legende-item"><IcoPenalty size={16} />Penalty marqué</span>
-        <span className="feuille-legende-item"><Ballon size={16} />csc = but contre son camp</span>
-        <span className="feuille-legende-item"><IcoRefuse size={16} />Penalty raté</span>
-        <span className="feuille-legende-item"><Carton couleur="jaune" />Carton</span>
-        <span className="feuille-legende-item"><Carton couleur="rouge" />Carton rouge</span>
-        <span className="feuille-legende-item"><IcoRemplacement className="feuille-legende-remplacement" />Remplacement</span>
-        <span className="feuille-legende-item"><Botte size={14} />Passe décisive</span>
-      </div>
-    </section>
-  );
-}
-
 export default function FeuilleApercu({ faits, nom, match }) {
   const chrono = [...(faits || [])].sort(
     (a, b) =>
@@ -133,7 +115,6 @@ export default function FeuilleApercu({ faits, nom, match }) {
 
   return (
     <>
-      <Legende />
       <ul className="feuille-apercu">
         {montreCoup && <li className="feuille-break"><IcoSifflet />Coup d’envoi</li>}
         {lignes(p1)}
