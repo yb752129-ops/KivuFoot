@@ -7,15 +7,6 @@ import { stripDemo } from "../display.js";
 import { useTheme } from "../theme.jsx";
 import { porteDuRole } from "../portes.js";
 
-const ROLE_LIBELLE = {
-  supporter: "Lecteur",
-  organisateur: "Organisateur",
-  admin: "Administration",
-  collecteur: "Collecteur",
-  club_manager: "Club",
-  coach: "Coach",
-};
-
 const THEMES = [
   { id: "light", label: "Clair" },
   { id: "dark", label: "Sombre" },
@@ -155,9 +146,7 @@ export default function Compte() {
       .charAt(0)
       .toUpperCase();
     const role = user.role || "supporter";
-    const statut = ROLE_LIBELLE[role] || "Lecteur";
     const club = user.club_id ? stripDemo(clubName(clubsById, user.club_id)) : "";
-    const staff = role === "organisateur" || role === "admin" || role === "collecteur";
     const adminPorte = role === "admin";
     const orga = role === "organisateur" || role === "admin";
     const collecte = role === "collecteur" || role === "admin";
@@ -170,20 +159,10 @@ export default function Compte() {
           <span className="id-mark" aria-hidden="true">{initiale}</span>
           <div>
             <h1>{user.nom_complet || "Compte"}</h1>
-            <p className="journee-date">{statut} — Sud-Kivu</p>
+            <p className="journee-date">Votre espace personnel</p>
           </div>
         </div>
-        <p className="lead">
-          {clubPorte
-            ? "Ce compte tient l’effectif du club. Le public lit sans se connecter."
-            : coachPorte
-              ? "Ce compte pose la composition. L’effectif reste au club. La saisie reste au collecteur."
-            : adminPorte
-              ? "Ce compte tient l’audit et les propositions. Le public ne voit pas ça."
-            : staff
-              ? "Ce compte ouvre la saisie des matchs. Le public lit sans se connecter."
-              : "Les matchs, le classement et les clubs restent lisibles sans compte. Celui-ci sert à vous reconnaître."}
-        </p>
+        <p className="lead">Les matchs et classements restent lisibles sans compte.</p>
         <div className="sheet id-sheet">
           <div className="id-row">
             <span>Nom</span>
@@ -192,10 +171,6 @@ export default function Compte() {
           <div className="id-row">
             <span>E-mail</span>
             <strong>{user.email}</strong>
-          </div>
-          <div className="id-row">
-            <span>Statut</span>
-            <strong>{statut}</strong>
           </div>
           {club && (
             <div className="id-row">
@@ -208,42 +183,27 @@ export default function Compte() {
           <div className="sheet" style={{ marginTop: "1.1rem" }}>
             {adminPorte && (
               <Link to="/admin" className="avenir-row">
-                <span className="avenir-noms">
-                  <span>Administration</span>
-                  <span className="meta-line">/admin</span>
-                </span>
+                <span className="avenir-noms"><span>Espace de contrôle</span></span>
               </Link>
             )}
             {orga && (
               <Link to="/orga" className="avenir-row">
-                <span className="avenir-noms">
-                  <span>Organisation</span>
-                  <span className="meta-line">/orga</span>
-                </span>
+                <span className="avenir-noms"><span>Gérer la compétition</span></span>
               </Link>
             )}
             {collecte && (
               <Link to="/collecteur" className="avenir-row">
-                <span className="avenir-noms">
-                  <span>Collecte</span>
-                  <span className="meta-line">/collecteur</span>
-                </span>
+                <span className="avenir-noms"><span>Saisir les matchs</span></span>
               </Link>
             )}
             {clubPorte && (
               <Link to="/club" className="avenir-row">
-                <span className="avenir-noms">
-                  <span>Club</span>
-                  <span className="meta-line">/club</span>
-                </span>
+                <span className="avenir-noms"><span>Gérer l’effectif</span></span>
               </Link>
             )}
             {coachPorte && (
               <Link to="/coach" className="avenir-row">
-                <span className="avenir-noms">
-                  <span>Coach</span>
-                  <span className="meta-line">/coach</span>
-                </span>
+                <span className="avenir-noms"><span>Gérer les compositions</span></span>
               </Link>
             )}
           </div>
@@ -386,11 +346,6 @@ export default function Compte() {
               : "Se connecter"}
         </button>
       </form>
-      {mode === "creer" && (
-        <p className="lead" style={{ marginTop: "0.8rem" }}>
-          Un compte créé ici est lecteur. Les rôles collecteur, club, coach, orga et admin sont attribués par l’administrateur.
-        </p>
-      )}
       <Apparence />
     </section>
   );
