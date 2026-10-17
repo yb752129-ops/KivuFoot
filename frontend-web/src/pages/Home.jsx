@@ -63,6 +63,27 @@ function isScheduled(match) {
   return match?.statut === "programme";
 }
 
+function homeDayStatusOrder(match) {
+  if (isLive(match)) return 0;
+  if (isScheduled(match)) return 1;
+  if (isFinished(match)) return 2;
+  return 3;
+}
+
+function homeDayLabel(offset, iso) {
+  if (offset === -1) return "Hier";
+  if (offset === 0) return "Aujourd’hui";
+  if (offset === 1) return "Demain";
+  const date = new Date(`${iso}T12:00:00Z`);
+  if (Number.isNaN(date.getTime())) return iso;
+  return new Intl.DateTimeFormat("fr-FR", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    timeZone: "Africa/Lubumbashi",
+  }).format(date).replace(/\./g, "");
+}
+
 function dejaInstallee() {
   if (typeof window === "undefined") return false;
   return window.matchMedia?.("(display-mode: standalone)").matches
@@ -101,11 +122,15 @@ function HomeSkeleton() {
   );
 }
 
-function HomeTeam({ club, name, align = "left" }) {
+function compactHomeTeamName(name) {
+  return name === "NUTRITION + OPHTALMOLOGIE" ? "NUTRITION + OPHT." : name;
+}
+
+function HomeTeam({ club, name, align = "left", label = name }) {
   return (
     <span className={`kf-home-team kf-home-team-${align}`}>
       <PublicClubLogo club={club} name={name} />
-      <span>{name}</span>
+      <span>{label}</span>
     </span>
   );
 }
@@ -168,9 +193,9 @@ function HomeUpcomingCard({ match, clubsById, saisonClubs }) {
         <span>{formatPublicRound(match.journee)}</span>
       </div>
       <div className="kf-home-upcoming-title" title={`${homeName} — ${awayName}`}>
-        <HomeTeam club={home} name={homeName} />
+        <HomeTeam club={home} name={homeName} label={compactHomeTeamName(homeName)} />
         <strong>—</strong>
-        <HomeTeam club={away} name={awayName} align="right" />
+        <HomeTeam club={away} name={awayName} label={compactHomeTeamName(awayName)} align="right" />
       </div>
       <HomeMatchMeta match={match} />
     </Link>
@@ -208,7 +233,7 @@ function HomeDayRow({ match, clubsById, saisonClubs }) {
   const score = scorePublicVisible(match)
     ? `${displayValue(match.score_domicile)}–${displayValue(match.score_exterieur)}`
     : "—";
-  const status = match.statut === "en_cours"
+  const status = isLive(match)
     ? "EN DIRECT"
     : scorePublicVisible(match)
       ? "RÉSULTAT"
@@ -218,8 +243,8 @@ function HomeDayRow({ match, clubsById, saisonClubs }) {
     <Link to={`/matchs/${match.id}`} className="kf-home-day-row">
       <span className="kf-home-day-time">{match.date_heure ? new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit", timeZone: "Africa/Bujumbura" }).format(new Date(match.date_heure)) : "—"}</span>
       <span className="kf-home-day-teams">
-        <span><PublicClubLogo club={home} name={homeName} />{homeName}</span>
-        <span><PublicClubLogo club={away} name={awayName} />{awayName}</span>
+        <span><PublicClubLogo club={home} name={homeName} /><span className="kf-home-day-name">{homeName}</span></span>
+        <span><PublicClubLogo club={away} name={awayName} /><span className="kf-home-day-name">{awayName}</span></span>
       </span>
       <span className={`kf-home-day-score${isLive(match) ? " live" : ""}`}>
         <small>{status}</small>
@@ -413,9 +438,14 @@ export default function Home() {
   const programmes = matchs.filter(isScheduled).sort((a, b) => new Date(a.date_heure) - new Date(b.date_heure));
   const aujourdHui = todayCivil();
   const jour = addCivilDays(aujourdHui, jourOffset);
+  const prochains = programmes.filter((match) => civilDate(match.date_heure) > jour);
   const matchsDuJour = matchs
     .filter((match) => civilDate(match.date_heure) === jour)
-    .sort((a, b) => new Date(a.date_heure) - new Date(b.date_heure));
+    .sort((a, b) => (
+      homeDayStatusOrder(a) - homeDayStatusOrder(b)
+      || new Date(a.date_heure) - new Date(b.date_heure)
+      || Number(a.id || 0) - Number(b.id || 0)
+    ));
   const installable = Boolean(installationEvent) && !installee;
 
   return (
@@ -431,45 +461,47 @@ export default function Home() {
         </section>
       )}
 
-      <section className="kf-home-section" aria-labelledby="home-result-title">
-        <div className="kf-home-section-head">
-          <h2 id="home-result-title">Dernier résultat</h2>
-          <Link to="/matchs">Tous les matchs <span aria-hidden="true">→</span></Link>
-        </div>
-        {resultats[0] ? <HomeResultCard match={resultats[0]} clubsById={clubsById} saisonClubs={saisonClubs} /> : <p className="kf-home-empty">Aucun résultat disponible pour le moment.</p>}
-      </section>
-
-      <section className="kf-home-section" aria-labelledby="home-next-title">
-        <div className="kf-home-section-head">
-          <div>
-            <h2 id="home-next-title">Prochains matchs</h2>
-            <p>Les prochaines affiches de l’édition active</p>
+      {resultats[0] && (
+        <section className="kf-home-section" aria-labelledby="home-result-title">
+          <div className="kf-home-section-head">
+            <h2 id="home-result-title">Dernier résultat</h2>
+            <Link to="/matchs">Tous les matchs <span aria-hidden="true">→</span></Link>
           </div>
-          <Link to="/matchs">Tout voir <span aria-hidden="true">→</span></Link>
-        </div>
-        {programmes.length === 0 ? (
-          <p className="kf-home-empty">Aucun match programmé pour le moment</p>
-        ) : (
+          <HomeResultCard match={resultats[0]} clubsById={clubsById} saisonClubs={saisonClubs} />
+        </section>
+      )}
+
+      {prochains.length > 0 && (
+        <section className="kf-home-section" aria-labelledby="home-next-title">
+          <div className="kf-home-section-head">
+            <div>
+              <h2 id="home-next-title">Prochains matchs</h2>
+              <p>Les prochaines affiches de l’édition active</p>
+            </div>
+            <Link to="/matchs">Tout voir <span aria-hidden="true">→</span></Link>
+          </div>
           <div className="kf-home-upcoming-list">
-            {programmes.slice(0, 3).map((match) => (
+            {prochains.slice(0, 3).map((match) => (
               <HomeUpcomingCard key={match.id} match={match} clubsById={clubsById} saisonClubs={saisonClubs} />
             ))}
           </div>
-        )}
-      </section>
+        </section>
+      )}
 
       <section className="kf-home-section kf-home-day-schedule" aria-labelledby="home-day-title">
         <div className="kf-home-section-head">
           <div>
             <h2 id="home-day-title">Matchs du jour</h2>
-            <p>{jourOffset === 0 ? "Aujourd’hui" : "Demain"}</p>
+            <p>{homeDayLabel(jourOffset, jour)}</p>
           </div>
           <div className="kf-home-day-nav" aria-label="Navigation des matchs par jour">
-            <button type="button" aria-label="Afficher aujourd’hui" disabled={jourOffset === 0} onClick={() => setJourOffset(0)}>‹</button>
-            <button type="button" aria-label="Afficher demain" disabled={jourOffset === 1} onClick={() => setJourOffset(1)}>›</button>
+            <button type="button" aria-label="Afficher le jour précédent" onClick={() => setJourOffset((value) => value - 1)}>‹</button>
+            <button type="button" aria-label="Afficher le jour suivant" onClick={() => setJourOffset((value) => value + 1)}>›</button>
           </div>
         </div>
-        {matchsDuJour.length === 0 ? <p className="kf-home-empty">Aucun match pour ce jour.</p> : matchsDuJour.map((match) => <HomeDayRow key={match.id} match={match} clubsById={clubsById} saisonClubs={saisonClubs} />)}
+        {matchsDuJour.length === 0
+          ? <p className="kf-home-empty">Pas de match prévu ce jour.</p>
+          : matchsDuJour.map((match) => <HomeDayRow key={match.id} match={match} clubsById={clubsById} saisonClubs={saisonClubs} />)}
       </section>
 
       <HomeRanking classement={classement} clubsById={clubsById} saisonClubs={saisonClubs} saison={saison} />

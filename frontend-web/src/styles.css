@@ -5781,9 +5781,12 @@ body,
 }
 .kf-home-upcoming-title .kf-home-team { min-width: 0; }
 .kf-home-upcoming-title .kf-home-team > span:last-child {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  min-width: 0;
+  display: block;
+  overflow: visible;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  line-height: 1.1;
 }
 .kf-home-upcoming-title > strong { color: var(--kf-ink-soft); font-size: 18px; }
 
@@ -5820,7 +5823,16 @@ body,
 }
 .kf-home-day-time { color: var(--kf-accent); font-size: 12px; font-weight: 850; }
 .kf-home-day-teams { display: grid; gap: 4px; min-width: 0; }
-.kf-home-day-teams > span { display: flex; align-items: center; gap: 6px; min-width: 0; overflow: hidden; font-size: 12px; font-weight: 750; text-overflow: ellipsis; white-space: nowrap; }
+.kf-home-day-teams > span { display: flex; align-items: center; gap: 6px; min-width: 0; font-size: 12px; font-weight: 750; }
+.kf-home-day-name {
+  min-width: 0;
+  display: -webkit-box;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-height: 1.1;
+}
 .kf-home-day-teams .club-logo,
 .kf-home-day-teams .club-logo-missing { width: 22px; height: 22px; flex: 0 0 22px; border-radius: 50%; object-fit: cover; background: transparent; }
 .kf-home-day-score { display: grid; justify-items: end; color: var(--kf-paper); font-size: 14px; font-weight: 900; text-align: right; }
