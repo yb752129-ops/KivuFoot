@@ -1,4 +1,4 @@
-import { Ballon, Botte, Carton, IcoPenalty, IcoRefuse, IcoRemplacement, IcoSifflet } from "../icons.jsx";
+import { Ballon, Botte, Carton, IcoPenalty, IcoRefuse, IcoRemplacement } from "../icons.jsx";
 import { scorePublicVisible } from "./PublicDesign.jsx";
 import { estPeriodeUn, formatMinute, labelEvenement, MOTIF_REFUS } from "../display.js";
 
@@ -80,10 +80,6 @@ export default function FeuilleApercu({ faits, nom, match }) {
   );
   const p1 = chrono.filter(estPeriodeUn);
   const p2 = chrono.filter((e) => !estPeriodeUn(e));
-  const montreCoup = Boolean(match?.started_at);
-  const montreHt = match?.periode === "mi_temps" || match?.periode === "2" || p2.length > 0;
-  const montreP2 = match?.periode === "2" || p2.length > 0;
-  const montreFin = match?.statut === "termine" || match?.statut === "valide";
 
   function lignes(list) {
     return list.map((e) => {
@@ -109,24 +105,14 @@ export default function FeuilleApercu({ faits, nom, match }) {
     return <p className="empty">Le match n'a pas encore commencé.</p>;
   }
 
-  if (!chrono.length && !montreHt && !montreFin && !montreCoup) {
+  if (!chrono.length) {
     return <p className="empty">Aucun événement rendu public pour ce match.</p>;
   }
 
   return (
-    <>
-      <ul className="feuille-apercu">
-        {montreCoup && <li className="feuille-break"><IcoSifflet />Coup d’envoi</li>}
-        {lignes(p1)}
-        {montreHt && <li className="feuille-break"><IcoSifflet />Mi-temps</li>}
-        {montreP2 && <li className="feuille-break"><IcoSifflet />2e période</li>}
-        {lignes(p2)}
-        {montreFin && (
-          <li className="feuille-break">
-            <IcoSifflet />Fin {match.score_domicile}–{match.score_exterieur}
-          </li>
-        )}
-      </ul>
-    </>
+    <ul className="feuille-apercu">
+      {lignes(p1)}
+      {lignes(p2)}
+    </ul>
   );
 }

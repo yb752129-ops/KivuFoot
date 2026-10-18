@@ -1,9 +1,20 @@
 import { useEffect, useState } from "react";
-import { clockFromMatch, elapsed, formatClock } from "../display.js";
+import { clockFromMatch, elapsed, formatClock, formatClockMinute } from "../display.js";
 
 export { elapsed };
 
-export default function Chrono({ match, startedAt, endedAt, running, periode, periodeStartedAt, pausedAt }) {
+export default function Chrono({
+  match,
+  startedAt,
+  endedAt,
+  running,
+  periode,
+  periodeStartedAt,
+  pausedAt,
+  precision = "second",
+  as = "p",
+  className = "chrono",
+}) {
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
     if (!running) return undefined;
@@ -25,5 +36,9 @@ export default function Chrono({ match, startedAt, endedAt, running, periode, pe
     source,
     running ? now : freezeAt ? new Date(freezeAt).getTime() : now,
   );
-  return <p className="chrono">{formatClock(clock.min, clock.sec, clock.periode)}</p>;
+  const Element = as;
+  const affichage = precision === "minute"
+    ? formatClockMinute(clock.min, clock.sec, clock.periode)
+    : formatClock(clock.min, clock.sec, clock.periode);
+  return <Element className={className}>{affichage}</Element>;
 }

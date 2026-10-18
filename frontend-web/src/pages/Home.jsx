@@ -5,9 +5,6 @@ import { useKivu } from "../context.jsx";
 import {
   addCivilDays,
   civilDate,
-  dernierFaitLive,
-  formatMinute,
-  labelEvenement,
   stripDemo,
   todayCivil,
 } from "../display.js";
@@ -24,6 +21,7 @@ import {
   PublicClubLogo,
   scorePublicVisible,
 } from "../components/PublicDesign.jsx";
+import Chrono from "../components/Chrono.jsx";
 import { IcoCalendrier, IcoEpingle } from "../icons.jsx";
 
 const CATEGORIES = {
@@ -57,6 +55,15 @@ function isFinished(match) {
 
 function isLive(match) {
   return match?.statut === "en_cours" && !match?.ended_at;
+}
+
+function homeLiveStatus(match) {
+  return match?.periode === "mi_temps" ? "MT" : "EN DIRECT";
+}
+
+function HomeLiveMinute({ match, className = "kf-home-live-minute" }) {
+  if (match?.periode === "mi_temps" || !match?.started_at) return null;
+  return <Chrono precision="minute" as="span" className={className} match={match} running={isLive(match)} />;
 }
 
 function isScheduled(match) {
@@ -167,13 +174,13 @@ function HomeResultCard({ match, clubsById, saisonClubs }) {
         <span>{formatPublicRound(match.journee)}</span>
       </div>
       <div className="kf-home-card-teams">
-        <HomeTeam club={home} name={homeName} />
+        <HomeTeam club={home} name={homeName} label={compactHomeTeamName(homeName)} />
         <strong className="kf-home-card-score" aria-label={`Score ${homeScore} à ${awayScore}`}>
           <span className={homeWinner ? "winner" : ""}>{homeScore}</span>
           <i>–</i>
           <span className={awayWinner ? "winner" : ""}>{awayScore}</span>
         </strong>
-        <HomeTeam club={away} name={awayName} align="right" />
+        <HomeTeam club={away} name={awayName} label={compactHomeTeamName(awayName)} align="right" />
       </div>
       <HomeMatchMeta match={match} />
     </Link>
@@ -202,25 +209,51 @@ function HomeUpcomingCard({ match, clubsById, saisonClubs }) {
   );
 }
 
-function HomeLiveCard({ match, clubsById, saisonClubs, event }) {
+function HomeLiveCard({ match, clubsById, saisonClubs }) {
   const home = findPublicClub(clubsById, saisonClubs, match.equipe_domicile_id);
   const away = findPublicClub(clubsById, saisonClubs, match.equipe_exterieur_id);
   const homeName = textClub(clubsById, saisonClubs, match.equipe_domicile_id);
   const awayName = textClub(clubsById, saisonClubs, match.equipe_exterieur_id);
-  const eventText = event ? `${formatMinute(event.minute, event.minute_additionnelle)} · ${labelEvenement(event)}` : "";
 
   return (
     <Link to={`/matchs/${match.id}`} className="kf-home-live-card">
       <div className="kf-home-live-top">
-        <span><i /> LIVE</span>
+        <span className={match.periode === "mi_temps" ? "is-break" : ""}>
+          <i aria-hidden="true" /> {homeLiveStatus(match)}
+        </span>
         <span>{formatPublicRound(match.journee)}</span>
       </div>
       <div className="kf-home-live-teams">
-        <HomeTeam club={home} name={homeName} />
-        <strong>{displayValue(match.score_domicile)}–{displayValue(match.score_exterieur)}</strong>
-        <HomeTeam club={away} name={awayName} align="right" />
+        <HomeTeam club={home} name={homeName} label={compactHomeTeamName(homeName)} />
+        <span className="kf-home-live-score-wrap">
+          <strong>{displayValue(match.score_domicile)}–{displayValue(match.score_exterieur)}</strong>
+          <HomeLiveMinute match={match} />
+        </span>
+        <HomeTeam club={away} name={awayName} label={compactHomeTeamName(awayName)} align="right" />
       </div>
-      {eventText && <p>{eventText}</p>}
+    </Link>
+  );
+}
+
+function HomeLiveCompactRow({ match, clubsById, saisonClubs }) {
+  const homeName = textClub(clubsById, saisonClubs, match.equipe_domicile_id);
+  const awayName = textClub(clubsById, saisonClubs, match.equipe_exterieur_id);
+  const home = findPublicClub(clubsById, saisonClubs, match.equipe_domicile_id);
+  const away = findPublicClub(clubsById, saisonClubs, match.equipe_exterieur_id);
+  const pause = match.periode === "mi_temps";
+  return (
+    <Link to={`/matchs/${match.id}`} className="kf-home-live-compact-row">
+      <span className={`kf-home-live-compact-status${pause ? " is-break" : ""}`}>
+        <i aria-hidden="true" />{homeLiveStatus(match)}
+      </span>
+      <span className="kf-home-live-compact-teams">
+        <span><PublicClubLogo club={home} name={homeName} />{homeName}</span>
+        <span><PublicClubLogo club={away} name={awayName} />{awayName}</span>
+      </span>
+      <span className="kf-home-live-compact-score">
+        {displayValue(match.score_domicile)}–{displayValue(match.score_exterieur)}
+        <small><HomeLiveMinute match={match} /></small>
+      </span>
     </Link>
   );
 }
@@ -233,21 +266,28 @@ function HomeDayRow({ match, clubsById, saisonClubs }) {
   const score = scorePublicVisible(match)
     ? `${displayValue(match.score_domicile)}–${displayValue(match.score_exterieur)}`
     : "—";
-  const status = isLive(match)
-    ? "EN DIRECT"
-    : scorePublicVisible(match)
-      ? "RÉSULTAT"
-      : "À VENIR";
+  const live = isLive(match);
+  const pause = live && match.periode === "mi_temps";
+  const status = live ? homeLiveStatus(match) : "";
+  const heure = live
+    ? (pause
+      ? <span className="kf-home-live-minute">MT</span>
+      : <HomeLiveMinute match={match} />)
+    : isFinished(match)
+      ? <span className="kf-home-live-minute">FT</span>
+      : match.date_heure
+        ? new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit", timeZone: "Africa/Bujumbura" }).format(new Date(match.date_heure))
+        : "—";
 
   return (
     <Link to={`/matchs/${match.id}`} className="kf-home-day-row">
-      <span className="kf-home-day-time">{match.date_heure ? new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit", timeZone: "Africa/Bujumbura" }).format(new Date(match.date_heure)) : "—"}</span>
+      <span className={`kf-home-day-time${live ? " live" : ""}`}>{heure}</span>
       <span className="kf-home-day-teams">
-        <span><PublicClubLogo club={home} name={homeName} /><span className="kf-home-day-name">{homeName}</span></span>
-        <span><PublicClubLogo club={away} name={awayName} /><span className="kf-home-day-name">{awayName}</span></span>
+        <span><PublicClubLogo club={home} name={homeName} /><span className="kf-home-day-name">{compactHomeTeamName(homeName)}</span></span>
+        <span><PublicClubLogo club={away} name={awayName} /><span className="kf-home-day-name">{compactHomeTeamName(awayName)}</span></span>
       </span>
-      <span className={`kf-home-day-score${isLive(match) ? " live" : ""}`}>
-        <small>{status}</small>
+      <span className={`kf-home-day-score${live ? " live" : ""}`}>
+        {status && <small>{status}</small>}
         {score}
       </span>
     </Link>
@@ -361,7 +401,6 @@ export default function Home() {
   const { saison, saisonClubs, clubsById, competition } = useKivu();
   const [classement, setClassement] = useState([]);
   const [matchs, setMatchs] = useState([]);
-  const [evtsById, setEvtsById] = useState({});
   const [actualites, setActualites] = useState([]);
   const [chargement, setChargement] = useState(true);
   const [jourOffset, setJourOffset] = useState(0);
@@ -390,7 +429,6 @@ export default function Home() {
       setClassement([]);
       setMatchs([]);
       setActualites([]);
-      setEvtsById({});
       setChargement(false);
       return undefined;
     }
@@ -409,18 +447,6 @@ export default function Home() {
       setMatchs(matches);
       setActualites(Array.isArray(actualitesResult) ? actualitesResult : []);
       setChargement(false);
-
-      const lives = matches.filter(isLive);
-      if (!lives.length) {
-        setEvtsById({});
-        return;
-      }
-      const pairs = await Promise.all(
-        lives.map((match) => api.evenementsPublics(match.id)
-          .then((events) => [match.id, dernierFaitLive(events)])
-          .catch(() => [match.id, null])),
-      );
-      if (!stop) setEvtsById(Object.fromEntries(pairs));
     }
 
     charge();
@@ -434,13 +460,15 @@ export default function Home() {
   if (chargement) return <HomeSkeleton />;
 
   const lives = matchs.filter(isLive).sort((a, b) => new Date(a.date_heure) - new Date(b.date_heure));
+  const livePrincipal = lives[0] || null;
+  const autresLives = lives.slice(1);
   const resultats = matchs.filter(isFinished).sort((a, b) => new Date(b.date_heure) - new Date(a.date_heure));
   const programmes = matchs.filter(isScheduled).sort((a, b) => new Date(a.date_heure) - new Date(b.date_heure));
   const aujourdHui = todayCivil();
   const jour = addCivilDays(aujourdHui, jourOffset);
   const prochains = programmes.filter((match) => civilDate(match.date_heure) > jour);
   const matchsDuJour = matchs
-    .filter((match) => civilDate(match.date_heure) === jour)
+    .filter((match) => civilDate(match.date_heure) === jour && !isLive(match))
     .sort((a, b) => (
       homeDayStatusOrder(a) - homeDayStatusOrder(b)
       || new Date(a.date_heure) - new Date(b.date_heure)
@@ -453,10 +481,18 @@ export default function Home() {
       {lives.length > 0 && (
         <section className="kf-home-live-section" aria-labelledby="home-live-title">
           <div className="kf-home-section-head">
-            <h2 id="home-live-title">LIVE</h2>
+            <h2 id="home-live-title">EN DIRECT</h2>
           </div>
           <div className="kf-home-live-list">
-            {lives.map((match) => <HomeLiveCard key={match.id} match={match} clubsById={clubsById} saisonClubs={saisonClubs} event={evtsById[match.id] || null} />)}
+            {livePrincipal && <HomeLiveCard match={livePrincipal} clubsById={clubsById} saisonClubs={saisonClubs} />}
+            {autresLives.length > 0 && (
+              <div className="kf-home-live-others" aria-label="Autres matchs en direct">
+                <p className="kf-home-live-others-title">Autres matchs en direct</p>
+                {autresLives.map((match) => (
+                  <HomeLiveCompactRow key={match.id} match={match} clubsById={clubsById} saisonClubs={saisonClubs} />
+                ))}
+              </div>
+            )}
           </div>
         </section>
       )}

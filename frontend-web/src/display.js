@@ -178,6 +178,16 @@ export function formatClock(min, sec, periode) {
   return `${min}′${s}″`;
 }
 
+// Lecture publique compacte : une seule minute, sans seconde répétée.
+export function formatClockMinute(min, _sec, periode) {
+  if (periode === "2") {
+    if (min > 90) return `90+${min - 90}′`;
+    return `${min}′`;
+  }
+  if (min > 45) return `45+${min - 45}′`;
+  return `${min}′`;
+}
+
 export function splitMinute(min, periode) {
   const p = periode === "2" ? "2" : "1";
   const n = Math.max(0, Number.parseInt(String(min), 10) || 0);

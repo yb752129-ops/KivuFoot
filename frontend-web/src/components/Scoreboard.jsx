@@ -13,6 +13,7 @@ export default function Scoreboard({ match, clubsById, to }) {
   const se = match.score_exterieur;
   const played = scorePublicVisible(match) && sd != null && se != null;
   const upcoming = !scorePublicVisible(match);
+  const finished = ["termine", "valide"].includes(match.statut);
   const homeWin = played && sd > se;
   const awayWin = played && se > sd;
   const meta = upcoming ? formatPublicKickoff(match.date_heure) : "";
@@ -46,6 +47,11 @@ export default function Scoreboard({ match, clubsById, to }) {
         <div className="sb-meta">
           <span className="sb-meta-journee sb-meta-upcoming">À VENIR</span>
           <span className="sb-meta-lieu">{meta}</span>
+        </div>
+      )}
+      {finished && (
+        <div className="sb-meta">
+          <span className="sb-meta-journee" aria-label="Match terminé">FT</span>
         </div>
       )}
     </>

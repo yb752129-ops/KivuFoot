@@ -406,6 +406,15 @@ h1 {
   font-weight: 600;
   opacity: 0.55;
 }
+.sb-finished-status {
+  display: block;
+  margin-top: 0.45rem;
+  color: var(--stamp);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-align: center;
+}
 .sb-meta {
   display: flex;
   justify-content: space-between;
@@ -867,6 +876,8 @@ footer.site a.orga-entry {
   inset: -3px;
   border-width: 1.5px;
 }
+.live-now.is-break .live-dot b { animation: none; }
+.live-now.is-break .live-dot::after { animation: none; opacity: 0; }
 @keyframes live-beat {
   0%, 100% { transform: scale(1); opacity: 1; }
   50% { transform: scale(0.72); opacity: 0.55; }
@@ -1246,16 +1257,6 @@ ul.faits { list-style: none; padding: 0; margin: 0; }
   flex: 0 0 18px;
 }
 .feuille-txt .fait-nom { overflow-wrap: normal; word-break: normal; hyphens: none; }
-.feuille-break {
-  list-style: none;
-  text-align: center;
-  padding: 0.55rem 0;
-  border-top: 1px solid var(--rule-strong);
-  border-bottom: 1px solid var(--rule-strong);
-  font-family: var(--serif);
-  font-weight: 650;
-  font-size: 0.92rem;
-}
 .fait-rate {
   display: inline-grid;
   place-items: center;
@@ -1806,20 +1807,6 @@ html[data-theme="dark"] {
   gap: 0.5rem;
   opacity: 1;
 }
-.lk-foot {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.8rem 1rem 0.9rem;
-  font-size: 0.66rem;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  font-weight: 700;
-  color: rgba(239, 237, 230, 0.8);
-}
-.lk-voir { display: flex; align-items: center; gap: 0.3rem; color: #f3efe4; }
-.lk-voir .bulletin-chevron { width: 0.9rem; height: 0.9rem; color: #f3efe4; }
-
 /* ==== PACK DESIGN-3 (8 sept 2026) — minute lime + bulletin défini ==== */
 .lk-center .chrono,
 .lk-center .live-min {
@@ -5773,7 +5760,9 @@ body,
   border-radius: 50%;
   background: currentColor;
   vertical-align: 1px;
+  animation: live-beat 0.9s ease-in-out infinite;
 }
+.kf-home-live-top > span:first-child.is-break i { animation: none; opacity: .78; }
 .kf-home-live-teams,
 .kf-home-card-teams {
   display: grid;
@@ -5782,17 +5771,120 @@ body,
   gap: 8px;
   min-width: 0;
 }
-.kf-home-live-teams > strong {
+.kf-home-live-score-wrap {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+.kf-home-live-score-wrap > strong {
   color: var(--kf-paper);
   font-size: 25px;
   font-weight: 950;
   letter-spacing: -.05em;
   white-space: nowrap;
 }
+.kf-home-live-minute {
+  display: block;
+  min-height: 1.05em;
+  color: var(--kf-lime);
+  font-family: var(--score);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  line-height: 1.05;
+  text-align: center;
+  white-space: nowrap;
+}
 .kf-home-live-card > p {
   margin: 0;
   color: var(--kf-live);
   font-size: 12px;
+  font-weight: 800;
+}
+.kf-home-live-others {
+  display: grid;
+  gap: 6px;
+  margin-top: 2px;
+}
+.kf-home-live-others-title {
+  margin: 2px 2px 0;
+  color: var(--kf-ink-dim);
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.kf-home-live-compact-row {
+  display: grid;
+  grid-template-columns: 62px minmax(0, 1fr) 58px;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid rgba(255,91,88,.24);
+  border-radius: 12px;
+  background: rgba(45,24,24,.46);
+  color: inherit;
+  text-decoration: none;
+}
+.kf-home-live-compact-status {
+  color: var(--kf-live);
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: .06em;
+  white-space: nowrap;
+}
+.kf-home-live-compact-status i {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 4px;
+  border-radius: 50%;
+  background: currentColor;
+  vertical-align: 1px;
+  animation: live-beat .9s ease-in-out infinite;
+}
+.kf-home-live-compact-status.is-break i { animation: none; opacity: .78; }
+.kf-home-live-compact-teams {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  color: var(--kf-paper);
+  font-size: 11px;
+  font-weight: 750;
+}
+.kf-home-live-compact-teams > span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.kf-home-live-compact-teams .club-logo,
+.kf-home-live-compact-teams .club-logo-missing {
+  width: 19px;
+  height: 19px;
+  flex: 0 0 19px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.kf-home-live-compact-score {
+  display: grid;
+  justify-items: end;
+  color: var(--kf-paper);
+  font-size: 15px;
+  font-weight: 900;
+  text-align: right;
+  white-space: nowrap;
+}
+.kf-home-live-compact-score small {
+  min-height: 1em;
+  color: var(--kf-lime);
+  font-family: var(--score);
+  font-size: 10px;
   font-weight: 800;
 }
 .kf-home-team {
@@ -5808,7 +5900,9 @@ body,
 .kf-home-team-right { justify-content: flex-end; text-align: right; }
 .kf-home-team > span:last-child {
   min-width: 0;
-  overflow-wrap: anywhere;
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: none;
 }
 .kf-home-team-right > span:last-child { order: -1; }
 .kf-home-team .club-logo,
@@ -5897,7 +5991,9 @@ body,
   min-width: 0;
   display: block;
   overflow: visible;
-  overflow-wrap: anywhere;
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: none;
   white-space: normal;
   line-height: 1.1;
 }
@@ -5935,13 +6031,17 @@ body,
   text-decoration: none;
 }
 .kf-home-day-time { color: var(--kf-accent); font-size: 12px; font-weight: 850; }
+.kf-home-day-time.live { color: var(--kf-live); }
+.kf-home-day-time.live .kf-home-live-minute { color: var(--kf-live); font-size: 10px; letter-spacing: .02em; }
 .kf-home-day-teams { display: grid; gap: 4px; min-width: 0; }
 .kf-home-day-teams > span { display: flex; align-items: center; gap: 6px; min-width: 0; font-size: 12px; font-weight: 750; }
 .kf-home-day-name {
   min-width: 0;
   display: -webkit-box;
   overflow: hidden;
-  overflow-wrap: anywhere;
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: none;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   line-height: 1.1;

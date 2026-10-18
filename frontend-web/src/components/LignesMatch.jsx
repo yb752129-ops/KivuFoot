@@ -1,14 +1,11 @@
 import { Link } from "react-router-dom";
 import { clubName } from "../context.jsx";
 import Chrono from "./Chrono.jsx";
-import { Carton, Ecu, IcoEpingle } from "../icons.jsx";
+import { Ecu, IcoEpingle } from "../icons.jsx";
 import {
   formatDateline,
   formatHeure,
-  formatMinute,
   journeeTitre,
-  labelEvenement,
-  periodeLabel,
   stripDemo,
 } from "../display.js";
 
@@ -41,25 +38,30 @@ function Chevron() {
   );
 }
 
-export function LiveUne({ match, clubsById, evt }) {
+export function LiveUne({ match, clubsById }) {
   const home = nomClub(clubsById, match.equipe_domicile_id);
   const away = nomClub(clubsById, match.equipe_exterieur_id);
   const sd = match.score_domicile;
   const se = match.score_exterieur;
-  const cote = evt?.equipe_concernee === "exterieur" ? away : evt ? home : "";
+  const pause = match.periode === "mi_temps";
+  const termine = ["termine", "valide"].includes(match.statut);
+  const statut = termine ? "FT" : pause ? "MT" : "EN COURS";
   const journee = match.journee ? journeeTitre(match.journee) : "";
-  const periode = periodeLabel(match.periode);
-  const carton = evt?.type === "carton_rouge" ? "rouge" : evt?.type === "carton_jaune" ? "jaune" : "";
   const logoHome = clubsById[match.equipe_domicile_id]?.logo_url;
   const logoAway = clubsById[match.equipe_exterieur_id]?.logo_url;
+  const chrono = pause
+    ? null
+    : match.started_at
+      ? <Chrono precision="minute" match={match} running={!termine && !match.ended_at && match.statut === "en_cours"} />
+      : null;
   return (
-    <Link to={`/matchs/${match.id}`} className="live-band">
+    <div className="live-band">
       <div className="lk-top">
-        <span className="live-now">
+        <span className={`live-now${pause ? " is-break" : ""}`}>
           <span className="live-dot" aria-hidden="true"><b /></span>
-          {match.periode === "mi_temps" ? "Mi-temps" : "En cours"}
+          {statut}
         </span>
-        <span className="lk-journee">{[journee, periode].filter(Boolean).join(" · ")}</span>
+        <span className="lk-journee">{journee}</span>
       </div>
       <div className="lk-body">
         <span className="lk-side">
@@ -72,25 +74,14 @@ export function LiveUne({ match, clubsById, evt }) {
             <span className="sb-dash">–</span>
             {se}
           </p>
-          <Chrono match={match} running={match.periode !== "mi_temps"} />
+          {chrono}
         </span>
         <span className="lk-side">
           {logoAway ? <img className="ecu ecu-img" src={logoAway} alt="" /> : <Ecu className="ecu" initiales={initiales(away)} />}
           <span className="lk-name">{away || "Équipe à nommer"}</span>
         </span>
       </div>
-      {evt && (
-        <p className="live-evt">
-          {carton && <Carton couleur={carton} />}
-          {formatMinute(evt.minute, evt.minute_additionnelle)} · {labelEvenement(evt)}
-          {cote ? ` · ${cote}` : ""}
-        </p>
-      )}
-      <div className="lk-foot">
-        <span>Feuille en direct</span>
-        <span className="lk-voir">Voir le match <Chevron /></span>
-      </div>
-    </Link>
+    </div>
   );
 }
 

@@ -7,7 +7,7 @@ import FeuilleApercu from "../components/FeuilleApercu.jsx";
 import FeuilleMatch from "../components/FeuilleMatch.jsx";
 import { LiveUne } from "../components/LignesMatch.jsx";
 import { scorePublicVisible } from "../components/PublicDesign.jsx";
-import { dernierFaitLive, formatJour, grouperFaits, journeeTitre, statsDesFaits, stripDemo } from "../display.js";
+import { formatJour, grouperFaits, journeeTitre, statsDesFaits, stripDemo } from "../display.js";
 
 const ONGLETS = [
   { id: "apercu", label: "Événements" },
@@ -116,11 +116,10 @@ export default function MatchDetail() {
   const stats = statsDesFaits(evts);
   const scoreVisible = scorePublicVisible(match);
   const compositionVisible = compositionPubliee(compo);
-  const dernier = faits[faits.length - 1] || null;
   const possessionLive = Boolean(possession?.disponible && possession?.est_live);
   const possessionOfficielle = possession?.disponible && possession?.statut === "OFFICIELLE";
   const possessionStatut = possessionLive
-    ? "LIVE · PROVISOIRE"
+    ? "EN DIRECT · PROVISOIRE"
     : possessionOfficielle
       ? "OFFICIELLE"
       : possession?.statut === "PROVISOIRE"
@@ -134,7 +133,7 @@ export default function MatchDetail() {
       {competition?.nom && <p className="kicker">{stripDemo(competition.nom)}</p>}
 
       {live ? (
-        <LiveUne match={match} clubsById={clubsById} evt={dernier} />
+        <LiveUne match={match} clubsById={clubsById} />
       ) : (
         <>
           <p className="kicker">
