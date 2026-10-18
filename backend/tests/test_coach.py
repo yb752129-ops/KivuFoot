@@ -24,6 +24,11 @@ def _h(token):
     return {"Authorization": f"Bearer {token}"}
 
 
+def _positions_433(count):
+    slots = [(0, 0), *( (1, index) for index in range(4) ), *( (2, index) for index in range(3) ), *( (3, index) for index in range(3) )]
+    return [slots[index] if index < len(slots) else (0, 0) for index in range(count)]
+
+
 async def test_coach_pose_sa_composition_pas_celle_de_ladversaire(client, db_session):
     club_a = await creer_club(db_session, "Club A")
     club_b = await creer_club(db_session, "Club B")
@@ -92,7 +97,13 @@ async def test_composition_refuse_un_numero_de_maillot_duplique(client, db_sessi
             "formation": "4-3-3",
             "joueurs": [
                 *[
-                    {"joueur_id": joueur.id, "statut": "titulaire", "numero": 10 if index < 2 else index + 1}
+                    {
+                        "joueur_id": joueur.id,
+                        "statut": "titulaire",
+                        "numero": 10 if index < 2 else index + 1,
+                        "ligne_index": _positions_433(len(joueurs))[index][0],
+                        "position_index": _positions_433(len(joueurs))[index][1],
+                    }
                     for index, joueur in enumerate(joueurs)
                 ],
             ],
@@ -121,7 +132,13 @@ async def test_composition_refuse_un_onze_incomplet(client, db_session):
             "equipe": "domicile",
             "formation": "4-3-3",
             "joueurs": [
-                {"joueur_id": joueur.id, "statut": "titulaire", "numero": index + 1}
+                {
+                    "joueur_id": joueur.id,
+                    "statut": "titulaire",
+                    "numero": index + 1,
+                    "ligne_index": _positions_433(len(rows))[index][0],
+                    "position_index": _positions_433(len(rows))[index][1],
+                }
                 for index, joueur in enumerate(rows)
             ],
         }

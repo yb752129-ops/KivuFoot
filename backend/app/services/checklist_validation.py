@@ -23,6 +23,7 @@ from app.schemas.sport_engine import ChecklistOut, ControleOut
 from app.services.discipline import get_discipline_summary
 from app.services.eligibilite import verifier_joueur
 from app.services.reglements import get_reglement_pour_match
+from app.services.composition_positions import positions_titulaires_valides
 
 
 def _value(value):
@@ -217,9 +218,10 @@ async def run_checklist(db: AsyncSession, match: Match) -> ChecklistOut:
         "exterieur": [p for p in participations if _value(p.equipe_concernee) == "exterieur"],
     }
     # Le contrôle de feuille reprend la même règle que l'endpoint de
-    # sauvegarde : exactement onze titulaires, même si une ancienne saison
-    # n'avait pas enregistré de configuration explicite. Les paramètres de
-    # banc restent pilotés par la configuration existante.
+    # sauvegarde : exactement onze titulaires et onze positions tactiques
+    # distinctes. Les anciennes saisons sans slots restent lisibles, mais
+    # ne sont pas présentées comme une composition tactique complète. Les
+    # paramètres de banc restent pilotés par la configuration existante.
     composition_rule = (config or {}).get("composition", {}) if isinstance(config, dict) else {}
     if not isinstance(composition_rule, dict):
         composition_rule = {}
@@ -240,6 +242,9 @@ async def run_checklist(db: AsyncSession, match: Match) -> ChecklistOut:
             bad.append(f"{banc} remplaçant(s), minimum {bmin}")
         if bmax is not None and banc > bmax:
             bad.append(f"{banc} remplaçant(s), maximum {bmax}")
+        formation = match.formation_domicile if side == "domicile" else match.formation_exterieur
+        if titulaires == 11 and not positions_titulaires_valides(formation, rows):
+            bad.append("positions tactiques absentes, invalides ou dupliquées")
         controls.append(
             _control(
                 f"composition_{side}",

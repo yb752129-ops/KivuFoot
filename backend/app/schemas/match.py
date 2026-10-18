@@ -163,6 +163,10 @@ class CompositionJoueurIn(BaseModel):
     joueur_id: int
     statut: StatutParticipation
     numero: int | None = Field(default=None, ge=1, le=99)
+    # Place tactique pour ce match : NULL uniquement pour un remplaçant
+    # ou une ancienne participation non encore positionnée.
+    ligne_index: int | None = Field(default=None, ge=0, le=20)
+    position_index: int | None = Field(default=None, ge=0, le=20)
 
 
 class CompositionEquipeIn(BaseModel):
@@ -190,6 +194,8 @@ class CompositionJoueurOut(BaseModel):
     poste: str | None = None
     numero: int | None = None
     photo_url: str | None = None
+    ligne_index: int | None = None
+    position_index: int | None = None
 
 
 class CompositionStaffOut(BaseModel):
@@ -205,6 +211,8 @@ class CompositionEquipeOut(BaseModel):
     logo_url: str | None = None
     formation: str | None = None
     staff: CompositionStaffOut | None = None
+    # False pour une ancienne feuille qui ne possède pas encore de slots.
+    position_complete: bool = False
     titulaires: list[CompositionJoueurOut] = []
     banc: list[CompositionJoueurOut] = []
 

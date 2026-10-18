@@ -1,24 +1,16 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { labelPoste, stripDemo } from "../display.js";
-
-const FORMATION_PAR_DEFAUT = "4-3-3";
-
-function lignesPourFormation(value) {
-  const nombres = String(value || FORMATION_PAR_DEFAUT)
-    .split("-")
-    .map((n) => Number(n))
-    .filter((n) => Number.isInteger(n) && n > 0);
-  if (nombres.length < 2) return lignesPourFormation(FORMATION_PAR_DEFAUT);
-  return [
-    { label: "Gardien", poste: "gardien", places: 1 },
-    ...nombres.map((places, index) => ({
-      label: index === 0 ? "Défense" : index === nombres.length - 1 ? "Attaque" : "Milieu",
-      poste: index === 0 ? "defenseur" : index === nombres.length - 1 ? "attaquant" : "milieu",
-      places,
-    })),
-  ];
-}
+import {
+  FORMATION_PAR_DEFAUT,
+  clePosition,
+  lignesAvecPlacements,
+  lignesPourFormation,
+  libellePosition,
+  placementDuJoueur,
+  slotValide,
+  slotsPourFormation,
+} from "../compositionPositions.js";
 
 function nomCourt(nom) {
   const mots = String(nom || "Joueur").trim().split(/\s+/).filter(Boolean);
@@ -27,64 +19,40 @@ function nomCourt(nom) {
 }
 
 
-function groupePoste(value) {
-  const poste = String(value || "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .trim();
-  if (poste.includes("gard")) return "gardien";
-  if (poste.includes("def")) return "defenseur";
-  if (poste.includes("mil")) return "milieu";
-  if (poste.includes("att") || poste.includes("avant")) return "attaquant";
-  return "";
-}
-
 function formationPourBloc(bloc) {
-  const officielle = String(bloc.formation || "").trim();
-  if (/^\d+(?:-\d+)+$/.test(officielle)) return officielle;
-  const comptes = ["defenseur", "milieu", "attaquant"].map((poste) => (
-    (bloc.titulaires || []).filter((joueur) => groupePoste(joueur.poste) === poste).length
-  ));
-  return comptes.every((nombre) => nombre > 0) && comptes.reduce((total, nombre) => total + nombre, 0) === 10
-    ? comptes.join("-")
-    : FORMATION_PAR_DEFAUT;
+  const officielle = String(bloc.formation || "").trim().replace(/[–—]/g, "-");
+  if (/^\d+(?:-\d+)+$/.test(officielle) && slotsPourFormation(officielle).length === 11) return officielle;
+  return FORMATION_PAR_DEFAUT;
 }
 
 function joueursPlaces(bloc) {
-  const titulaires = bloc.titulaires || [];
-  const postesConnus = titulaires.some((joueur) => Boolean(groupePoste(joueur.poste)));
-  const restants = Object.fromEntries(["gardien", "defenseur", "milieu", "attaquant"].map((poste) => [
-    poste,
-    titulaires.filter((joueur) => groupePoste(joueur.poste) === poste),
-  ]));
-  const sansPoste = titulaires.filter((joueur) => !groupePoste(joueur.poste));
-  const utilises = new Set();
-  return lignesPourFormation(formationPourBloc(bloc)).map((ligne) => {
-    const joueurs = [];
-    while (joueurs.length < ligne.places) {
-      const preferes = (restants[ligne.poste] || []).filter((joueur) => !utilises.has(joueur.id));
-      // Lorsque les postes sont renseignés, un joueur ne bascule jamais dans
-      // une autre ligne : le gardien reste gardien, la défense reste derrière,
-      // et l'attaque reste devant. Les postes absents sont utilisés seulement
-      // comme remplissage honnête, sans déplacer un poste connu.
-      const fallback = (postesConnus ? sansPoste : titulaires)
-        .find((joueur) => !utilises.has(joueur.id));
-      const joueur = preferes[0] || fallback;
-      if (!joueur) break;
-      utilises.add(joueur.id);
-      joueurs.push(joueur);
-    }
-    return { ...ligne, joueurs };
-  });
+  return lignesAvecPlacements(formationPourBloc(bloc), bloc.titulaires || []);
 }
 
-function positionsTerrain(nombreLignes, inverser = false) {
+function positionComplete(bloc) {
+  if (bloc.position_complete === true) return true;
+  const formation = formationPourBloc(bloc);
+  const titulaires = bloc.titulaires || [];
+  const places = new Set();
+  if (titulaires.length !== 11) return false;
+  for (const joueur of titulaires) {
+    const placement = placementDuJoueur(joueur);
+    if (!slotValide(formation, placement)) return false;
+    const cle = clePosition(placement.ligne_index, placement.position_index);
+    if (places.has(cle)) return false;
+    places.add(cle);
+  }
+  return places.size === 11;
+}
+
+function positionsTerrain(nombreLignes, zone = "top") {
   const haut = nombreLignes <= 1
     ? [6]
     : Array.from({ length: nombreLignes }, (_, i) =>
         Math.round(6 + (32 / (nombreLignes - 1)) * i));
-  return inverser ? haut.slice().reverse().map((top) => 100 - top) : haut;
+  // Chaque équipe garde le même sens de lecture : gardien vers le bas
+  // de sa moitié, attaque vers l'extrémité opposée.
+  return zone === "bottom" ? haut.slice().reverse().map((top) => 100 - top) : haut;
 }
 
 function repereJoueur(joueur) {
@@ -93,25 +61,27 @@ function repereJoueur(joueur) {
   return mot ? mot.charAt(0).toUpperCase() : "";
 }
 
-function RangsTerrain({ bloc, inverser = false }) {
+function RangsTerrain({ bloc, zone = "top", inverser = false }) {
+  const formation = formationPourBloc(bloc);
   const lignes = joueursPlaces(bloc);
   const ordre = inverser ? [...lignes].reverse() : lignes;
-  const positions = positionsTerrain(lignes.length, inverser);
+  const positions = positionsTerrain(lignes.length, zone);
   return ordre.map((ligne, ligneIndex) => (
     <div
       className="feuille-terrain-rang"
-      key={`${ligne.label}-${ligne.poste}`}
+      key={`${ligne.label}-${ligne.poste}-${ligne.ligneIndex}`}
       style={{ top: `${positions[ligneIndex] ?? 50}%` }}
     >
       {Array.from({ length: ligne.places }).map((_, index) => {
         const joueur = ligne.joueurs[index];
+        const positionLabel = libellePosition(formation, ligne.ligneIndex, index);
         return joueur ? (
-          <span className="feuille-terrain-joueur" key={joueur.id} title={`${joueur.nom_complet} · ${labelPoste(joueur.poste) || "Poste non renseigné"}`}>
+          <span className="feuille-terrain-joueur" key={joueur.id} title={`${joueur.nom_complet} · ${positionLabel}`}>
             <b>{repereJoueur(joueur)}</b>
             <small>{nomCourt(joueur.nom_complet)}</small>
           </span>
         ) : (
-          <span className="feuille-terrain-vide" key={`${ligne.label}-${index}`} aria-label={`${ligne.label} non renseigné`}>+</span>
+          <span className="feuille-terrain-vide" key={`${ligne.label}-${ligne.ligneIndex}-${index}`} aria-label={`${positionLabel} non renseigné`}>+</span>
         );
       })}
     </div>
@@ -128,6 +98,10 @@ function TerrainMixte({ domicile, exterieur, logos = {} }) {
   ));
   const logoDomicile = logos.domicile || domicile.logo_url;
   const logoExterieur = logos.exterieur || exterieur.logo_url;
+  const positionsIncompletes = [
+    { id: "domicile", nom: nomDomicile, bloc: domicile },
+    { id: "exterieur", nom: nomExterieur, bloc: exterieur },
+  ].filter((equipe) => equipe.bloc.titulaires?.length > 0 && !positionComplete(equipe.bloc));
   return (
     <section className="feuille-tactique feuille-tactique-mixte" aria-label="Terrain tactique des deux équipes">
       <div className="feuille-tactique-head">
@@ -137,6 +111,17 @@ function TerrainMixte({ domicile, exterieur, logos = {} }) {
         </div>
         <span className="feuille-tactique-note">Lecture seule</span>
       </div>
+      {positionsIncompletes.map((equipe) => (
+        <div key={equipe.id} className="feuille-position-incomplete" role="status">
+          <strong>{equipe.nom} : placement tactique à confirmer</strong>
+          <span>Les titulaires sont déclarés, mais la position de chaque joueur n'est pas encore complète. Le terrain ne déplace aucun joueur automatiquement.</span>
+          <ul>
+            {(equipe.bloc.titulaires || []).map((joueur) => (
+              <li key={joueur.id}>{joueur.numero != null ? `N°${joueur.numero} ` : ""}{joueur.nom_complet}</li>
+            ))}
+          </ul>
+        </div>
+      ))}
       <div className={`feuille-terrain feuille-terrain-mixte${dense ? " feuille-terrain-dense" : ""}`}>
         {logoExterieur && <img className="feuille-terrain-logo feuille-terrain-logo-away" src={logoExterieur} alt="" aria-hidden="true" />}
         {logoDomicile && <img className="feuille-terrain-logo feuille-terrain-logo-home" src={logoDomicile} alt="" aria-hidden="true" />}
@@ -152,11 +137,11 @@ function TerrainMixte({ domicile, exterieur, logos = {} }) {
           <span>{formationExterieur}</span>
         </div>
         <div className="feuille-terrain-rangs feuille-terrain-rangs-away">
-          <RangsTerrain bloc={exterieur} />
+          <RangsTerrain bloc={exterieur} zone="top" inverser />
         </div>
         <div className="feuille-terrain-centre" aria-hidden="true" />
         <div className="feuille-terrain-rangs feuille-terrain-rangs-home">
-          <RangsTerrain bloc={domicile} inverser />
+          <RangsTerrain bloc={domicile} zone="bottom" inverser />
         </div>
         <div className="feuille-terrain-team feuille-terrain-team-home">
           {logoDomicile && <img className="feuille-terrain-team-logo" src={logoDomicile} alt="" aria-hidden="true" />}

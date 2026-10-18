@@ -57,6 +57,7 @@ from app.services.calcul_stats import appliquer_evenement_valide
 from app.services.reglements import get_reglement_actif, get_reglement_pour_match
 from app.services.validation import valider_match
 from app.services.possession import officialiser_possession, suspendre_possession, terminer_possession
+from app.services.composition_positions import positions_titulaires_valides, slots_formation
 
 router = APIRouter(prefix="/matchs", tags=["Matchs"])
 
@@ -881,6 +882,74 @@ async def changer_phase_match(
 # ==== PACK COMPOSITION (11 sept) : feuille de match numérique ====
 
 
+def _composition_lignes(formation: str | None) -> list[int] | None:
+    """Retourne les capacités des lignes, gardien inclus.
+
+    Les formations de composition doivent décrire exactement onze slots :
+    un gardien et dix joueurs de champ. Les indices envoyés par le client
+    sont validés contre cette structure, jamais contre le poste habituel.
+    """
+    slots = slots_formation(formation)
+    if slots is None:
+        return None
+    return [
+        max(position for ligne, position in slots if ligne == ligne_index) + 1
+        for ligne_index in range(max(ligne for ligne, _ in slots) + 1)
+    ]
+
+
+def _valider_positions_composition(payload: CompositionEquipeIn) -> None:
+    """Refuse toute feuille titulaire sans slot explicite et sans doublon."""
+    lignes = _composition_lignes(payload.formation)
+    if lignes is None:
+        raise HTTPException(
+            status_code=400,
+            detail="Une formation valide avec exactement onze positions est obligatoire pour placer les titulaires.",
+        )
+
+    occupes: dict[tuple[int, int], int] = {}
+    for ligne in payload.joueurs:
+        est_titulaire = _value(ligne.statut) == "titulaire"
+        paire = (ligne.ligne_index, ligne.position_index)
+        if not est_titulaire:
+            if ligne.ligne_index is not None or ligne.position_index is not None:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Un remplaçant ne peut pas occuper une position de titulaire.",
+                )
+            continue
+        if ligne.ligne_index is None or ligne.position_index is None:
+            raise HTTPException(
+                status_code=400,
+                detail="Chaque titulaire doit recevoir une position tactique explicite.",
+            )
+        if ligne.ligne_index >= len(lignes) or ligne.position_index >= lignes[ligne.ligne_index]:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    f"La position {ligne.ligne_index}:{ligne.position_index} "
+                    "n'existe pas dans la formation choisie."
+                ),
+            )
+        joueur_precedent = occupes.get(paire)
+        if joueur_precedent is not None:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    f"La position {ligne.ligne_index}:{ligne.position_index} "
+                    f"est déjà occupée par le joueur {joueur_precedent}. "
+                    "Aucun joueur n'est déplacé automatiquement."
+                ),
+            )
+        occupes[paire] = ligne.joueur_id
+
+    if len(occupes) != 11:
+        raise HTTPException(
+            status_code=400,
+            detail="Les 11 titulaires doivent occuper 11 positions distinctes de la formation.",
+        )
+
+
 async def _bloc_equipe(db: AsyncSession, match_: Match, equipe: str, max_rempl: int) -> CompositionEquipeOut:
     club_id = match_.equipe_domicile_id if equipe == "domicile" else match_.equipe_exterieur_id
     bloc = CompositionEquipeOut()
@@ -919,9 +988,12 @@ async def _bloc_equipe(db: AsyncSession, match_: Match, equipe: str, max_rempl: 
             )
         ).scalars().all()
         par_id = {j.id: j for j in js}
+    positions_titulaires: set[tuple[int, int]] = set()
+    tous_les_titulaires_positionnes = True
     for part in rows:
         j = par_id.get(part.joueur_id)
         if not j:
+            tous_les_titulaires_positionnes = False
             continue
         out = CompositionJoueurOut(
             id=j.id,
@@ -929,11 +1001,22 @@ async def _bloc_equipe(db: AsyncSession, match_: Match, equipe: str, max_rempl: 
             poste=getattr(j.poste, "value", j.poste),
             numero=part.numero if part.numero is not None else getattr(j, "numero", None),
             photo_url=j.photo_url,
+            ligne_index=part.ligne_index,
+            position_index=part.position_index,
         )
         if getattr(part.statut, "value", part.statut) == "titulaire":
             bloc.titulaires.append(out)
+            if part.ligne_index is None or part.position_index is None:
+                tous_les_titulaires_positionnes = False
+            else:
+                positions_titulaires.add((part.ligne_index, part.position_index))
         else:
             bloc.banc.append(out)
+    bloc.position_complete = (
+        tous_les_titulaires_positionnes
+        and len(positions_titulaires) == len(bloc.titulaires)
+        and positions_titulaires_valides(bloc.formation, rows)
+    )
     return bloc
 
 
@@ -1007,6 +1090,7 @@ async def enregistrer_composition(
         raise HTTPException(status_code=400, detail=f"Maximum {max_rempl} remplaçants pour cette compétition.")
     if min_banc is not None and len(banc) < min_banc:
         raise HTTPException(status_code=400, detail=f"Minimum {min_banc} remplaçants.")
+    _valider_positions_composition(payload)
 
     joueurs_vus: set[int] = set()
     numeros_vus: dict[int, int] = {}
@@ -1060,6 +1144,8 @@ async def enregistrer_composition(
             # Ne conservons pas silencieusement un ancien numéro lorsque le
             # club l'a effacé dans l'éditeur.
             part.numero = ligne.numero
+            part.ligne_index = ligne.ligne_index
+            part.position_index = ligne.position_index
         else:
             db.add(
                 MatchParticipation(
@@ -1070,6 +1156,8 @@ async def enregistrer_composition(
                     statut=stat,
                     minute_entree=0,
                     numero=ligne.numero,
+                    ligne_index=ligne.ligne_index,
+                    position_index=ligne.position_index,
                 )
             )
     if equipe == "domicile":
@@ -1083,6 +1171,7 @@ async def enregistrer_composition(
         "staff_id": payload.staff_id,
         "titulaires": len(titulaires),
         "banc": len(banc),
+        "positions_complete": True,
     }
     await log_audit(db, "matchs", match_.id, ActionAudit.UPDATE, current_user.id, avant, apres)
     await db.commit()

@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import Boolean, CheckConstraint, DateTime, ForeignKey, Integer, String, Text, func
+from sqlalchemy import Boolean, CheckConstraint, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -85,8 +85,26 @@ class MatchParticipation(Base):
     source de vérité pour savoir pour quel club un joueur a joué un
     match donné - jamais joueurs.club_actuel_id, qui ne reflète que le
     club ACTUEL et serait faux après un transfert (décision C2 validée).
+
+    `ligne_index` et `position_index` décrivent uniquement la place
+    tactique de ce match. Ils restent NULL pour les anciennes feuilles
+    et pour les participations qui ne sont pas encore une composition
+    tactique complète.
     """
     __tablename__ = "match_participations"
+    __table_args__ = (
+        CheckConstraint(
+            "(ligne_index IS NULL AND position_index IS NULL) OR (ligne_index IS NOT NULL AND position_index IS NOT NULL AND ligne_index >= 0 AND position_index >= 0)",
+            name="ck_participation_position_pair",
+        ),
+        UniqueConstraint(
+            "match_id",
+            "equipe_concernee",
+            "ligne_index",
+            "position_index",
+            name="uq_match_participation_position",
+        ),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
     match_id: Mapped[int] = mapped_column(ForeignKey("matchs.id", ondelete="CASCADE"), nullable=False)
@@ -95,6 +113,8 @@ class MatchParticipation(Base):
     equipe_concernee: Mapped[EquipeConcernee] = mapped_column(String(10), nullable=False)
     statut: Mapped[str] = mapped_column(String(20), nullable=False)  # titulaire | remplacant
     numero: Mapped[int | None] = mapped_column(Integer)  # numéro porté pour CE match
+    ligne_index: Mapped[int | None] = mapped_column(Integer)  # ligne de la formation, 0 = gardien
+    position_index: Mapped[int | None] = mapped_column(Integer)  # slot gauche -> droite dans la ligne
     minute_entree: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     minute_sortie: Mapped[int | None] = mapped_column(Integer)  # NULL = a joué jusqu'à la fin
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
