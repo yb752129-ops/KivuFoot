@@ -6415,3 +6415,126 @@ body,
 .kf-public-frame .live-band .lk-center-meta .chrono {
   margin: 0;
 }
+
+/* ==== Détail public — polish de la carte du score et des statistiques ==== */
+.kf-public-frame .match-detail-back {
+  margin: 0;
+}
+.kf-public-frame .match-detail-back a {
+  color: var(--kf-paper);
+  font-size: 14px;
+  font-weight: 750;
+  letter-spacing: 0;
+  text-decoration: none;
+  text-transform: none;
+}
+.kf-public-frame .match-detail-meta {
+  margin: 4px 0 12px;
+  color: var(--kf-ink-soft);
+  font-size: 12px;
+  font-weight: 550;
+  letter-spacing: .01em;
+  line-height: 1.25;
+}
+
+.kf-public-frame .mc-score .sb-line {
+  align-items: start;
+}
+.kf-public-frame .mc-score .sb-name,
+.kf-public-frame .mc-score .sb-name.is-winner,
+.kf-public-frame .mc-score .sb-name.is-loser {
+  align-content: start;
+  color: var(--kf-paper);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.22;
+  text-align: center;
+}
+.kf-public-frame .mc-score .sb-name > span:last-child {
+  display: -webkit-box;
+  min-height: 2.44em;
+  overflow: hidden;
+  color: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.22;
+  text-overflow: ellipsis;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.kf-public-frame .mc-score .sb-score {
+  font-size: clamp(2.8rem, 13vw, 3.6rem);
+  line-height: .95;
+}
+
+.kf-public-frame .stats-feuille th {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 11px;
+  font-weight: 750;
+  line-height: 1.15;
+  vertical-align: bottom;
+}
+.kf-public-frame .stats-team-heading {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+  min-width: 0;
+  color: var(--kf-paper);
+}
+.kf-public-frame .stats-team-heading-away {
+  justify-content: flex-end;
+}
+.kf-public-frame .stats-team-heading > span:last-child:not(.stats-team-dot) {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.kf-public-frame .stats-team-dot {
+  display: inline-block;
+  flex: 0 0 8px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.kf-public-frame .stats-team-dot-home { background: var(--kf-accent); }
+.kf-public-frame .stats-team-dot-away { background: #f4efe3; }
+
+.kf-public-frame .stats-feuille tbody td:first-child,
+.kf-public-frame .stats-feuille tbody td:last-child {
+  color: var(--kf-paper);
+  font-weight: 600;
+}
+.kf-public-frame .stats-feuille tbody .stats-possession-value.is-high {
+  font-weight: 900;
+}
+.kf-public-frame .stats-feuille tbody .stats-possession-row td:nth-child(2) {
+  color: var(--kf-ink-soft);
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.kf-public-frame .stats-feuille .stats-possession-bar-row td {
+  padding: 0 16px 3px;
+  background: transparent !important;
+  border-radius: 0 !important;
+}
+.kf-public-frame .stats-possession-bar {
+  display: flex;
+  width: 100%;
+  height: 4px;
+  gap: 2px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255,255,255,.09);
+}
+.kf-public-frame .stats-possession-bar span {
+  display: block;
+  min-width: 0;
+  height: 100%;
+}
+.kf-public-frame .stats-possession-bar span:first-child { background: var(--kf-accent); }
+.kf-public-frame .stats-possession-bar span:last-child { background: #f4efe3; }

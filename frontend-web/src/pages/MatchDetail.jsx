@@ -8,7 +8,23 @@ import FeuilleMatch from "../components/FeuilleMatch.jsx";
 import { LiveUne } from "../components/LignesMatch.jsx";
 import { scorePublicVisible } from "../components/PublicDesign.jsx";
 import { startVisibleRefresh } from "../liveRefresh.js";
-import { formatJour, grouperFaits, journeeTitre, statsDesFaits, stripDemo } from "../display.js";
+import { grouperFaits, journeeTitre, statsDesFaits, stripDemo } from "../display.js";
+
+function formatDetailDate(iso) {
+  if (!iso) return "";
+  return new Intl.DateTimeFormat("fr-FR", {
+    weekday: "short",
+    day: "numeric",
+    month: "long",
+    timeZone: "Africa/Lubumbashi",
+  }).format(new Date(iso));
+}
+
+function pourcentageValide(value) {
+  if (value === null || value === undefined || value === "") return false;
+  const n = Number(value);
+  return Number.isFinite(n) && n >= 0 && n <= 100;
+}
 
 const ONGLETS = [
   { id: "apercu", label: "Événements" },
@@ -29,7 +45,7 @@ function compositionPubliee(compo) {
 
 export default function MatchDetail() {
   const { id } = useParams();
-  const { clubsById, competition } = useKivu();
+  const { clubsById } = useKivu();
   const [match, setMatch] = useState(null);
   const [evts, setEvts] = useState([]);
   const [joueurs, setJoueurs] = useState({});
@@ -114,34 +130,29 @@ export default function MatchDetail() {
   const stats = statsDesFaits(evts);
   const scoreVisible = scorePublicVisible(match);
   const compositionVisible = compositionPubliee(compo);
-  const possessionLive = Boolean(possession?.disponible && possession?.est_live);
-  const possessionOfficielle = possession?.disponible && possession?.statut === "OFFICIELLE";
-  const possessionStatut = possessionLive
-    ? "EN COURS · PROVISOIRE"
-    : possessionOfficielle
-      ? "OFFICIELLE"
-      : possession?.statut === "PROVISOIRE"
-        ? "PROVISOIRE"
-        : "Non disponible";
+  const possessionDisponible = Boolean(
+    possession?.disponible
+    && pourcentageValide(possession.pourcentage_a)
+    && pourcentageValide(possession.pourcentage_b),
+  );
+  const possessionA = possessionDisponible ? Number(possession.pourcentage_a) : null;
+  const possessionB = possessionDisponible ? Number(possession.pourcentage_b) : null;
   const possessionAdminView = Boolean(moi && ["admin", "organisateur"].includes(moi.role));
 
   return (
     <section className="hero">
-      <p className="kicker"><Link to={live ? "/" : "/matchs"}>{live ? "← Accueil" : "← Matchs"}</Link></p>
-      {competition?.nom && <p className="kicker">{stripDemo(competition.nom)}</p>}
+      <p className="match-detail-back"><Link to="/matchs">← Matchs</Link></p>
+      <p className="match-detail-meta">
+        {journeeTitre(match.journee)}
+        {match.date_heure ? ` · ${formatDetailDate(match.date_heure)}` : ""}
+      </p>
 
       {live ? (
         <LiveUne match={match} clubsById={clubsById} />
       ) : (
-        <>
-          <p className="kicker">
-            {journeeTitre(match.journee)}
-            {match.date_heure ? ` · ${formatJour(match.date_heure, true)}` : ""}
-          </p>
-          <div className="sheet mc-score" style={{ marginTop: "0.85rem" }}>
-            <Scoreboard match={match} clubsById={clubsById} />
-          </div>
-        </>
+        <div className="sheet mc-score" style={{ marginTop: "0.85rem" }}>
+          <Scoreboard match={match} clubsById={clubsById} />
+        </div>
       )}
       {possessionAdminView && match.statut === "valide" && <p className="stamp">Validé</p>}
       {moi && ["admin", "organisateur"].includes(moi.role) && match.statut === "valide" && (
@@ -194,12 +205,41 @@ export default function MatchDetail() {
           <table className="table stats-feuille table-accueil">
           <thead>
             <tr>
-              <th>{stripDemo(home?.nom) || "Domicile"}</th>
+              <th>
+                <span className="stats-team-heading">
+                  <span className="stats-team-dot stats-team-dot-home" aria-hidden="true" />
+                  <span>{stripDemo(home?.nom) || "Domicile"}</span>
+                </span>
+              </th>
               <th />
-              <th>{stripDemo(away?.nom) || "Extérieur"}</th>
+              <th>
+                <span className="stats-team-heading stats-team-heading-away">
+                  <span>{stripDemo(away?.nom) || "Extérieur"}</span>
+                  <span className="stats-team-dot stats-team-dot-away" aria-hidden="true" />
+                </span>
+              </th>
             </tr>
           </thead>
           <tbody>
+            <tr className="stats-possession-row">
+              <td className={`stats-possession-value${possessionA > possessionB ? " is-high" : ""}`}>
+                {possessionDisponible ? `${possessionA} %` : "—"}
+              </td>
+              <td>Possession</td>
+              <td className={`stats-possession-value${possessionB > possessionA ? " is-high" : ""}`}>
+                {possessionDisponible ? `${possessionB} %` : "—"}
+              </td>
+            </tr>
+            {possessionDisponible && (
+              <tr className="stats-possession-bar-row" aria-label="Répartition de la possession">
+                <td colSpan={3}>
+                  <div className="stats-possession-bar" aria-hidden="true">
+                    <span style={{ width: `${possessionA}%` }} />
+                    <span style={{ width: `${possessionB}%` }} />
+                  </div>
+                </td>
+              </tr>
+            )}
             <tr>
               <td>{match.score_domicile}</td>
               <td>Buts</td>
@@ -222,44 +262,6 @@ export default function MatchDetail() {
             </tr>
           </tbody>
         </table>
-        <section
-          className={`sheet possession-public stats-possession ${possessionLive ? "possession-public-live" : ""}`}
-          aria-label="Possession du match"
-          aria-live={possessionLive ? "polite" : undefined}
-        >
-          <div className="possession-public-head">
-            <h2>Possession</h2>
-            {possession?.disponible && <span className="possession-public-status">Résultat officiel</span>}
-          </div>
-          {!possession?.disponible ? (
-            <p className="empty">Possession non disponible</p>
-          ) : (
-            <>
-              <div className="possession-scoreline">
-                <strong>{possession.equipe_a_nom || stripDemo(home?.nom) || "Domicile"}</strong>
-                <strong>{possession.pourcentage_a} %</strong>
-                <span>/</span>
-                <strong>{possession.pourcentage_b} %</strong>
-                <strong>{possession.equipe_b_nom || stripDemo(away?.nom) || "Extérieur"}</strong>
-              </div>
-              <div className="possession-bars" aria-label="Répartition de la possession">
-                <span style={{ width: `${possession.pourcentage_a}%` }} />
-                <span style={{ width: `${possession.pourcentage_b}%` }} />
-              </div>
-              {possessionAdminView && (
-                <div className="possession-admin-meta" aria-label="Métadonnées de contrôle de la possession">
-                  <p className="kicker">Vue admin / organisateur</p>
-                  <p className="muted small">
-                    Statut : {possessionStatut} · {possession?.message || "Possession non disponible"} · Provenance : {possession?.mapping || "TEAM_A=domicile, TEAM_B=extérieur"}
-                  </p>
-                  <p className="muted small">
-                    Protocole : {possession?.protocole || "KIVUFOOT_POSSESSION_V1"} · Temps mesuré : {Math.round((possession.temps_mesure_ms || 0) / 1000)} s · Non attribué : {Math.round((possession.temps_non_attribue || 0) / 1000)} s
-                  </p>
-                </div>
-              )}
-            </>
-          )}
-        </section>
           </>
         ) : (
           <p className="empty">Les statistiques seront disponibles après le coup d'envoi.</p>
