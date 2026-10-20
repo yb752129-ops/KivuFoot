@@ -21,7 +21,8 @@ import {
   PublicClubLogo,
   scorePublicVisible,
 } from "../components/PublicDesign.jsx";
-import Chrono from "../components/Chrono.jsx";
+import Chrono, { LiveMinute } from "../components/Chrono.jsx";
+import { startVisibleRefresh } from "../liveRefresh.js";
 import { IcoCalendrier, IcoEpingle } from "../icons.jsx";
 
 const CATEGORIES = {
@@ -58,12 +59,11 @@ function isLive(match) {
 }
 
 function homeLiveStatus(match) {
-  return match?.periode === "mi_temps" ? "MT" : "EN DIRECT";
+  return match?.periode === "mi_temps" ? "MT" : "";
 }
 
 function HomeLiveMinute({ match, className = "kf-home-live-minute" }) {
-  if (match?.periode === "mi_temps" || !match?.started_at) return null;
-  return <Chrono precision="minute" as="span" className={className} match={match} running={isLive(match)} />;
+  return <LiveMinute match={match} className={className} />;
 }
 
 function isScheduled(match) {
@@ -218,8 +218,12 @@ function HomeLiveCard({ match, clubsById, saisonClubs }) {
   return (
     <Link to={`/matchs/${match.id}`} className="kf-home-live-card">
       <div className="kf-home-live-top">
-        <span className={match.periode === "mi_temps" ? "is-break" : ""}>
-          <i aria-hidden="true" /> {homeLiveStatus(match)}
+        <span
+          className={match.periode === "mi_temps" ? "is-break" : ""}
+          aria-label={match.periode === "mi_temps" ? "Mi-temps" : "En cours"}
+        >
+          <i aria-hidden="true" />
+          {match.periode === "mi_temps" && <span className="live-break-code">MT</span>}
         </span>
         <span>{formatPublicRound(match.journee)}</span>
       </div>
@@ -243,8 +247,12 @@ function HomeLiveCompactRow({ match, clubsById, saisonClubs }) {
   const pause = match.periode === "mi_temps";
   return (
     <Link to={`/matchs/${match.id}`} className="kf-home-live-compact-row">
-      <span className={`kf-home-live-compact-status${pause ? " is-break" : ""}`}>
-        <i aria-hidden="true" />{homeLiveStatus(match)}
+      <span
+        className={`kf-home-live-compact-status${pause ? " is-break" : ""}`}
+        aria-label={pause ? "Mi-temps" : "En cours"}
+      >
+        <i aria-hidden="true" />
+        {pause && <span className="live-break-code">MT</span>}
       </span>
       <span className="kf-home-live-compact-teams">
         <span><PublicClubLogo club={home} name={homeName} />{homeName}</span>
@@ -449,11 +457,10 @@ export default function Home() {
       setChargement(false);
     }
 
-    charge();
-    const timer = window.setInterval(charge, 30000);
+    const stopRefresh = startVisibleRefresh(charge, 10000);
     return () => {
       stop = true;
-      window.clearInterval(timer);
+      stopRefresh();
     };
   }, [competition?.id, saison]);
 
@@ -481,13 +488,13 @@ export default function Home() {
       {lives.length > 0 && (
         <section className="kf-home-live-section" aria-labelledby="home-live-title">
           <div className="kf-home-section-head">
-            <h2 id="home-live-title">EN DIRECT</h2>
+            <h2 id="home-live-title">En cours</h2>
           </div>
           <div className="kf-home-live-list">
             {livePrincipal && <HomeLiveCard match={livePrincipal} clubsById={clubsById} saisonClubs={saisonClubs} />}
             {autresLives.length > 0 && (
-              <div className="kf-home-live-others" aria-label="Autres matchs en direct">
-                <p className="kf-home-live-others-title">Autres matchs en direct</p>
+              <div className="kf-home-live-others" aria-label="Autres matchs en cours">
+                <p className="kf-home-live-others-title">Autres matchs en cours</p>
                 {autresLives.map((match) => (
                   <HomeLiveCompactRow key={match.id} match={match} clubsById={clubsById} saisonClubs={saisonClubs} />
                 ))}

@@ -6137,3 +6137,84 @@ body,
   .kf-home-rank-row { padding-left: 7px; padding-right: 7px; }
   .kf-home-news-grid { grid-template-columns: 1fr; }
 }
+
+/* ==== Live public : chrono, vocabulaire et événements ==== */
+.kf-home-live-section .kf-home-section-head h2 { color: var(--kf-paper); }
+.kf-home-live-top > span:first-child,
+.kf-home-live-top > span:first-child.is-break { letter-spacing: 0; }
+.kf-home-live-top .live-break-code,
+.kf-home-live-compact-status .live-break-code { margin-left: 3px; font-size: 10px; font-weight: 900; letter-spacing: .06em; }
+.kf-home-live-top > span:first-child:not(.is-break) .live-break-code { display: none; }
+.kf-home-live-compact-status:not(.is-break) .live-break-code { display: none; }
+.kf-public-match-card .kf-public-match-team strong,
+.kf-home-team > span:last-child,
+.kf-home-live-compact-teams > span,
+.kf-home-day-name {
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: none;
+}
+.kf-home-team > span:last-child,
+.kf-home-day-name { font-size: clamp(11px, 3.2vw, 13px); }
+.kf-public-match-team strong { font-size: clamp(11px, 3.4vw, 13px); }
+.kf-home-live-compact-teams > span { white-space: normal; line-height: 1.12; }
+.kf-public-match-score-wrap { display: grid; justify-items: center; gap: 1px; min-width: 50px; }
+.kf-public-live-minute,
+.cloche-live-minute {
+  display: block;
+  min-height: 1em;
+  color: var(--kf-lime);
+  font-family: var(--score);
+  font-size: 10px;
+  font-weight: 850;
+  line-height: 1;
+  white-space: nowrap;
+}
+.kf-public-live-indicator { display: inline-flex; align-items: center; gap: 5px; color: var(--kf-live); }
+.kf-public-live-indicator i {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: live-beat .9s ease-in-out infinite;
+}
+.kf-public-live-indicator.is-break i { animation: none; opacity: .78; }
+.kf-public-live-indicator b { font-size: 9px; letter-spacing: .06em; }
+.kf-public-live-event.is-yellow { color: #f5c542; }
+.kf-public-live-event.is-red { color: #e5484d; }
+.kf-public-live-event.is-substitution { color: #22c55e; }
+.kf-public-live-event.is-goal { color: var(--kf-lime); }
+.live-pause-label { color: var(--kf-live); font-size: 11px; font-weight: 850; letter-spacing: .06em; }
+.live-band .chrono { color: var(--kf-lime); font-family: var(--score); font-size: 1.1rem; font-variant-numeric: tabular-nums; letter-spacing: .06em; }
+.sb-finished-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 24px;
+  padding: 0 10px;
+  border: 1px solid var(--kf-line-strong);
+  border-radius: 999px;
+  color: var(--kf-paper);
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: .04em;
+}
+.feuille-break {
+  list-style: none;
+  margin: 8px 0;
+  padding: 7px 0;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+  color: var(--ink-soft);
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: .72rem;
+  font-weight: 650;
+  letter-spacing: .02em;
+  text-align: center;
+}
+.feuille-dom { padding-right: 9px; }
+.feuille-ext { padding-left: 9px; }
+.feuille-dom .feuille-txt { justify-content: flex-end; }
+.kf-carton-jaune { background: #f5c542; }
+.kf-carton-rouge { background: #e5484d; }

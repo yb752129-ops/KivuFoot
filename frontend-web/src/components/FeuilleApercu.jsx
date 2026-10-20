@@ -22,10 +22,11 @@ function Texte({ e, nom }) {
   const sub = e.type === "remplacement";
   const csc = e.type === "but_contre_son_camp";
   const penalty = e.type === "penalty";
+  const carton = e.type === "carton_jaune" || e.type === "carton_rouge";
   const assist = !e.refuse && e.type === "but" && second;
   const motif = MOTIF_REFUS[e.motif_refus] || e.motif_refus;
   const libelle = labelEvenement(e);
-  const tag = !csc && libelle && libelle !== "But" ? libelle : null;
+  const tag = !carton && !sub && !csc && libelle && libelle !== "But" ? libelle : null;
 
   return (
     <div className={`feuille-txt${e.refuse ? " is-refuse" : ""}`}>
@@ -71,6 +72,29 @@ function Texte({ e, nom }) {
   );
 }
 
+function scoreMiTemps(events) {
+  let domicile = 0;
+  let exterieur = 0;
+  for (const e of events) {
+    if (e.refuse || e.score_comptabilise === false) continue;
+    const side = e.equipe_concernee === "exterieur" ? "exterieur" : "domicile";
+    const goal = e.type === "but"
+      || e.type === "but_contre_son_camp"
+      || (e.type === "penalty" && e.resultat !== "rate" && e.resultat !== "raté");
+    if (!goal) continue;
+    const target = e.type === "but_contre_son_camp"
+      ? (side === "domicile" ? "exterieur" : "domicile")
+      : side;
+    if (target === "domicile") domicile += 1;
+    else exterieur += 1;
+  }
+  return `${domicile}–${exterieur}`;
+}
+
+function MarqueurPeriode({ children }) {
+  return <li className="feuille-break">{children}</li>;
+}
+
 export default function FeuilleApercu({ faits, nom, match }) {
   const chrono = [...(faits || [])].sort(
     (a, b) =>
@@ -80,6 +104,15 @@ export default function FeuilleApercu({ faits, nom, match }) {
   );
   const p1 = chrono.filter(estPeriodeUn);
   const p2 = chrono.filter((e) => !estPeriodeUn(e));
+  const coupEnvoi = Boolean(match?.started_at);
+  const miTemps = Boolean(match?.paused_at || match?.periode === "mi_temps" || match?.periode === "2" || match?.periode_started_at);
+  const deuxiemePeriode = Boolean(match?.periode_started_at || match?.periode === "2" || p2.length > 0);
+  const finMatch = Boolean(match?.ended_at || ["termine", "valide"].includes(match?.statut));
+  const scorePause = miTemps && p1.some((e) => (
+    !e.refuse
+    && (e.type === "but" || e.type === "but_contre_son_camp" || e.type === "penalty")
+  )) ? scoreMiTemps(p1) : "";
+  const aMarqueurs = coupEnvoi || miTemps || deuxiemePeriode || finMatch;
 
   function lignes(list) {
     return list.map((e) => {
@@ -105,14 +138,18 @@ export default function FeuilleApercu({ faits, nom, match }) {
     return <p className="empty">Le match n'a pas encore commencé.</p>;
   }
 
-  if (!chrono.length) {
+  if (!chrono.length && !aMarqueurs) {
     return <p className="empty">Aucun événement rendu public pour ce match.</p>;
   }
 
   return (
     <ul className="feuille-apercu">
+      {coupEnvoi && <MarqueurPeriode>Coup d’envoi</MarqueurPeriode>}
       {lignes(p1)}
+      {miTemps && <MarqueurPeriode>Mi-temps{scorePause ? ` · ${scorePause}` : ""}</MarqueurPeriode>}
+      {deuxiemePeriode && <MarqueurPeriode>2e période</MarqueurPeriode>}
       {lignes(p2)}
+      {finMatch && <MarqueurPeriode>Fin du match · {match.score_domicile}–{match.score_exterieur}</MarqueurPeriode>}
     </ul>
   );
 }

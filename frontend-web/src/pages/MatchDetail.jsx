@@ -7,6 +7,7 @@ import FeuilleApercu from "../components/FeuilleApercu.jsx";
 import FeuilleMatch from "../components/FeuilleMatch.jsx";
 import { LiveUne } from "../components/LignesMatch.jsx";
 import { scorePublicVisible } from "../components/PublicDesign.jsx";
+import { startVisibleRefresh } from "../liveRefresh.js";
 import { formatJour, grouperFaits, journeeTitre, statsDesFaits, stripDemo } from "../display.js";
 
 const ONGLETS = [
@@ -81,19 +82,16 @@ export default function MatchDetail() {
     let stop = false;
     setErr("");
     setMatch(null);
-    (async () => {
+    const stopRefresh = startVisibleRefresh(async () => {
       try {
         await load();
       } catch (e) {
         if (!stop) setErr(e.message || "Match introuvable.");
       }
-    })();
-    const t = setInterval(() => {
-      load().catch(() => {});
-    }, 5000);
+    }, 10000);
     return () => {
       stop = true;
-      clearInterval(t);
+      stopRefresh();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
@@ -119,7 +117,7 @@ export default function MatchDetail() {
   const possessionLive = Boolean(possession?.disponible && possession?.est_live);
   const possessionOfficielle = possession?.disponible && possession?.statut === "OFFICIELLE";
   const possessionStatut = possessionLive
-    ? "EN DIRECT · PROVISOIRE"
+    ? "EN COURS · PROVISOIRE"
     : possessionOfficielle
       ? "OFFICIELLE"
       : possession?.statut === "PROVISOIRE"

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { clockFromMatch, elapsed, formatClock, formatClockMinute } from "../display.js";
+import { clockFromMatch, elapsed, formatClock, formatClockMinute, serverNow } from "../display.js";
 
 export { elapsed };
 
@@ -15,10 +15,10 @@ export default function Chrono({
   as = "p",
   className = "chrono",
 }) {
-  const [now, setNow] = useState(Date.now());
+  const [now, setNow] = useState(serverNow());
   useEffect(() => {
     if (!running) return undefined;
-    const t = setInterval(() => setNow(Date.now()), 1000);
+    const t = setInterval(() => setNow(serverNow()), 1000);
     return () => clearInterval(t);
   }, [running]);
 
@@ -34,11 +34,27 @@ export default function Chrono({
   const freezeAt = source.ended_at || endedAt;
   const clock = clockFromMatch(
     source,
-    running ? now : freezeAt ? new Date(freezeAt).getTime() : now,
+    running ? now : freezeAt ? new Date(freezeAt).getTime() : serverNow(),
   );
   const Element = as;
+  const minuteAdditionnelle = source.minute_additionnelle ?? source.temps_additionnel ?? 0;
   const affichage = precision === "minute"
-    ? formatClockMinute(clock.min, clock.sec, clock.periode)
+    ? formatClockMinute(clock.min, clock.sec, clock.periode, minuteAdditionnelle)
     : formatClock(clock.min, clock.sec, clock.periode);
   return <Element className={className}>{affichage}</Element>;
+}
+
+
+export function LiveMinute({ match, className = "live-minute" }) {
+  if (!match?.started_at) return null;
+  if (match.periode === "mi_temps") return <span className={className}>MT</span>;
+  return (
+    <Chrono
+      precision="minute"
+      as="span"
+      className={className}
+      match={match}
+      running={match.statut === "en_cours" && !match.ended_at}
+    />
+  );
 }

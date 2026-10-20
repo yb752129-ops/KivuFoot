@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { LiveMinute } from "../components/Chrono.jsx";
+import { startVisibleRefresh } from "../liveRefresh.js";
 import { api } from "../api.js";
 import { useKivu } from "../context.jsx";
 import { IcoCalendrier, IcoEpingle } from "../icons.jsx";
@@ -22,12 +24,12 @@ const FILTRES = [
   ["tous", "Tous"],
   ["avenir", "À venir"],
   ["termines", "Terminés"],
-  ["direct", "En direct"],
+  ["direct", "En cours"],
 ];
 
 function statutLabel(statut) {
   if (statut === "programme") return "À VENIR";
-  if (statut === "en_cours") return "En direct";
+  if (statut === "en_cours") return "En cours";
   if (statut === "termine" || statut === "valide") return "Résultat";
   return "À VENIR";
 }
@@ -46,6 +48,14 @@ function scoreWinners(match) {
   return { home: home > away, away: away > home };
 }
 
+function classeEvenementLive(event) {
+  if (event?.type === "carton_jaune") return "is-yellow";
+  if (event?.type === "carton_rouge") return "is-red";
+  if (event?.type === "remplacement") return "is-substitution";
+  if (event?.type === "but" || event?.type === "but_contre_son_camp" || event?.type === "penalty") return "is-goal";
+  return "";
+}
+
 function PublicMatchCard({ match, clubsById, saisonClubs, event }) {
   const home = findPublicClub(clubsById, saisonClubs, match.equipe_domicile_id);
   const away = findPublicClub(clubsById, saisonClubs, match.equipe_exterieur_id);
@@ -57,7 +67,17 @@ function PublicMatchCard({ match, clubsById, saisonClubs, event }) {
   return (
     <Link to={`/matchs/${match.id}`} className={`kf-public-match-card ${classeHalo(match)}`}>
       <div className="kf-public-match-top">
-        <span className="kf-public-match-status">{statutLabel(match.statut)}</span>
+        {match.statut === "en_cours" && !match.ended_at ? (
+          <span
+            className={`kf-public-match-status kf-public-live-indicator${match.periode === "mi_temps" ? " is-break" : ""}`}
+            aria-label={match.periode === "mi_temps" ? "Mi-temps" : "En cours"}
+          >
+            <i aria-hidden="true" />
+            {match.periode === "mi_temps" && <b>MT</b>}
+          </span>
+        ) : (
+          <span className="kf-public-match-status">{statutLabel(match.statut)}</span>
+        )}
         <span>{upcoming ? formatPublicRound(match.journee) : formatPublicDate(match.date_heure)}</span>
       </div>
       <div className="kf-public-match-teams">
@@ -65,7 +85,10 @@ function PublicMatchCard({ match, clubsById, saisonClubs, event }) {
           <PublicClubLogo club={home} name={homeName} />
           <strong>{homeName}</strong>
         </span>
-        <strong className="kf-public-match-score">{formatPublicScore(match)}</strong>
+        <span className="kf-public-match-score-wrap">
+          <strong className="kf-public-match-score">{formatPublicScore(match)}</strong>
+          {match.statut === "en_cours" && !match.ended_at && <LiveMinute match={match} className="kf-public-live-minute" />}
+        </span>
         <span className={`kf-public-match-team away${winners.away ? " winner" : ""}`}>
           <PublicClubLogo club={away} name={awayName} />
           <strong>{awayName}</strong>
@@ -73,7 +96,7 @@ function PublicMatchCard({ match, clubsById, saisonClubs, event }) {
       </div>
       {upcoming && <p className="kf-public-match-kickoff">{formatPublicKickoff(match.date_heure)}</p>}
       {event && (
-        <p className="kf-public-live-event">
+        <p className={`kf-public-live-event ${classeEvenementLive(event)}`}>
           {formatMinute(event.minute, event.minute_additionnelle)} · {labelEvenement(event)}
         </p>
       )}
@@ -124,8 +147,10 @@ export default function Matchs() {
     }
     let stop = false;
     setErr("");
-    api.matchs(saison.id)
-      .then(async (rows) => {
+
+    async function charge() {
+      try {
+        const rows = await api.matchs(saison.id);
         if (stop) return;
         const list = Array.isArray(rows) ? rows : [];
         setMatchs(list);
@@ -140,14 +165,19 @@ export default function Matchs() {
             .catch(() => [match.id, null])),
         );
         if (!stop) setEvtsById(Object.fromEntries(pairs));
-      })
-      .catch((error) => {
+      } catch (error) {
         if (!stop) {
           setMatchs([]);
           setErr(error.message || "Impossible de charger les matchs.");
         }
-      });
-    return () => { stop = true; };
+      }
+    }
+
+    const stopRefresh = startVisibleRefresh(charge, 10000);
+    return () => {
+      stop = true;
+      stopRefresh();
+    };
   }, [saison]);
 
   const affiches = useMemo(() => {
@@ -191,12 +221,9 @@ export default function Matchs() {
 
       {err && <p className="kf-public-error">{err}</p>}
 
-      {filtre === "direct" && lives.length === 0 && (
-        <div className="kf-public-empty"><strong>Aucun match en direct</strong></div>
-      )}
       {lives.length > 0 && (
         <section className="kf-public-match-section">
-          <div className="kf-public-group-label"><strong>En direct</strong><span>{lives.length} match{lives.length > 1 ? "s" : ""}</span></div>
+          <div className="kf-public-group-label"><strong>En cours</strong><span>{lives.length} match{lives.length > 1 ? "s" : ""}</span></div>
           <div className="kf-public-result-group">
             {lives.map((match) => (
               <PublicMatchCard

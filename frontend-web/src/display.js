@@ -146,6 +146,27 @@ export function periodeLabel(periode) {
   return "";
 }
 
+let serverClockOffsetMs = 0;
+let serverClockKnown = false;
+
+export function setServerClockFromDate(value, requestStartedAt = Date.now(), requestFinishedAt = Date.now()) {
+  const parsed = Date.parse(value || "");
+  if (!Number.isFinite(parsed)) return false;
+  const midpoint = (Number(requestStartedAt) + Number(requestFinishedAt)) / 2;
+  if (!Number.isFinite(midpoint)) return false;
+  serverClockOffsetMs = parsed - midpoint;
+  serverClockKnown = true;
+  return true;
+}
+
+export function serverNow(now = Date.now()) {
+  return now + (serverClockKnown ? serverClockOffsetMs : 0);
+}
+
+export function hasServerClockOffset() {
+  return serverClockKnown;
+}
+
 export function elapsed(startedAt, endedAt, now = Date.now()) {
   if (!startedAt) return { min: 0, sec: 0 };
   const start = new Date(startedAt).getTime();
@@ -168,24 +189,19 @@ export function clockFromMatch(match, now = Date.now()) {
   return { ...elapsed(match.started_at, match.ended_at, now), periode };
 }
 
-export function formatClock(min, sec, periode) {
-  const s = String(sec).padStart(2, "0");
-  if (periode === "2") {
-    if (min > 90) return `90+${min - 90}′${s}″`;
-    return `${min}′${s}″`;
-  }
-  if (min > 45) return `45+${min - 45}′${s}″`;
-  return `${min}′${s}″`;
+export function formatClock(min, sec) {
+  const minute = String(Math.max(0, Number(min) || 0)).padStart(2, "0");
+  const seconde = String(Math.max(0, Number(sec) || 0)).padStart(2, "0");
+  return `${minute}:${seconde}`;
 }
 
-// Lecture publique compacte : une seule minute, sans seconde répétée.
-export function formatClockMinute(min, _sec, periode) {
-  if (periode === "2") {
-    if (min > 90) return `90+${min - 90}′`;
-    return `${min}′`;
-  }
-  if (min > 45) return `45+${min - 45}′`;
-  return `${min}′`;
+// La minute additionnelle n'est affichée que si elle est explicitement fournie.
+export function formatClockMinute(min, _sec, periode, minuteAdditionnelle = 0) {
+  const minute = Math.max(0, Number(min) || 0);
+  const additionnelle = Math.max(0, Number(minuteAdditionnelle) || 0);
+  const base = periode === "2" ? 90 : 45;
+  if (additionnelle > 0 && minute >= base) return `${base}+${additionnelle}′`;
+  return `${minute}′`;
 }
 
 export function splitMinute(min, periode) {

@@ -1,3 +1,5 @@
+import { setServerClockFromDate } from "./display.js";
+
 const API = (import.meta.env.VITE_API_BASE_URL || "https://kivufoot.onrender.com/api/v1").replace(/\/$/, "");
 
 const TOKEN_KEY = "kivufoot_access";
@@ -76,6 +78,7 @@ async function request(path, { method = "GET", body, auth = false } = {}, aDejaR
   }
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 12000);
+  const requestStartedAt = Date.now();
   let res;
   try {
     res = await fetch(`${API}${path}`, {
@@ -91,6 +94,11 @@ async function request(path, { method = "GET", body, auth = false } = {}, aDejaR
     throw err;
   }
   clearTimeout(timer);
+  setServerClockFromDate(
+    res.headers.get("date") || res.headers.get("x-server-time"),
+    requestStartedAt,
+    Date.now(),
+  );
   if (res.status === 401 && auth && !aDejaRetry) {
     const ok = await refreshSession();
     if (ok) return request(path, { method, body, auth }, true);

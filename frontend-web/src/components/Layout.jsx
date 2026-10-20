@@ -6,7 +6,8 @@ import { useAuth } from "../auth.jsx";
 import { clubName, useKivu } from "../context.jsx";
 import { stripDemo } from "../display.js";
 import { IcoBouclier, IcoCalendrier, IcoClassement, IcoCloche, IcoHome, IcoPersonne, IcoRecherche } from "../icons.jsx";
-import Chrono from "./Chrono.jsx";
+import { LiveMinute } from "./Chrono.jsx";
+import { startVisibleRefresh } from "../liveRefresh.js";
 import Marque from "./Marque.jsx";
 
 const SOMMAIRE = [
@@ -37,16 +38,16 @@ function Cloche() {
   useEffect(() => {
     if (!saison) return undefined;
     let stop = false;
-    function charge() {
-      api.matchs(saison.id)
-        .then((rows) => {
-          if (!stop) setLives((rows || []).filter((m) => m.statut === "en_cours" && !m.ended_at));
-        })
-        .catch(() => { if (!stop) setLives([]); });
+    async function charge() {
+      try {
+        const rows = await api.matchs(saison.id);
+        if (!stop) setLives((rows || []).filter((m) => m.statut === "en_cours" && !m.ended_at));
+      } catch {
+        if (!stop) setLives([]);
+      }
     }
-    charge();
-    const t = setInterval(charge, 30000);
-    return () => { stop = true; clearInterval(t); };
+    const stopRefresh = startVisibleRefresh(charge, 10000);
+    return () => { stop = true; stopRefresh(); };
   }, [saison]);
 
   return (
@@ -54,7 +55,7 @@ function Cloche() {
       <button
         type="button"
         className="mast-round"
-        aria-label={lives.length ? `Matchs en direct : ${lives.length}` : "Matchs en direct"}
+        aria-label={lives.length ? `Matchs en cours : ${lives.length}` : "Matchs en cours"}
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
       >
@@ -62,9 +63,9 @@ function Cloche() {
         {lives.length > 0 && <span className="cloche-badge">{lives.length}</span>}
       </button>
       {open && (
-        <div className="cloche-panel" role="dialog" aria-label="Matchs en direct">
-          <p className="cloche-titre">En direct</p>
-          {lives.length === 0 && <p className="cloche-vide">Aucun match en direct.</p>}
+        <div className="cloche-panel" role="dialog" aria-label="Matchs en cours">
+          <p className="cloche-titre">En cours</p>
+          {lives.length === 0 && <p className="cloche-vide">Aucun match en cours.</p>}
           {lives.map((m) => (
             <Link
               key={m.id}
@@ -72,7 +73,7 @@ function Cloche() {
               className="cloche-ligne"
               onClick={() => setOpen(false)}
             >
-              <Chrono match={m} running />
+              <LiveMinute match={m} className="cloche-live-minute" />
               <span className="cloche-equipes">
                 {clubsById[m.equipe_domicile_id]?.logo_url && <img className="cloche-logo" src={clubsById[m.equipe_domicile_id].logo_url} alt="" />}
                 <span>{stripDemo(clubName(clubsById, m.equipe_domicile_id))} – {stripDemo(clubName(clubsById, m.equipe_exterieur_id))}</span>

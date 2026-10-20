@@ -45,14 +45,14 @@ export function LiveUne({ match, clubsById }) {
   const se = match.score_exterieur;
   const pause = match.periode === "mi_temps";
   const termine = ["termine", "valide"].includes(match.statut);
-  const statut = termine ? "FT" : pause ? "MT" : "EN COURS";
+  const statut = termine ? "Terminé" : pause ? "MI-TEMPS" : "EN COURS";
   const journee = match.journee ? journeeTitre(match.journee) : "";
   const logoHome = clubsById[match.equipe_domicile_id]?.logo_url;
   const logoAway = clubsById[match.equipe_exterieur_id]?.logo_url;
   const chrono = pause
-    ? null
+    ? <span className="live-pause-label">MI-TEMPS</span>
     : match.started_at
-      ? <Chrono precision="minute" match={match} running={!termine && !match.ended_at && match.statut === "en_cours"} />
+      ? <Chrono precision="second" match={match} running={!termine && !match.ended_at && match.statut === "en_cours"} />
       : null;
   return (
     <div className="live-band">

@@ -51,7 +51,7 @@ export default function Scoreboard({ match, clubsById, to }) {
       )}
       {finished && (
         <div className="sb-meta">
-          <span className="sb-meta-journee" aria-label="Match terminé">FT</span>
+          <span className="sb-finished-pill" aria-label="Match terminé">Terminé</span>
         </div>
       )}
     </>
