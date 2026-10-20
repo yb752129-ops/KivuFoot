@@ -1,4 +1,4 @@
-import { Ballon, Botte, Carton, IcoPenalty, IcoRefuse, IcoRemplacement } from "../icons.jsx";
+import { Ballon, Botte, Carton, IcoPenalty, IcoRefuse } from "../icons.jsx";
 import { scorePublicVisible } from "./PublicDesign.jsx";
 import { estPeriodeUn, formatMinute, labelEvenement, MOTIF_REFUS } from "../display.js";
 
@@ -6,10 +6,24 @@ function estPenaltyRate(e) {
   return e.type === "penalty" && (e.resultat === "rate" || e.resultat === "raté");
 }
 
+function RemplacementBadge({ direction }) {
+  const entrant = direction === "in";
+  return (
+    <svg
+      className={`feuille-remplacement-badge ${entrant ? "is-in" : "is-out"}`}
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <circle cx="12" cy="12" r="10" />
+      <path d={entrant ? "M7 12h9m-3.5-3.5L16 12l-3.5 3.5" : "M17 12H8m3.5-3.5L8 12l3.5 3.5"} />
+    </svg>
+  );
+}
+
 function Ico({ e, size = 18 }) {
   if (e.type === "carton_jaune") return <Carton couleur="jaune" />;
   if (e.type === "carton_rouge") return <Carton couleur="rouge" />;
-  if (e.type === "remplacement") return <IcoRemplacement className="fait-ballon" />;
   if (e.refuse || estPenaltyRate(e)) return <IcoRefuse className="fait-ballon" size={size} />;
   if (e.type === "penalty") return <IcoPenalty className="fait-ballon" size={size} />;
   if (e.type === "but" || e.type === "but_contre_son_camp") return <Ballon className="fait-ballon" size={size} />;
@@ -29,14 +43,20 @@ function Texte({ e, nom }) {
   const tag = !carton && !sub && !csc && libelle && libelle !== "But" ? libelle : null;
 
   return (
-    <div className={`feuille-txt${e.refuse ? " is-refuse" : ""}`}>
-      <span className="feuille-ico" aria-hidden="true"><Ico e={e} /></span>
-      <div>
+    <div className={`feuille-txt${e.refuse ? " is-refuse" : ""}${sub ? " is-remplacement" : ""}`}>
+      {!sub && <span className="feuille-ico" aria-hidden="true"><Ico e={e} /></span>}
+      <div className="feuille-copy">
         {sub ? (
-          <p className="fait-sub">
-            <span className="fait-in">{second || "à compléter"}</span>
-            <span className="fait-out">{joueur || "à compléter"}</span>
-          </p>
+          <div className="fait-sub">
+            <span className="fait-player fait-in">
+              <span className="fait-player-name">{second || "à compléter"}</span>
+              <RemplacementBadge direction="in" />
+            </span>
+            <span className="fait-player fait-out">
+              <span className="fait-player-name">{joueur || "à compléter"}</span>
+              <RemplacementBadge direction="out" />
+            </span>
+          </div>
         ) : csc ? (
           <p className="fait-ligne fait-csc-ligne">
             <span className="fait-csc-copy">
@@ -92,7 +112,13 @@ function scoreMiTemps(events) {
 }
 
 function MarqueurPeriode({ children }) {
-  return <li className="feuille-break">{children}</li>;
+  return (
+    <li className="feuille-break">
+      <span className="feuille-break-line" aria-hidden="true" />
+      <span className="feuille-break-label">{children}</span>
+      <span className="feuille-break-line" aria-hidden="true" />
+    </li>
+  );
 }
 
 export default function FeuilleApercu({ faits, nom, match }) {
@@ -124,11 +150,29 @@ export default function FeuilleApercu({ faits, nom, match }) {
         hasAssist && "has-assist",
         e.type === "but_contre_son_camp" && "is-csc",
       ].filter(Boolean).join(" ");
+      const minute = (
+        <span className="feuille-min">
+          {e.minute_connue === false ? "—" : formatMinute(e.minute, e.minute_additionnelle)}
+        </span>
+      );
       return (
         <li key={e.id} className={classes}>
-          <div className="feuille-dom">{estExterieur ? null : <Texte e={e} nom={nom} />}</div>
-          <span className="feuille-min">{e.minute_connue === false ? "—" : formatMinute(e.minute, e.minute_additionnelle)}</span>
-          <div className="feuille-ext">{estExterieur ? <Texte e={e} nom={nom} /> : null}</div>
+          <div className="feuille-dom">
+            {!estExterieur && (
+              <div className="feuille-event-side">
+                {minute}
+                <Texte e={e} nom={nom} />
+              </div>
+            )}
+          </div>
+          <div className="feuille-ext">
+            {estExterieur && (
+              <div className="feuille-event-side feuille-event-side-away">
+                <Texte e={e} nom={nom} />
+                {minute}
+              </div>
+            )}
+          </div>
         </li>
       );
     });

@@ -6218,3 +6218,200 @@ body,
 .feuille-dom .feuille-txt { justify-content: flex-end; }
 .kf-carton-jaune { background: #f5c542; }
 .kf-carton-rouge { background: #e5484d; }
+
+/* ==== Chronologie publique — mise en page KivuFoot (layout only) ==== */
+.kf-public-frame .feuille-apercu {
+  margin: 0;
+  padding: 0 12px;
+}
+
+.kf-public-frame .feuille-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  column-gap: 18px;
+  align-items: center;
+  min-height: 48px;
+  padding: 4px 0;
+  border-bottom: 0;
+}
+.kf-public-frame .feuille-row.has-assist,
+.kf-public-frame .feuille-row.is-csc {
+  min-height: 56px;
+}
+.kf-public-frame .feuille-dom,
+.kf-public-frame .feuille-ext {
+  min-width: 0;
+  padding: 0;
+}
+.kf-public-frame .feuille-event-side {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  min-height: 44px;
+  gap: 7px;
+}
+.kf-public-frame .feuille-event-side-away {
+  justify-content: flex-end;
+}
+.kf-public-frame .feuille-min {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 44px;
+  width: 44px;
+  min-height: 24px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: rgba(4, 12, 9, .72);
+  color: var(--kf-paper);
+  font-family: var(--score);
+  font-size: 12px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  white-space: nowrap;
+}
+.kf-public-frame .feuille-txt {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  min-width: 0;
+  gap: 7px;
+}
+.kf-public-frame .feuille-txt > .feuille-copy {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.kf-public-frame .feuille-dom .feuille-txt {
+  justify-content: flex-start;
+}
+.kf-public-frame .feuille-ext .feuille-txt {
+  flex-direction: row-reverse;
+  justify-content: flex-end;
+}
+.kf-public-frame .feuille-txt.is-remplacement {
+  display: block;
+}
+.kf-public-frame .feuille-ico {
+  display: grid;
+  place-items: center;
+  flex: 0 0 18px;
+  width: 18px;
+  height: 20px;
+}
+.kf-public-frame .feuille-txt .fait-ligne {
+  min-width: 0;
+  flex-wrap: nowrap;
+  gap: 4px;
+}
+.kf-public-frame .feuille-txt .fait-nom,
+.kf-public-frame .fait-player-name {
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+  line-height: 18px;
+}
+.kf-public-frame .feuille-txt .fait-nom {
+  font-weight: 600;
+}
+.kf-public-frame .fait-sub {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  margin: 0;
+}
+.kf-public-frame .fait-player {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  max-width: 100%;
+  gap: 5px;
+}
+.kf-public-frame .feuille-ext .fait-player {
+  justify-content: flex-end;
+}
+.kf-public-frame .fait-in {
+  color: var(--kf-paper);
+  font-weight: 600;
+}
+.kf-public-frame .fait-out {
+  color: var(--kf-ink-soft);
+  font-weight: 400;
+}
+.kf-public-frame .fait-player-name {
+  flex: 0 1 auto;
+  font-weight: inherit;
+}
+.feuille-remplacement-badge {
+  display: block;
+  flex: 0 0 19px;
+  width: 19px;
+  height: 19px;
+}
+.feuille-remplacement-badge circle { stroke: rgba(4, 12, 9, .7); stroke-width: 1; }
+.feuille-remplacement-badge path {
+  fill: none;
+  stroke: #07110d;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.feuille-remplacement-badge.is-in circle { fill: #22c55e; }
+.feuille-remplacement-badge.is-out circle { fill: #e5484d; }
+.kf-public-frame .feuille-ico .kf-carton {
+  width: 10px;
+  height: 20px;
+  border-radius: 2px;
+}
+
+.kf-public-frame .feuille-break {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  min-height: 32px;
+  margin: 12px 0;
+  padding: 0;
+  border: 0;
+  color: var(--kf-ink-soft);
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: .02em;
+  text-align: center;
+  white-space: nowrap;
+}
+.kf-public-frame .feuille-break-line {
+  display: block;
+  height: 0;
+  border-top: 1px solid var(--kf-line-strong);
+}
+.kf-public-frame .feuille-break-label {
+  display: block;
+}
+
+.kf-public-frame .scoreboard .sb-meta-status {
+  justify-content: center;
+  align-items: center;
+  margin-top: 8px;
+}
+.kf-public-frame .live-band .lk-center-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  margin-top: 7px;
+}
+.kf-public-frame .live-band .lk-center-meta .live-now {
+  margin: 0;
+  border: 1px solid rgba(239, 237, 230, .42);
+  padding: .25rem .7rem .25rem .5rem;
+  color: #f3efe4;
+  font-size: .64rem;
+  letter-spacing: .14em;
+}
+.kf-public-frame .live-band .lk-center-meta .chrono {
+  margin: 0;
+}

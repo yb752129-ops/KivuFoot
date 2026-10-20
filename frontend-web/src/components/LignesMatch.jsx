@@ -56,13 +56,11 @@ export function LiveUne({ match, clubsById }) {
       : null;
   return (
     <div className="live-band">
-      <div className="lk-top">
-        <span className={`live-now${pause ? " is-break" : ""}`}>
-          <span className="live-dot" aria-hidden="true"><b /></span>
-          {statut}
-        </span>
-        <span className="lk-journee">{journee}</span>
-      </div>
+      {journee && (
+        <div className="lk-top">
+          <span className="lk-journee">{journee}</span>
+        </div>
+      )}
       <div className="lk-body">
         <span className="lk-side">
           {logoHome ? <img className="ecu ecu-img" src={logoHome} alt="" /> : <Ecu className="ecu" initiales={initiales(home)} />}
@@ -74,7 +72,13 @@ export function LiveUne({ match, clubsById }) {
             <span className="sb-dash">–</span>
             {se}
           </p>
-          {chrono}
+          <span className="lk-center-meta">
+            <span className={`live-now${pause ? " is-break" : ""}`}>
+              <span className="live-dot" aria-hidden="true"><b /></span>
+              {statut}
+            </span>
+            {chrono}
+          </span>
         </span>
         <span className="lk-side">
           {logoAway ? <img className="ecu ecu-img" src={logoAway} alt="" /> : <Ecu className="ecu" initiales={initiales(away)} />}
