@@ -354,6 +354,29 @@ export default function OrgaMatch({ backTo = "/orga/matchs", mode = "orga" } = {
   function contester() {
     return act(() => api.changerStatut(id, "conteste"), "Match contesté. Hors classement.");
   }
+  function annulerMatch() {
+    const motif = window.prompt(
+      "Motif de l’annulation (action réservée à l’administration et auditée).",
+      "Décision de l'organisation",
+    );
+    if (motif === null) return;
+    if (!motif.trim()) {
+      setErr("Le motif de l’annulation est obligatoire.");
+      return;
+    }
+    if (!window.confirm(`Annuler ${home} – ${away} ?\n\nLa ligne et les événements seront conservés, mais le match sera retiré des données publiques et des statistiques.`)) return;
+    return act(
+      () => api.annulerMatch(id, { motif: motif.trim() }),
+      "Match annulé. La ligne et les événements sont conservés ; les effets dérivés sont recalculés.",
+    );
+  }
+  function retablirMatch() {
+    if (!window.confirm("Rétablir ce match et recalculer les statistiques officielles ? Cette action sera auditée.")) return;
+    return act(
+      () => api.retablirMatch(id),
+      "Match rétabli. Le statut et les effets dérivés ont été reconstruits.",
+    );
+  }
   function forfait(equipe) {
     const nom = equipe === "domicile" ? home : away;
     return act(() => api.forfait(id, equipe), `Forfait ${nom} : 0–3. À valider pour le classement.`);
@@ -626,6 +649,22 @@ export default function OrgaMatch({ backTo = "/orga/matchs", mode = "orga" } = {
           <button className="btn btn-danger" type="button" disabled={busy} onClick={annulerResultatRetroactif}>
             Révoquer le résultat rétroactif et reprogrammer
           </button>
+        )}
+        {!collecteur && match.statut !== "annule" && (
+          <button className="btn btn-danger" type="button" disabled={busy} onClick={annulerMatch}>
+            Annuler le match
+          </button>
+        )}
+        {!collecteur && match.statut === "annule" && (
+          <>
+            <p className="empty">
+              Match annulé — motif : {match.annule_motif || "Décision de l'organisation"}.
+              Les événements restent conservés pour l’audit.
+            </p>
+            <button className="btn btn-primary" type="button" disabled={busy} onClick={retablirMatch}>
+              Rétablir le match
+            </button>
+          </>
         )}
       </div>
 

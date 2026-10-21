@@ -91,6 +91,7 @@ class StatutMatch(str, enum.Enum):
     TERMINE = "termine"
     VALIDE = "valide"
     CONTESTE = "conteste"
+    ANNULE = "annule"
 
 
 class EtatPossession(str, enum.Enum):

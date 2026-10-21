@@ -46,6 +46,8 @@ async def discipline_joueur(
     joueur = await db.get(Joueur, joueur_id)
     if match is None or match.saison_id != saison_id or joueur is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Match, saison ou joueur introuvable.")
+    if _value(match.statut) == StatutMatch.ANNULE.value:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Match, saison ou joueur introuvable.")
     if current_user.role in (RoleUtilisateur.ADMIN, RoleUtilisateur.ORGANISATEUR):
         await verifier_organisateur_du_match(match_id, current_user, db)
     else:
@@ -66,6 +68,8 @@ async def discipline_match(
 ):
     match = await db.get(Match, match_id)
     if match is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Match introuvable.")
+    if _value(match.statut) == StatutMatch.ANNULE.value:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Match introuvable.")
     if current_user.role in (RoleUtilisateur.ORGANISATEUR, RoleUtilisateur.ADMIN):
         await verifier_organisateur_du_match(match_id, current_user, db)

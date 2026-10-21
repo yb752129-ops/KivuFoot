@@ -71,6 +71,13 @@ async def _load_actualite(actualite_id: int, db: AsyncSession) -> Actualite:
     return actualite
 
 
+async def _actualite_rattachee_a_match_annule(actualite: Actualite, db: AsyncSession) -> bool:
+    if actualite.match_id is None:
+        return False
+    match_ = await db.get(Match, actualite.match_id)
+    return match_ is not None and _value(match_.statut) == StatutMatch.ANNULE.value
+
+
 async def _like_count(actualite_id: int, db: AsyncSession) -> int:
     result = await db.execute(
         select(func.count(ActualiteLike.id)).where(ActualiteLike.actualite_id == actualite_id)
@@ -323,7 +330,15 @@ async def lister_actualites_publiques(
     offset = max(int(offset), 0)
     query = (
         select(Actualite)
-        .where(Actualite.statut == StatutActualite.PUBLIE)
+        .where(
+            Actualite.statut == StatutActualite.PUBLIE,
+            or_(
+                Actualite.match_id.is_(None),
+                ~Actualite.match_id.in_(
+                    select(Match.id).where(Match.statut == StatutMatch.ANNULE)
+                ),
+            ),
+        )
         .options(*_options())
         .order_by(Actualite.mise_en_avant.desc(), Actualite.date_publication.desc(), Actualite.id.desc())
         .limit(limit)
@@ -577,7 +592,11 @@ async def aimer_actualite(
     db: AsyncSession = Depends(get_db),
 ):
     actualite = await db.get(Actualite, actualite_id)
-    if actualite is None or actualite.statut != StatutActualite.PUBLIE:
+    if (
+        actualite is None
+        or actualite.statut != StatutActualite.PUBLIE
+        or await _actualite_rattachee_a_match_annule(actualite, db)
+    ):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Actualité introuvable.")
     token_hash = _token_hash(payload.client_token)
     existing = await db.execute(
@@ -668,7 +687,10 @@ async def marquer_actualite_lue(
     db: AsyncSession = Depends(get_db),
 ):
     actualite = await _load_actualite(actualite_id, db)
-    if actualite.statut != StatutActualite.PUBLIE:
+    if (
+        actualite.statut != StatutActualite.PUBLIE
+        or await _actualite_rattachee_a_match_annule(actualite, db)
+    ):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Actualité introuvable.")
     await _marquer_lue(actualite.id, client_token, db)
     return LectureOut(actualite_id=actualite.id, lu=await _lecture_state(actualite.id, client_token, db))
@@ -681,6 +703,9 @@ async def detail_actualite_publique(
     db: AsyncSession = Depends(get_db),
 ):
     actualite = await _load_actualite(actualite_id, db)
-    if actualite.statut != StatutActualite.PUBLIE:
+    if (
+        actualite.statut != StatutActualite.PUBLIE
+        or await _actualite_rattachee_a_match_annule(actualite, db)
+    ):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Actualité introuvable.")
     return await _serialize_detail(actualite, db, client_token)

@@ -24,9 +24,20 @@ async def timeline_saison(db: AsyncSession, saison_id: int) -> list[dict]:
             "official": True,
             "source": "match",
         })
+    matchs_annules = select(Match.id).where(
+        Match.saison_id == saison_id,
+        Match.statut == StatutMatch.ANNULE,
+    )
     news = (
         await db.execute(
-            select(Actualite).where(Actualite.saison_id == saison_id, Actualite.statut == StatutActualite.PUBLIE)
+            select(Actualite).where(
+                Actualite.saison_id == saison_id,
+                Actualite.statut == StatutActualite.PUBLIE,
+                or_(
+                    Actualite.match_id.is_(None),
+                    ~Actualite.match_id.in_(matchs_annules),
+                ),
+            )
         )
     ).scalars().all()
     for item in news:
@@ -39,7 +50,16 @@ async def timeline_saison(db: AsyncSession, saison_id: int) -> list[dict]:
             "source": "actualite",
         })
     decisions = (
-        await db.execute(select(DecisionSportive).where(DecisionSportive.saison_id == saison_id, DecisionSportive.statut == "confirmee"))
+        await db.execute(
+            select(DecisionSportive).where(
+                DecisionSportive.saison_id == saison_id,
+                DecisionSportive.statut == "confirmee",
+                or_(
+                    DecisionSportive.match_id.is_(None),
+                    ~DecisionSportive.match_id.in_(matchs_annules),
+                ),
+            )
+        )
     ).scalars().all()
     for decision in decisions:
         entries.append({
@@ -53,7 +73,16 @@ async def timeline_saison(db: AsyncSession, saison_id: int) -> list[dict]:
             "source": "decision_sportive",
         })
     documents = (
-        await db.execute(select(DocumentOfficiel).where(DocumentOfficiel.saison_id == saison_id, DocumentOfficiel.statut == "publie"))
+        await db.execute(
+            select(DocumentOfficiel).where(
+                DocumentOfficiel.saison_id == saison_id,
+                DocumentOfficiel.statut == "publie",
+                or_(
+                    DocumentOfficiel.type_document != "match",
+                    ~DocumentOfficiel.scope_id.in_(matchs_annules),
+                ),
+            )
+        )
     ).scalars().all()
     for document in documents:
         entries.append({
@@ -73,11 +102,36 @@ async def historique_public(db: AsyncSession, saison_id: int) -> list[dict]:
     # L'audit est global et ne contient pas toujours saison_id. On rattache
     # uniquement les tables dont le record est explicitement dans l'édition;
     # les autres lignes restent volontairement absentes plutôt que devinées.
+    matchs_publics = select(Match.id).where(
+        Match.saison_id == saison_id,
+        Match.statut != StatutMatch.ANNULE,
+    )
+    actualites_publiques = select(Actualite.id).where(
+        Actualite.saison_id == saison_id,
+        or_(
+            Actualite.match_id.is_(None),
+            ~Actualite.match_id.in_(select(Match.id).where(Match.statut == StatutMatch.ANNULE)),
+        ),
+    )
+    decisions_publiques = select(DecisionSportive.id).where(
+        DecisionSportive.saison_id == saison_id,
+        or_(
+            DecisionSportive.match_id.is_(None),
+            ~DecisionSportive.match_id.in_(select(Match.id).where(Match.statut == StatutMatch.ANNULE)),
+        ),
+    )
+    documents_publics = select(DocumentOfficiel.id).where(
+        DocumentOfficiel.saison_id == saison_id,
+        or_(
+            DocumentOfficiel.type_document != "match",
+            ~DocumentOfficiel.scope_id.in_(select(Match.id).where(Match.statut == StatutMatch.ANNULE)),
+        ),
+    )
     season_filter = or_(
-        and_(AuditLog.table_name == "matchs", AuditLog.record_id.in_(select(Match.id).where(Match.saison_id == saison_id))),
-        and_(AuditLog.table_name == "actualites", AuditLog.record_id.in_(select(Actualite.id).where(Actualite.saison_id == saison_id))),
-        and_(AuditLog.table_name == "decisions_sportives", AuditLog.record_id.in_(select(DecisionSportive.id).where(DecisionSportive.saison_id == saison_id))),
-        and_(AuditLog.table_name == "documents_officiels", AuditLog.record_id.in_(select(DocumentOfficiel.id).where(DocumentOfficiel.saison_id == saison_id))),
+        and_(AuditLog.table_name == "matchs", AuditLog.record_id.in_(matchs_publics)),
+        and_(AuditLog.table_name == "actualites", AuditLog.record_id.in_(actualites_publiques)),
+        and_(AuditLog.table_name == "decisions_sportives", AuditLog.record_id.in_(decisions_publiques)),
+        and_(AuditLog.table_name == "documents_officiels", AuditLog.record_id.in_(documents_publics)),
     )
     result = await db.execute(
         select(AuditLog)

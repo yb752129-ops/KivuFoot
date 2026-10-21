@@ -359,6 +359,9 @@ export const api = {
       body: commentaire ? { motif, commentaire } : { motif },
     }),
   validerMatch: (id) => request(`/matchs/${id}/valider`, { method: "POST", auth: true }),
+  annulerMatch: (id, payload = { motif: "Décision de l'organisation" }) =>
+    request(`/matchs/${id}/annuler`, { method: "POST", body: payload, auth: true }),
+  retablirMatch: (id) => request(`/matchs/${id}/retablir`, { method: "POST", auth: true }),
   resultatRetroactif: (id, payload) =>
     request(`/matchs/${id}/resultat-retroactif`, { method: "POST", body: payload, auth: true }),
   annulerResultatRetroactif: (id, payload) =>

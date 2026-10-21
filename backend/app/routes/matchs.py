@@ -27,6 +27,7 @@ from app.schemas.evenement import EvenementOut
 from app.schemas.match import (
     AnnulationResultatRetroactif,
     ButeursVerifiesCreate,
+    MatchAnnulationCreate,
     MatchCreate,
     MatchOut,
     MatchPhaseUpdate,
@@ -53,6 +54,7 @@ from app.models.club import Club
 from app.models.competition import Competition
 from app.models.staff import Staff
 from app.services.calcul_stats import appliquer_evenement_valide
+from app.services.recalcul_stats import reconstruire_stats_saison
 from app.services.reglements import get_reglement_actif, get_reglement_pour_match
 from app.services.validation import valider_match
 from app.services.possession import suspendre_possession, terminer_possession
@@ -163,6 +165,8 @@ async def eligibilite_match(
     match_ = await db.get(Match, match_id)
     if match_ is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Match introuvable.")
+    if _value(match_.statut) == StatutMatch.ANNULE.value:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Match introuvable.")
     if club_id not in (match_.equipe_domicile_id, match_.equipe_exterieur_id):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Cette équipe ne participe pas à ce match.")
     role = _value(current_user.role)
@@ -192,6 +196,8 @@ async def eligibilite_joueur(
 ):
     match_ = await db.get(Match, match_id)
     if match_ is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Match introuvable.")
+    if _value(match_.statut) == StatutMatch.ANNULE.value:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Match introuvable.")
     if club_id not in (match_.equipe_domicile_id, match_.equipe_exterieur_id):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Cette équipe ne participe pas à ce match.")
@@ -318,6 +324,13 @@ async def changer_statut_match(
             )
     else:
         match_ = await verifier_organisateur_du_match(match_id, current_user, db)
+    if nouveau_statut == StatutMatch.ANNULE:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "Utilisez POST /matchs/{id}/annuler avec un motif : l'annulation est auditée et réversible.",
+        )
+    if _value(match_.statut) == StatutMatch.ANNULE.value:
+        raise HTTPException(status.HTTP_409_CONFLICT, "Ce match est annulé : utilisez POST /matchs/{id}/retablir.")
     if match_.locked:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Ce match est verrouillé.")
     if nouveau_statut == StatutMatch.VALIDE:
@@ -346,6 +359,135 @@ async def changer_statut_match(
     if nouveau_statut == StatutMatch.TERMINE:
         await terminer_possession(db, match_.id, current_user.id, now=now)
     await log_audit(db, "matchs", match_.id, ActionAudit.UPDATE, current_user.id, {"statut": old_statut}, {"statut": nouveau_statut.value})
+    await db.commit()
+    await db.refresh(match_)
+    return match_
+
+
+@router.post("/{match_id}/annuler", response_model=MatchOut)
+async def annuler_match(
+    match_id: int,
+    payload: MatchAnnulationCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(
+        require_roles(RoleUtilisateur.ADMIN, RoleUtilisateur.ORGANISATEUR)
+    ),
+):
+    """Annule un match sans supprimer sa ligne, ses faits ni sa feuille.
+
+    La route est la seule porte d'annulation : elle mémorise le statut et le
+    verrou précédents, marque le match annulé et reconstruit les statistiques
+    joueur depuis les matchs encore valides. Le recalcul est atomique avec
+    l'audit et l'action peut être inversée par ``/retablir``.
+    """
+    if current_user.role == RoleUtilisateur.ORGANISATEUR:
+        await verifier_organisateur_du_match(match_id, current_user, db)
+    match_ = await db.scalar(select(Match).where(Match.id == match_id).with_for_update())
+    if match_ is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Match introuvable.")
+    actuel = _value(match_.statut)
+    if actuel == StatutMatch.ANNULE.value:
+        raise HTTPException(status.HTTP_409_CONFLICT, "Ce match est déjà annulé.")
+
+    now = datetime.now(timezone.utc)
+    avant = {
+        "statut": actuel,
+        "locked": bool(match_.locked),
+        "motif_annulation": match_.annule_motif,
+    }
+    match_.statut_avant_annulation = actuel
+    match_.locked_avant_annulation = bool(match_.locked)
+    match_.annule_motif = payload.motif
+    match_.annule_par_id = current_user.id
+    match_.annule_at = now
+    match_.statut = StatutMatch.ANNULE
+    # Les événements sont conservés et doivent rester immuables pendant que
+    # le match est masqué. Le verrou d'origine est restauré par /retablir.
+    match_.locked = True
+    await db.flush()
+
+    await reconstruire_stats_saison(db, match_.saison_id)
+    await log_audit(
+        db,
+        "matchs",
+        match_.id,
+        ActionAudit.UPDATE,
+        current_user.id,
+        avant,
+        {
+            "statut": StatutMatch.ANNULE.value,
+            "locked": True,
+            "statut_avant_annulation": actuel,
+            "motif_annulation": payload.motif,
+            "annule_par_id": current_user.id,
+            "annule_at": now.isoformat(),
+        },
+    )
+    await db.commit()
+    await db.refresh(match_)
+    return match_
+
+
+@router.post("/{match_id}/retablir", response_model=MatchOut)
+async def retablir_match(
+    match_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(
+        require_roles(RoleUtilisateur.ADMIN, RoleUtilisateur.ORGANISATEUR)
+    ),
+):
+    """Restaure exactement le statut/verrou qui précédaient l'annulation."""
+    if current_user.role == RoleUtilisateur.ORGANISATEUR:
+        await verifier_organisateur_du_match(match_id, current_user, db)
+    match_ = await db.scalar(select(Match).where(Match.id == match_id).with_for_update())
+    if match_ is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Match introuvable.")
+    if _value(match_.statut) != StatutMatch.ANNULE.value:
+        raise HTTPException(status.HTTP_409_CONFLICT, "Ce match n'est pas annulé.")
+    if not match_.statut_avant_annulation:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "L'état précédent de ce match est introuvable : restauration refusée pour éviter une supposition.",
+        )
+    try:
+        statut_restaure = StatutMatch(match_.statut_avant_annulation)
+    except ValueError:
+        raise HTTPException(status.HTTP_409_CONFLICT, "L'ancien statut du match est invalide.")
+    if statut_restaure == StatutMatch.ANNULE:
+        raise HTTPException(status.HTTP_409_CONFLICT, "Un match annulé ne peut pas être restauré vers annule.")
+
+    motif = match_.annule_motif
+    avant = {
+        "statut": StatutMatch.ANNULE.value,
+        "locked": bool(match_.locked),
+        "motif_annulation": motif,
+        "statut_avant_annulation": match_.statut_avant_annulation,
+    }
+    locked_restaure = bool(match_.locked_avant_annulation)
+    match_.statut = statut_restaure
+    match_.locked = locked_restaure
+    match_.statut_avant_annulation = None
+    match_.locked_avant_annulation = None
+    match_.annule_motif = None
+    match_.annule_par_id = None
+    match_.annule_at = None
+    await db.flush()
+
+    await reconstruire_stats_saison(db, match_.saison_id)
+    await log_audit(
+        db,
+        "matchs",
+        match_.id,
+        ActionAudit.UPDATE,
+        current_user.id,
+        avant,
+        {
+            "statut": statut_restaure.value,
+            "locked": locked_restaure,
+            "motif_annulation": motif,
+            "retabli_par_id": current_user.id,
+        },
+    )
     await db.commit()
     await db.refresh(match_)
     return match_

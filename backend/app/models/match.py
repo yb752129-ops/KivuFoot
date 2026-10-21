@@ -11,6 +11,10 @@ class Match(Base):
     __tablename__ = "matchs"
     __table_args__ = (
         CheckConstraint(
+            "statut IN ('programme','en_cours','termine','valide','conteste','annule')",
+            name="ck_matchs_statut",
+        ),
+        CheckConstraint(
             "equipe_domicile_id IS NULL OR equipe_exterieur_id IS NULL OR equipe_domicile_id != equipe_exterieur_id",
             name="ck_match_equipes_differentes",
         ),
@@ -42,6 +46,15 @@ class Match(Base):
     valide_par: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
     date_validation: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     locked: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+
+    # Annulation administrative réversible : les faits sportifs restent
+    # intacts, tandis que le statut et les effets dérivés peuvent être
+    # restaurés exactement comme avant l'annulation.
+    statut_avant_annulation: Mapped[str | None] = mapped_column(String(20))
+    locked_avant_annulation: Mapped[bool | None] = mapped_column(Boolean)
+    annule_motif: Mapped[str | None] = mapped_column(String(500))
+    annule_par_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    annule_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     # Règlement explicite de l'édition. Nullable pour ne pas réécrire les
     # matchs historiques avant décision du Comité d'Organisation.

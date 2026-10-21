@@ -29,6 +29,11 @@ class MatchOut(BaseModel):
     forfait: bool
     forfait_equipe: EquipeConcernee | None
     locked: bool
+    statut_avant_annulation: str | None = None
+    locked_avant_annulation: bool | None = None
+    annule_motif: str | None = None
+    annule_par_id: int | None = None
+    annule_at: datetime | None = None
     reglement_version_id: int | None = None
     resultat_retroactif: bool = False
     motif_resultat_retroactif: str | None = None
@@ -85,6 +90,20 @@ class MatchStatutUpdate(BaseModel):
     statut: StatutMatch
     forfait: bool = False
     forfait_equipe: EquipeConcernee | None = None
+
+
+class MatchAnnulationCreate(BaseModel):
+    """Motif conservé avec l'annulation, par défaut conforme à la décision métier."""
+
+    motif: str = Field(default="Décision de l'organisation", min_length=3, max_length=500)
+
+    @field_validator("motif")
+    @classmethod
+    def motif_normalise(cls, v: str) -> str:
+        valeur = v.strip()
+        if not valeur:
+            raise ValueError("Le motif est obligatoire.")
+        return valeur
 
 
 class MatchResultatRetroactif(BaseModel):

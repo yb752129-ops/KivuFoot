@@ -9,6 +9,11 @@ from app.models.match import Match
 from app.schemas.evenement import EvenementOut
 
 router = APIRouter(prefix="/matchs", tags=["Public"])
+MATCH_STATUTS_PUBLICS = {
+    StatutMatch.VALIDE.value,
+    StatutMatch.EN_COURS.value,
+    StatutMatch.TERMINE.value,
+}
 
 
 @router.get("/{match_id}/evenements-publics", response_model=list[EvenementOut])
@@ -20,7 +25,7 @@ async def evenements_publics(match_id: int, db: AsyncSession = Depends(get_db)):
     """
     match_ = await db.get(Match, match_id)
     statut = match_.statut.value if match_ and hasattr(match_.statut, "value") else match_.statut
-    if match_ is None or statut not in ("valide", "en_cours", "termine"):
+    if match_ is None or statut not in MATCH_STATUTS_PUBLICS:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Match introuvable ou non publié.")
     result = await db.execute(
         select(EvenementMatch).where(

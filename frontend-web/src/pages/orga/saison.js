@@ -43,4 +43,5 @@ export const STATUT_MATCH = {
   termine: "Terminé",
   valide: "Validé",
   conteste: "Contesté",
+  annule: "Annulé",
 };
