@@ -6784,3 +6784,188 @@ body,
   font-size: 11px;
   white-space: nowrap;
 }
+
+/* Compositions publiques : aucune tactique ne doit être inventée par l'interface. */
+.feuille-compositions-publiques {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0.85rem 0 1.1rem;
+}
+.feuille-composition-etat {
+  display: grid;
+  gap: 0.65rem;
+  padding: 0.85rem;
+  border: 1px solid var(--rule-strong);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--card) 92%, transparent);
+}
+.feuille-composition-etat.is-non-publiee { border-color: color-mix(in srgb, var(--rule-strong) 80%, var(--ink-soft)); }
+.feuille-composition-etat.is-verification { border-color: color-mix(in srgb, var(--warn) 60%, var(--rule-strong)); }
+.feuille-composition-etat-head,
+.feuille-titulaires-public-head {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-width: 0;
+}
+.feuille-composition-etat-head h3,
+.feuille-titulaires-public-head h3 {
+  min-width: 0;
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.15;
+}
+.feuille-composition-etat > strong {
+  color: var(--warn);
+  font-size: 0.86rem;
+}
+.feuille-composition-etat.is-non-publiee > strong { color: var(--ink-soft); }
+.feuille-logo-equipe {
+  display: grid;
+  place-items: center;
+  flex: 0 0 2.75rem;
+  width: 2.75rem;
+  height: 2.75rem;
+  overflow: hidden;
+  border: 1px solid var(--rule-strong);
+  border-radius: 50%;
+  background: var(--paper-2);
+  color: var(--ink-soft);
+  font-size: 0.85rem;
+  font-weight: 850;
+}
+.feuille-logo-equipe img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.feuille-nom-equipe {
+  display: inline-block;
+  max-width: 100%;
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: none;
+  line-height: 1.16;
+  text-align: inherit;
+}
+.feuille-titulaires-public-grid {
+  display: grid;
+  gap: 0.85rem;
+  margin: 0.85rem 0 0;
+}
+.feuille-titulaires-public {
+  min-width: 0;
+  padding: 0.85rem;
+  border: 1px solid var(--rule-strong);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--card) 92%, transparent);
+}
+.feuille-titulaires-public-kicker {
+  margin: 0 0 0.1rem;
+  color: var(--ink-soft);
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.feuille-titulaires-public-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 0.9rem;
+  margin: 0.85rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+.feuille-titulaire-public {
+  display: grid;
+  grid-template-columns: 1.8rem minmax(0, 1fr);
+  align-items: start;
+  gap: 0.45rem;
+  min-width: 0;
+  padding: 0.38rem 0;
+  border-bottom: 1px solid var(--rule);
+}
+.feuille-titulaire-public:nth-last-child(-n + 2):nth-child(odd),
+.feuille-titulaire-public:last-child { border-bottom-color: transparent; }
+.feuille-titulaire-public .feuille-public-numero {
+  width: 1.65rem;
+  height: 1.65rem;
+  font-size: 0.66rem;
+}
+.feuille-titulaire-public .feuille-public-identite strong,
+.feuille-titulaire-public .feuille-public-identite small {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: none;
+}
+.feuille-titulaire-public .feuille-public-identite strong {
+  display: block;
+  font-size: 0.78rem;
+  line-height: 1.15;
+}
+.feuille-titulaire-public .feuille-public-identite small { font-size: 0.66rem; }
+
+/* Les noms restent entiers : retour à la ligne entre les mots, jamais dans un mot. */
+.feuille-terrain-team strong {
+  max-width: 90%;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  line-height: 1.15;
+}
+.feuille-terrain-team .feuille-nom-equipe { max-width: 100%; }
+.feuille-terrain-joueur small {
+  max-width: 6.2rem;
+  min-height: 0;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: none;
+  line-height: 1.08;
+}
+.feuille-remplacements-equipe > .feuille-nom-equipe,
+.feuille-remplacements-tete > .feuille-nom-equipe {
+  min-width: 0;
+  max-width: 100%;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: none;
+  line-height: 1.12;
+}
+.feuille-remplacements-tete > .feuille-nom-equipe { max-width: 52%; color: var(--remp-soft); font-size: 0.7rem; }
+.feuille-remplacant-identite strong {
+  min-width: 0;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: none;
+}
+.kf-public-frame .feuille-remplacements-equipe > .feuille-nom-equipe,
+.kf-public-frame .feuille-remplacements-tete > .feuille-nom-equipe {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+}
+
+/* L'éditeur suit le même contrôle explicite pour les onze titulaires et les slots. */
+.composition-counters { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.composition-progress-placed span { background: var(--lime, var(--stamp)); }
+@media (min-width: 640px) {
+  .feuille-titulaires-public-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 560px) {
+  .composition-counters { grid-template-columns: 1fr; }
+  .feuille-titulaire-public:nth-last-child(-n + 2):nth-child(odd),
+  .feuille-titulaire-public:last-child { border-bottom-color: var(--rule); }
+  .feuille-titulaire-public:last-child { border-bottom-color: transparent; }
+}

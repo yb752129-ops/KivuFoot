@@ -40,6 +40,15 @@ function valeurStatut(eligibilite) {
   return eligibilite?.statut || "";
 }
 
+function normaliserFormation(value) {
+  return String(value || "").trim().replace(/[–—]/g, "-");
+}
+
+function formationValidePourEdition(value) {
+  const normalisee = normaliserFormation(value);
+  return /^\d+(?:-\d+)+$/.test(normalisee) && slotsPourFormation(normalisee).length === 11;
+}
+
 export default function Composition() {
   const { matchId } = useParams();
   const { clubsById } = useKivu();
@@ -215,9 +224,8 @@ export default function Composition() {
     }
     if (comptes.banc > maxBanc) erreurs.push(`La composition dépasse la limite de ${maxBanc} remplaçants.`);
 
-    const formationNormalisee = formation.trim().replace(/[–—]/g, "-");
-    const formationValide = /^\d+(?:-\d+)+$/.test(formationNormalisee)
-      && slotsPourFormation(formationNormalisee).length === 11;
+    const formationNormalisee = normaliserFormation(formation);
+    const formationValide = formationValidePourEdition(formationNormalisee);
     if (!formationNormalisee) {
       erreurs.push("Une formation est obligatoire pour attribuer les 11 positions.");
     } else if (!formationValide) {
@@ -332,6 +340,10 @@ export default function Composition() {
       marquerModifie();
       return;
     }
+    if (!formationValidePourEdition(formation)) {
+      setErreur("Choisissez d'abord une formation valide avant de sélectionner les joueurs.");
+      return;
+    }
     if (joueur.compositionSeulement) {
       setErreur("Ce joueur est encore affiché pour protéger la feuille existante, mais il ne figure plus dans l'effectif actuel. Retirez-le avant de sauvegarder.");
       return;
@@ -361,8 +373,8 @@ export default function Composition() {
 
   function assignerPosition(joueur, value) {
     if (verrouille || choix[joueur.id] !== "titulaire") return;
-    if (!formation.trim()) {
-      setErreur("Choisissez d'abord une formation pour attribuer une position.");
+    if (!formationValidePourEdition(formation)) {
+      setErreur("Choisissez d'abord une formation valide pour attribuer une position.");
       return;
     }
     const placement = lireClePosition(value);
@@ -375,13 +387,13 @@ export default function Composition() {
       marquerModifie();
       return;
     }
-    if (!slotValide(formation, placement)) {
+    if (!slotValide(normaliserFormation(formation), placement)) {
       setErreur("Cette position n'existe pas dans la formation actuelle.");
       return;
     }
     const occupant = occupantPourPosition(placement, joueur.id);
     if (occupant) {
-      setErreur(`${libellePosition(formation, placement.ligne_index, placement.position_index)} est déjà occupée par ${occupant.nom_complet}. Aucun joueur n'a été déplacé.`);
+      setErreur(`${libellePosition(normaliserFormation(formation), placement.ligne_index, placement.position_index)} est déjà occupée par ${occupant.nom_complet}. Aucun joueur n'a été déplacé.`);
       return;
     }
     setPlacements((ancien) => ({ ...ancien, [joueur.id]: placement }));
@@ -399,19 +411,19 @@ export default function Composition() {
 
   function ouvrirSelectionSlot(ligneIndex, positionIndex) {
     if (verrouille) return;
-    if (!formation.trim()) {
-      setErreur("Choisissez d'abord une formation pour ouvrir ses positions.");
+    if (!formationValidePourEdition(formation)) {
+      setErreur("Choisissez d'abord une formation valide pour ouvrir ses positions.");
       return;
     }
     const placement = { ligne_index: ligneIndex, position_index: positionIndex };
-    if (!slotValide(formation, placement)) {
+    if (!slotValide(normaliserFormation(formation), placement)) {
       setErreur("Cette position n'existe pas dans la formation actuelle.");
       return;
     }
     setErreur("");
     setSlotPicker({
       ...placement,
-      label: libellePosition(formation, ligneIndex, positionIndex),
+      label: libellePosition(normaliserFormation(formation), ligneIndex, positionIndex),
     });
   }
 
@@ -463,12 +475,13 @@ export default function Composition() {
   }
 
   function pitchRows() {
+    if (!formationValidePourEdition(formation)) return [];
     const joueursAvecPlace = titulaires.map((joueur) => ({
       ...joueur,
       ligne_index: placements[joueur.id]?.ligne_index ?? null,
       position_index: placements[joueur.id]?.position_index ?? null,
     }));
-    return lignesAvecPlacements(formation, joueursAvecPlace);
+    return lignesAvecPlacements(normaliserFormation(formation), joueursAvecPlace);
   }
 
   async function enregistrer() {
@@ -503,7 +516,7 @@ export default function Composition() {
         });
       const nouvelleComposition = await api.enregistrerComposition(matchId, {
         equipe,
-        formation: formation.trim().replace(/[–—]/g, "-") || null,
+        formation: normaliserFormation(formation) || null,
         staff_id: staffId ? Number(staffId) : null,
         joueurs: lignes,
       });
@@ -570,9 +583,10 @@ export default function Composition() {
     return <p className="empty">Ce match ne concerne pas votre club.</p>;
   }
 
+  const formationValide = formationValidePourEdition(formation);
   const lignesTerrain = pitchRows();
   const lignesTerrainAffichees = [...lignesTerrain].reverse();
-  const positionSlots = formation.trim() ? slotsPourFormation(formation) : [];
+  const positionSlots = formationValide ? slotsPourFormation(normaliserFormation(formation)) : [];
   const joueursPickerDisponibles = joueurs.filter((joueur) => (
     !choix[joueur.id]
     && !joueur.compositionSeulement
@@ -583,8 +597,10 @@ export default function Composition() {
   const joueursPlaces = new Set(
     lignesTerrain.flatMap((ligne) => ligne.joueurs.filter(Boolean).map((joueur) => joueur.id)),
   );
+  const nombreJoueursPlaces = joueursPlaces.size;
   const titulairesNonPlaces = titulaires.filter((joueur) => !joueursPlaces.has(joueur.id));
   const pourcentageTitulaires = Math.min(100, Math.round((comptes.titulaires / 11) * 100));
+  const pourcentagePlaces = Math.min(100, Math.round((nombreJoueursPlaces / 11) * 100));
   const pourcentageBanc = Math.min(100, Math.round((comptes.banc / Math.max(maxBanc, 1)) * 100));
 
   return (
@@ -631,11 +647,15 @@ export default function Composition() {
         </div>
         <div className="composition-counters">
           <div className="composition-counter">
-            <div><span>Onze titulaire</span><strong>{comptes.titulaires}/11</strong></div>
+            <div><span>Titulaires</span><strong>{comptes.titulaires} / 11</strong></div>
             <div className="composition-progress"><span style={{ width: `${pourcentageTitulaires}%` }} /></div>
           </div>
           <div className="composition-counter">
-            <div><span>Banc</span><strong>{comptes.banc}/{maxBanc}</strong></div>
+            <div><span>Placés</span><strong>{nombreJoueursPlaces} / 11</strong></div>
+            <div className="composition-progress composition-progress-placed"><span style={{ width: `${pourcentagePlaces}%` }} /></div>
+          </div>
+          <div className="composition-counter">
+            <div><span>Banc</span><strong>{comptes.banc} / {maxBanc}</strong></div>
             <div className="composition-progress composition-progress-bench"><span style={{ width: `${pourcentageBanc}%` }} /></div>
           </div>
         </div>
@@ -645,6 +665,12 @@ export default function Composition() {
         <div className="composition-alert composition-alert-warning" role="status">
           <strong>Ce match est verrouillé.</strong>
           <span>La feuille reste consultable, mais aucune modification n’est autorisée.</span>
+        </div>
+      )}
+      {!verrouille && !formationValide && (
+        <div className="composition-alert composition-alert-info" role="status">
+          <strong>Choisissez la formation en premier.</strong>
+          <span>Les joueurs pourront ensuite être affectés à des places explicites. Aucun déplacement automatique n'est effectué.</span>
         </div>
       )}
       {avertissements.map((avertissement) => (
@@ -683,7 +709,7 @@ export default function Composition() {
                       <span className="composition-selected-number">{numeros[joueur.id] || joueur.numero || "—"}</span>
                       <span>
                         <strong>{joueur.nom_complet}</strong>
-                        <small>{placement && slotValide(formation, placement) ? libellePosition(formation, placement.ligne_index, placement.position_index) : "Position à attribuer"}</small>
+                        <small>{placement && slotValide(normaliserFormation(formation), placement) ? libellePosition(normaliserFormation(formation), placement.ligne_index, placement.position_index) : "Position à attribuer"}</small>
                       </span>
                     </li>
                   );
@@ -757,7 +783,7 @@ export default function Composition() {
               <div className="composition-pitch-row" key={`${ligne.label}-${ligne.poste}-${ligne.ligneIndex}`}>
                 {Array.from({ length: ligne.places }).map((_, index) => {
                   const joueur = joueurPourSlot(ligne.joueurs, index);
-                  const positionLabel = libellePosition(formation, ligne.ligneIndex, index);
+                  const positionLabel = libellePosition(normaliserFormation(formation), ligne.ligneIndex, index);
                   return joueur ? (
                     <span className="composition-pitch-player" key={joueur.id} title={`${joueur.nom_complet} · ${positionLabel}`}>
                       <b>{numeros[joueur.id] || joueur.numero || "—"}</b>
@@ -769,7 +795,7 @@ export default function Composition() {
                       className="composition-pitch-empty"
                       key={`${ligne.label}-vide-${index}`}
                       onClick={() => ouvrirSelectionSlot(ligne.ligneIndex, index)}
-                      disabled={verrouille || !formation.trim()}
+                      disabled={verrouille || !formationValide}
                       aria-label={`Ajouter un joueur à ${positionLabel}`}
                       title={`Ajouter un joueur à ${positionLabel}`}
                     >
@@ -825,7 +851,7 @@ export default function Composition() {
                   {joueursPickerTitulaires.map((joueur) => (
                     <button key={joueur.id} type="button" className="composition-picker-player" onClick={() => placerJoueurDansSlot(joueur)}>
                       <strong>{joueur.nom_complet}</strong>
-                      <small>{placements[joueur.id] && slotValide(formation, placements[joueur.id]) ? `Déplacer ici · ${libellePosition(formation, placements[joueur.id].ligne_index, placements[joueur.id].position_index)}` : "Placer ici"}</small>
+                      <small>{placements[joueur.id] && slotValide(normaliserFormation(formation), placements[joueur.id]) ? `Déplacer ici · ${libellePosition(normaliserFormation(formation), placements[joueur.id].ligne_index, placements[joueur.id].position_index)}` : "Placer ici"}</small>
                     </button>
                   ))}
                 </div>
@@ -875,7 +901,7 @@ export default function Composition() {
               const bloquant = eligibilite?.statut === "BLOQUANT";
               const numero = numeros[joueur.id] ?? (joueur.numero != null ? String(joueur.numero) : "");
               const placement = placements[joueur.id];
-              const positionValue = placement && slotValide(formation, placement)
+              const positionValue = placement && slotValide(normaliserFormation(formation), placement)
                 ? clePosition(placement.ligne_index, placement.position_index)
                 : "";
               return (
@@ -921,10 +947,10 @@ export default function Composition() {
                     <input type="number" min="1" max="99" inputMode="numeric" value={numero} onChange={(event) => modifierNumero(joueur.id, event.target.value)} disabled={verrouille} aria-label={`Numéro de ${joueur.nom_complet}`} />
                   </label>
                   <div className="composition-player-actions">
-                    <button type="button" className={role === "titulaire" ? "is-active" : ""} onClick={() => choisirRole(joueur, "titulaire")} disabled={verrouille || (bloquant && !role)}>
+                    <button type="button" className={role === "titulaire" ? "is-active" : ""} onClick={() => choisirRole(joueur, "titulaire")} disabled={verrouille || (!role && !formationValide) || (bloquant && !role)}>
                       Titulaire
                     </button>
-                    <button type="button" className={role === "remplacant" ? "is-active" : ""} onClick={() => choisirRole(joueur, "remplacant")} disabled={verrouille || (bloquant && !role)}>
+                    <button type="button" className={role === "remplacant" ? "is-active" : ""} onClick={() => choisirRole(joueur, "remplacant")} disabled={verrouille || (!role && !formationValide) || (bloquant && !role)}>
                       Banc
                     </button>
                     {role && <button type="button" className="is-remove" onClick={() => choisirRole(joueur, role)} disabled={verrouille}>Retirer</button>}
@@ -942,7 +968,7 @@ export default function Composition() {
           {!verrouille && validation.erreurs.length > 0 && <small>{validation.erreurs.length} contrôle(s) à corriger avant sauvegarde.</small>}
         </div>
         <button type="button" className="btn btn-primary" onClick={enregistrer} disabled={verrouille || sauvegardeEnCours || validation.erreurs.length > 0}>
-          {sauvegardeEnCours ? "Enregistrement…" : verrouille ? "Match verrouillé" : "Enregistrer le brouillon"}
+          {sauvegardeEnCours ? "Enregistrement…" : verrouille ? "Match verrouillé" : "Enregistrer la composition"}
         </button>
       </div>
     </section>

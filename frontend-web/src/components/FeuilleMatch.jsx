@@ -2,10 +2,8 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { labelPoste, stripDemo } from "../display.js";
 import {
-  FORMATION_PAR_DEFAUT,
   clePosition,
   lignesAvecPlacements,
-  lignesPourFormation,
   libellePosition,
   placementDuJoueur,
   slotValide,
@@ -18,23 +16,29 @@ function nomCourt(nom) {
   return mots.slice(-2).join(" ");
 }
 
+function normaliserFormation(value) {
+  return String(value || "").trim().replace(/[–—]/g, "-");
+}
+
+function formationEnregistree(bloc) {
+  const formation = normaliserFormation(bloc?.formation);
+  return /^\d+(?:-\d+)+$/.test(formation) && slotsPourFormation(formation).length === 11;
+}
 
 function formationPourBloc(bloc) {
-  const officielle = String(bloc.formation || "").trim().replace(/[–—]/g, "-");
-  if (/^\d+(?:-\d+)+$/.test(officielle) && slotsPourFormation(officielle).length === 11) return officielle;
-  return FORMATION_PAR_DEFAUT;
+  return formationEnregistree(bloc) ? normaliserFormation(bloc.formation) : "";
 }
 
 function joueursPlaces(bloc) {
-  return lignesAvecPlacements(formationPourBloc(bloc), bloc.titulaires || []);
+  const formation = formationPourBloc(bloc);
+  return formation ? lignesAvecPlacements(formation, bloc.titulaires || []) : [];
 }
 
 function positionComplete(bloc) {
-  if (bloc.position_complete === true) return true;
   const formation = formationPourBloc(bloc);
-  const titulaires = bloc.titulaires || [];
+  const titulaires = Array.isArray(bloc?.titulaires) ? bloc.titulaires : [];
   const places = new Set();
-  if (titulaires.length !== 11) return false;
+  if (!formation || titulaires.length !== 11) return false;
   for (const joueur of titulaires) {
     const placement = placementDuJoueur(joueur);
     if (!slotValide(formation, placement)) return false;
@@ -45,13 +49,60 @@ function positionComplete(bloc) {
   return places.size === 11;
 }
 
+function statutEquipe(bloc) {
+  const nombre = Array.isArray(bloc?.titulaires) ? bloc.titulaires.length : 0;
+  return nombre === 0 ? "non-publiee" : "verification";
+}
+
+function libelleStatut(statut) {
+  return statut === "non-publiee"
+    ? "Composition non publiée"
+    : "Composition en cours de vérification";
+}
+
+function lignesNomEquipe(nom) {
+  const mots = String(nom || "Équipe").trim().split(/\s+/).filter(Boolean);
+  if (mots.length <= 1) return [mots.join(" ") || "Équipe"];
+  const total = mots.join(" ");
+  if (total.length <= 18) return [total];
+  let meilleur = 1;
+  let ecart = Number.POSITIVE_INFINITY;
+  for (let index = 1; index < mots.length; index += 1) {
+    const gauche = mots.slice(0, index).join(" ");
+    const droite = mots.slice(index).join(" ");
+    const nouvelEcart = Math.abs(gauche.length - droite.length);
+    if (nouvelEcart < ecart) {
+      meilleur = index;
+      ecart = nouvelEcart;
+    }
+  }
+  return [mots.slice(0, meilleur).join(" "), mots.slice(meilleur).join(" ")];
+}
+
+function NomEquipe({ nom, className = "" }) {
+  const lignes = lignesNomEquipe(nom);
+  return (
+    <span className={`feuille-nom-equipe ${className}`.trim()}>
+      {lignes[0]}
+      {lignes[1] && <><br />{lignes[1]}</>}
+    </span>
+  );
+}
+
+function LogoEquipe({ logo, nom, className = "" }) {
+  return (
+    <span className={`feuille-logo-equipe ${className}`.trim()} aria-hidden="true">
+      {logo ? <img src={logo} alt="" /> : (String(nom || "Équipe").trim().charAt(0).toUpperCase() || "É")}
+    </span>
+  );
+}
+
 function positionsTerrain(nombreLignes, zone = "top") {
   const haut = nombreLignes <= 1
     ? [6]
     : Array.from({ length: nombreLignes }, (_, i) =>
         Math.round(6 + (32 / (nombreLignes - 1)) * i));
-  // Chaque équipe garde le même sens de lecture : gardien vers le bas
-  // de sa moitié, attaque vers l'extrémité opposée.
+  // Les positions d'une composition complète proviennent des slots enregistrés.
   return zone === "bottom" ? haut.slice().reverse().map((top) => 100 - top) : haut;
 }
 
@@ -80,9 +131,7 @@ function RangsTerrain({ bloc, zone = "top", inverser = false }) {
             <b>{repereJoueur(joueur)}</b>
             <small>{nomCourt(joueur.nom_complet)}</small>
           </span>
-        ) : (
-          <span className="feuille-terrain-vide" key={`${ligne.label}-${ligne.ligneIndex}-${index}`} aria-label={`${positionLabel} non renseigné`}>+</span>
-        );
+        ) : null;
       })}
     </div>
   ));
@@ -94,14 +143,10 @@ function TerrainMixte({ domicile, exterieur, logos = {} }) {
   const formationDomicile = formationPourBloc(domicile);
   const formationExterieur = formationPourBloc(exterieur);
   const dense = [domicile, exterieur].some((bloc) => (
-    lignesPourFormation(formationPourBloc(bloc)).length >= 5
+    lignesAvecPlacements(formationPourBloc(bloc), bloc.titulaires || []).length >= 5
   ));
   const logoDomicile = logos.domicile || domicile.logo_url;
   const logoExterieur = logos.exterieur || exterieur.logo_url;
-  const positionsIncompletes = [
-    { id: "domicile", nom: nomDomicile, bloc: domicile },
-    { id: "exterieur", nom: nomExterieur, bloc: exterieur },
-  ].filter((equipe) => equipe.bloc.titulaires?.length > 0 && !positionComplete(equipe.bloc));
   return (
     <section className="feuille-tactique feuille-tactique-mixte" aria-label="Terrain tactique des deux équipes">
       <div className="feuille-tactique-head">
@@ -111,17 +156,6 @@ function TerrainMixte({ domicile, exterieur, logos = {} }) {
         </div>
         <span className="feuille-tactique-note">Lecture seule</span>
       </div>
-      {positionsIncompletes.map((equipe) => (
-        <div key={equipe.id} className="feuille-position-incomplete" role="status">
-          <strong>{equipe.nom} : placement tactique à confirmer</strong>
-          <span>Les titulaires sont déclarés, mais la position de chaque joueur n'est pas encore complète. Le terrain ne déplace aucun joueur automatiquement.</span>
-          <ul>
-            {(equipe.bloc.titulaires || []).map((joueur) => (
-              <li key={joueur.id}>{joueur.numero != null ? `N°${joueur.numero} ` : ""}{joueur.nom_complet}</li>
-            ))}
-          </ul>
-        </div>
-      ))}
       <div className={`feuille-terrain feuille-terrain-mixte${dense ? " feuille-terrain-dense" : ""}`}>
         {logoExterieur && <img className="feuille-terrain-logo feuille-terrain-logo-away" src={logoExterieur} alt="" aria-hidden="true" />}
         {logoDomicile && <img className="feuille-terrain-logo feuille-terrain-logo-home" src={logoDomicile} alt="" aria-hidden="true" />}
@@ -133,7 +167,7 @@ function TerrainMixte({ domicile, exterieur, logos = {} }) {
         <div className="feuille-terrain-ligne" aria-hidden="true" />
         <div className="feuille-terrain-team feuille-terrain-team-away">
           {logoExterieur && <img className="feuille-terrain-team-logo" src={logoExterieur} alt="" aria-hidden="true" />}
-          <strong>{nomExterieur}</strong>
+          <strong><NomEquipe nom={nomExterieur} /></strong>
           <span>{formationExterieur}</span>
         </div>
         <div className="feuille-terrain-rangs feuille-terrain-rangs-away">
@@ -145,11 +179,51 @@ function TerrainMixte({ domicile, exterieur, logos = {} }) {
         </div>
         <div className="feuille-terrain-team feuille-terrain-team-home">
           {logoDomicile && <img className="feuille-terrain-team-logo" src={logoDomicile} alt="" aria-hidden="true" />}
-          <strong>{nomDomicile}</strong>
+          <strong><NomEquipe nom={nomDomicile} /></strong>
           <span>{formationDomicile}</span>
         </div>
       </div>
+    </section>
+  );
+}
 
+function JoueurTitulairePublic({ joueur }) {
+  return (
+    <li className="feuille-titulaire-public">
+      <span className="feuille-public-numero" aria-hidden="true">{joueur.numero ?? "—"}</span>
+      <span className="feuille-public-identite">
+        <strong>{joueur.nom_complet}</strong>
+        {labelPoste(joueur.poste) && <small>{labelPoste(joueur.poste)}</small>}
+      </span>
+    </li>
+  );
+}
+
+function TitulairesPublic({ bloc, logo, nom }) {
+  return (
+    <section className="feuille-titulaires-public" aria-label={`Titulaires de ${nom}`}>
+      <header className="feuille-titulaires-public-head">
+        <LogoEquipe logo={logo} nom={nom} />
+        <div>
+          <p className="feuille-titulaires-public-kicker">Titulaires</p>
+          <h3><NomEquipe nom={nom} /></h3>
+        </div>
+      </header>
+      <ol className="feuille-titulaires-public-list">
+        {(bloc.titulaires || []).map((joueur) => <JoueurTitulairePublic key={joueur.id} joueur={joueur} />)}
+      </ol>
+    </section>
+  );
+}
+
+function EtatCompositionPublic({ bloc, logo, nom, statut }) {
+  return (
+    <section className={`feuille-composition-etat is-${statut}`} aria-label={`${nom} : ${libelleStatut(statut)}`}>
+      <header className="feuille-composition-etat-head">
+        <LogoEquipe logo={logo} nom={nom} />
+        <h3><NomEquipe nom={nom} /></h3>
+      </header>
+      <strong>{libelleStatut(statut)}</strong>
     </section>
   );
 }
@@ -205,7 +279,7 @@ function RemplacementsPublic({ domicile, exterieur, logos, staffs }) {
               <span className="feuille-remplacements-logo" aria-hidden="true">
                 {item.logo ? <img src={item.logo} alt="" /> : itemNom.charAt(0)}
               </span>
-              <span>{itemNom}</span>
+              <NomEquipe nom={itemNom} />
             </button>
           );
         })}
@@ -223,7 +297,7 @@ function RemplacementsPublic({ domicile, exterieur, logos, staffs }) {
       ) : null}
       <div className="feuille-remplacements-tete">
         <h3 className="feuille-section">Remplaçants</h3>
-        <span>{nom}</span>
+        <NomEquipe nom={nom} />
       </div>
       {banc.length === 0 ? (
         <p className="feuille-vide">Aucun remplaçant déclaré.</p>
@@ -243,20 +317,47 @@ function posteStaff(r) {
 
 export default function FeuilleMatch({ compo, logos = {}, staffs = {} }) {
   if (!compo) return <p className="empty">Chargement…</p>;
-  const domicile = compo.domicile || { titulaires: [], banc: [] };
-  const exterieur = compo.exterieur || { titulaires: [], banc: [] };
-  const compositionDeclaree = [domicile, exterieur].some(
-    (bloc) => Array.isArray(bloc.titulaires) && bloc.titulaires.length > 0
-  );
+  const domicile = compo.domicile || { club_nom: "Domicile", titulaires: [], banc: [] };
+  const exterieur = compo.exterieur || { club_nom: "Extérieur", titulaires: [], banc: [] };
+  const equipes = [
+    { id: "domicile", bloc: domicile, logo: logos.domicile || domicile.logo_url, nom: stripDemo(domicile.club_nom) || "Domicile" },
+    { id: "exterieur", bloc: exterieur, logo: logos.exterieur || exterieur.logo_url, nom: stripDemo(exterieur.club_nom) || "Extérieur" },
+  ];
+  const onzeComplet = equipes.every((equipe) => (equipe.bloc.titulaires || []).length === 11);
+  const terrainPret = onzeComplet && equipes.every((equipe) => positionComplete(equipe.bloc));
+
+  if (!onzeComplet) {
+    return (
+      <div className="feuille-compositions-publiques" aria-label="État des compositions">
+        {equipes.map((equipe) => (
+          <EtatCompositionPublic
+            key={equipe.id}
+            bloc={equipe.bloc}
+            logo={equipe.logo}
+            nom={equipe.nom}
+            statut={statutEquipe(equipe.bloc)}
+          />
+        ))}
+      </div>
+    );
+  }
+
+  if (!terrainPret) {
+    return (
+      <>
+        <div className="feuille-titulaires-public-grid">
+          {equipes.map((equipe) => (
+            <TitulairesPublic key={equipe.id} bloc={equipe.bloc} logo={equipe.logo} nom={equipe.nom} />
+          ))}
+        </div>
+        <RemplacementsPublic domicile={domicile} exterieur={exterieur} logos={logos} staffs={staffs} />
+      </>
+    );
+  }
+
   return (
     <>
-      {compositionDeclaree ? (
-        <TerrainMixte domicile={domicile} exterieur={exterieur} logos={logos} />
-      ) : (
-        <div className="feuille-composition-incomplete" role="status">
-          <strong>Composition non renseignée</strong>
-        </div>
-      )}
+      <TerrainMixte domicile={domicile} exterieur={exterieur} logos={logos} />
       <RemplacementsPublic domicile={domicile} exterieur={exterieur} logos={logos} staffs={staffs} />
     </>
   );
