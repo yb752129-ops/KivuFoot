@@ -18,39 +18,29 @@ function nomClub(ligne, club) {
   return stripDemo(ligne.club_nom || club?.nom || "—");
 }
 
-function RankingRow({ ligne, index, club, details, followedClubId }) {
+function RankingRow({ ligne, index, club, followedClubId }) {
   const nom = nomClub(ligne, club);
   const followed = followedClubId !== null && Number(ligne.club_id) === followedClubId;
   const contenu = (
-    <>
+    <span className="kf-public-rank-club-content">
+      <span className="kf-public-rank-position">{index + 1}</span>
       <PublicClubLogo club={club} name={nom} />
       <span className="kf-public-rank-name">{nom}</span>
-    </>
-  );
-  const contenuClub = details ? (
-    <span className="kf-public-rank-details-club">
-      <span className="kf-public-rank-position kf-public-rank-position-in-club">{index + 1}</span>
-      {contenu}
     </span>
-  ) : contenu;
+  );
   return (
     <tr className={followed ? "followed" : ""}>
-      {!details && <td className="kf-public-rank-position">{index + 1}</td>}
-      <td className={`kf-public-rank-club${details ? " kf-public-rank-club-details" : ""}`}>
-        {ligne.club_id ? <Link to={`/clubs/${ligne.club_id}`}>{contenuClub}</Link> : <span>{contenuClub}</span>}
+      <td className="kf-public-rank-club">
+        {ligne.club_id ? <Link to={`/clubs/${ligne.club_id}`}>{contenu}</Link> : <span>{contenu}</span>}
       </td>
       <td><strong>{displayValue(ligne.points)}</strong></td>
       <td>{displayValue(ligne.matchs_joues)}</td>
       <td>{displayDifference(ligne.difference_buts)}</td>
-      {details && (
-        <>
-          <td>{displayValue(ligne.victoires)}</td>
-          <td>{displayValue(ligne.nuls)}</td>
-          <td>{displayValue(ligne.defaites)}</td>
-          <td>{displayValue(ligne.buts_marques)}</td>
-          <td>{displayValue(ligne.buts_encaisses)}</td>
-        </>
-      )}
+      <td>{displayValue(ligne.victoires)}</td>
+      <td>{displayValue(ligne.nuls)}</td>
+      <td>{displayValue(ligne.defaites)}</td>
+      <td>{displayValue(ligne.buts_marques)}</td>
+      <td>{displayValue(ligne.buts_encaisses)}</td>
     </tr>
   );
 }
@@ -58,21 +48,8 @@ function RankingRow({ ligne, index, club, details, followedClubId }) {
 export default function Classement() {
   const { saison, saisonClubs, clubsById } = useKivu();
   const [lignes, setLignes] = useState([]);
-  const [groupes, setGroupes] = useState([]);
   const [groupe, setGroupe] = useState("");
-  const [details, setDetails] = useState(false);
   const [err, setErr] = useState("");
-
-  useEffect(() => {
-    const configured = new Set(
-      (saisonClubs || [])
-        .map((club) => String(club.groupe || "").toUpperCase())
-        .filter(Boolean),
-    );
-    const available = GROUPES.filter((item) => configured.has(item));
-    setGroupes(available);
-    if (groupe && !available.includes(groupe)) setGroupe("");
-  }, [saisonClubs, groupe]);
 
   useEffect(() => {
     if (!saison) {
@@ -95,12 +72,10 @@ export default function Classement() {
   }, [saison, groupe]);
 
   const lignesTriees = useMemo(() => [...lignes].sort(compareClassementRows), [lignes]);
-
   const followedClubId = followedPublicClubId();
   const clubSuivi = followedClubId === null
     ? null
     : lignesTriees.find((ligne) => Number(ligne.club_id) === followedClubId);
-  const equipesSuivies = Boolean(clubSuivi);
   const titreGroupe = groupe ? `Classement du groupe ${groupe}` : "Classement général";
 
   return (
@@ -123,7 +98,7 @@ export default function Classement() {
         >
           Général
         </button>
-        {groupes.map((item) => (
+        {GROUPES.map((item) => (
           <button
             key={item}
             type="button"
@@ -144,27 +119,28 @@ export default function Classement() {
         <span>{lignesTriees.length} équipes</span>
       </div>
 
-      <div className="kf-public-ranking-tools">
-        {equipesSuivies ? <span className="kf-public-followed-note">{nomClub(clubSuivi, findPublicClub(clubsById, saisonClubs, clubSuivi.club_id))} · équipe suivie</span> : <span />}
-        <button
-          type="button"
-          className="kf-public-outline-button"
-          aria-expanded={details}
-          onClick={() => setDetails((value) => !value)}
-        >
-          {details ? "Masquer les détails" : "Détails"} <span aria-hidden="true">⌄</span>
-        </button>
-      </div>
+      {clubSuivi && (
+        <p className="kf-public-followed-note">
+          {nomClub(clubSuivi, findPublicClub(clubsById, saisonClubs, clubSuivi.club_id))} · équipe suivie
+        </p>
+      )}
 
       {lignesTriees.length === 0 ? (
         <div className="kf-public-empty"><strong>Aucune donnée disponible</strong></div>
       ) : (
-        <div className={`kf-public-table-scroll${details ? " kf-public-table-scroll-details" : ""}`}>
-          <table className={`kf-public-rank-table${details ? " details" : ""}`}>
+        <div className="kf-public-table-scroll">
+          <table className="kf-public-rank-table">
             <thead>
               <tr>
-                {!details && <th>#</th>}<th>Club</th><th>Pts</th><th>J</th><th>Diff</th>
-                {details && <><th>G</th><th>N</th><th>P</th><th>BP</th><th>BC</th></>}
+                <th>Club</th>
+                <th>Pts</th>
+                <th>J</th>
+                <th>Diff</th>
+                <th>G</th>
+                <th>N</th>
+                <th>P</th>
+                <th>BP</th>
+                <th>BC</th>
               </tr>
             </thead>
             <tbody>
@@ -174,7 +150,6 @@ export default function Classement() {
                   ligne={ligne}
                   index={index}
                   club={findPublicClub(clubsById, saisonClubs, ligne.club_id)}
-                  details={details}
                   followedClubId={followedClubId}
                 />
               ))}

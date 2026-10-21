@@ -170,7 +170,7 @@ function RemplacantPublic({ joueur }) {
       </span>
       <span className="feuille-remplacant-identite">
         <strong>{joueur.numero != null && <span className="feuille-remplacant-numero">{joueur.numero}</span>}{joueur.nom_complet}</strong>
-        <small>{labelPoste(joueur.poste) || "Remplaçant"}</small>
+        {labelPoste(joueur.poste) && <small>{labelPoste(joueur.poste)}</small>}
       </span>
     </Link>
   );
@@ -255,7 +255,6 @@ export default function FeuilleMatch({ compo, logos = {}, staffs = {} }) {
       ) : (
         <div className="feuille-composition-incomplete" role="status">
           <strong>Composition non renseignée</strong>
-          <span>Les titulaires n’ont pas encore été déclarés pour ce match.</span>
         </div>
       )}
       <RemplacementsPublic domicile={domicile} exterieur={exterieur} logos={logos} staffs={staffs} />
