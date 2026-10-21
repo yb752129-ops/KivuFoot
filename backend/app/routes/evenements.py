@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.rbac import require_roles
+from app.auth.rbac import CLUB_ROLES, isClubRole, require_roles, verifier_organisateur_du_match
 from app.database import AsyncSessionLocal, get_db
 from app.models.enums import EquipeConcernee, RoleUtilisateur, StatutMatch, TypeEvenement
 from app.models.evenement import EvenementMatch
@@ -56,7 +56,7 @@ async def lister_evenements(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_roles(
         RoleUtilisateur.ADMIN, RoleUtilisateur.ORGANISATEUR,
-        RoleUtilisateur.COLLECTEUR, RoleUtilisateur.CLUB_MANAGER,
+        RoleUtilisateur.COLLECTEUR, *CLUB_ROLES,
     )),
 ):
     """
@@ -69,6 +69,11 @@ async def lister_evenements(
     match_ = await db.get(Match, match_id)
     if match_ is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Match introuvable.")
+    if current_user.role in (RoleUtilisateur.ADMIN, RoleUtilisateur.ORGANISATEUR):
+        await verifier_organisateur_du_match(match_id, current_user, db)
+    elif isClubRole(current_user.role):
+        if current_user.club_id not in (match_.equipe_domicile_id, match_.equipe_exterieur_id):
+            raise HTTPException(status.HTTP_403_FORBIDDEN, "Vous ne gérez aucune équipe de ce match.")
     result = await db.execute(select(EvenementMatch).where(EvenementMatch.match_id == match_id))
     return result.scalars().all()
 

@@ -208,7 +208,9 @@ async def valider_evenement(db: AsyncSession, evenement_id: int, valide_par_id: 
     if evenement is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Événement introuvable.")
 
-    match_ = await db.get(Match, evenement.match_id)
+    match_ = await db.scalar(
+        select(Match).where(Match.id == evenement.match_id).with_for_update()
+    )
     if match_ is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Match introuvable.")
     if match_.locked:
@@ -371,7 +373,9 @@ async def refuser_evenement_arbitral(
 
 
 async def valider_match(db: AsyncSession, match_id: int, valide_par_id: int) -> Match:
-    match_ = await db.get(Match, match_id)
+    # Serialize checklist/feuille/statut validation against another
+    # validator or a concurrent composition write.
+    match_ = await db.scalar(select(Match).where(Match.id == match_id).with_for_update())
     if match_ is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Match introuvable.")
     if match_.locked:

@@ -12,7 +12,10 @@ class Joueur(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     nom_complet: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
-    date_naissance: Mapped[date] = mapped_column(Date, nullable=False)
+    # Nullable for the live-match express registration flow. The club can
+    # register a scorer immediately and complete the identity later; official
+    # exports and eligibility expose the missing field as incomplete data.
+    date_naissance: Mapped[date | None] = mapped_column(Date, nullable=True)
     poste: Mapped[PosteJoueur | None] = mapped_column(String(50))
     numero: Mapped[int | None] = mapped_column(Integer)  # numéro de maillot : optionnel, contextuel, jamais identifiant
     club_actuel_id: Mapped[int | None] = mapped_column(ForeignKey("clubs.id", ondelete="SET NULL"))
@@ -50,6 +53,8 @@ class Joueur(Base):
 
     @property
     def est_mineur(self) -> bool:
+        if self.date_naissance is None:
+            return False
         today = date.today()
         age = today.year - self.date_naissance.year - (
             (today.month, today.day) < (self.date_naissance.month, self.date_naissance.day)

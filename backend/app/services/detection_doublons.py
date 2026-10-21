@@ -14,9 +14,15 @@ from app.models.stats import StatistiqueJoueur
 
 
 async def rechercher_doublons(
-    db: AsyncSession, nom_complet: str, date_naissance: date, poste: str | None
+    db: AsyncSession, nom_complet: str, date_naissance: date | None, poste: str | None
 ) -> list[Joueur]:
-    """Recherche sur nom_complet + date_naissance + poste (règle §7.1)."""
+    """Recherche sur nom + date + poste quand la date est connue.
+
+    Une inscription express sans date ne doit pas inventer une correspondance;
+    elle sera revue quand l'identité sera complétée.
+    """
+    if date_naissance is None:
+        return []
     query = select(Joueur).where(
         func.lower(Joueur.nom_complet) == nom_complet.strip().lower(),
         Joueur.date_naissance == date_naissance,

@@ -57,12 +57,12 @@ export default function ClubEffectif() {
     setMsg("");
     try {
       if (!nomJ.trim()) throw new Error("Le nom complet est obligatoire.");
-      if (!dateJ) throw new Error("Date de naissance : à compléter pour enregistrer.");
       const mineur = estMineur(dateJ);
       if (mineur && !parentale) throw new Error("Autorisation parentale requise pour un mineur.");
+      const express = !dateJ;
       const cree = await api.creerJoueur({
         nom_complet: nomJ.trim(),
-        date_naissance: dateJ,
+        date_naissance: dateJ || null,
         poste: posteJ || null,
         club_actuel_id: clubId,
         autorisation_parentale: mineur ? true : null,
@@ -71,7 +71,9 @@ export default function ClubEffectif() {
       setDateJ("");
       setPosteJ("");
       setParentale(false);
-      if (cree?.statut_verification === "doublon_suspecte") {
+      if (express) {
+        setMsg("Joueur ajouté en urgence. Date de naissance à compléter avant de finaliser son identité.");
+      } else if (cree?.statut_verification === "doublon_suspecte") {
         setMsg("Joueur ajouté — doublon possible. Pas de fusion automatique.");
       } else {
         setMsg("Joueur ajouté.");
@@ -88,7 +90,7 @@ export default function ClubEffectif() {
     <section className="hero">
       <h1>Effectif</h1>
       <p className="lead">Les joueurs du club. Nom complet obligatoire. Pas la composition d’un match.</p>
-      <p className="kicker"><Link to="/club/coach">Espace coach et staff →</Link></p>
+      <p className="kicker"><Link to="/club/staff">Espace staff →</Link></p>
       {err && <p className="erreur">{err}</p>}
       {msg && <p className="empty">{msg}</p>}
       {joueurs.length === 0 && <p className="empty">Aucun joueur.</p>}
@@ -119,7 +121,7 @@ export default function ClubEffectif() {
           <input value={nomJ} onChange={(e) => setNomJ(e.target.value)} placeholder="à compléter" />
         </label>
         <label className="field">
-          Date de naissance
+          Date de naissance <span className="meta-line">(facultative pour l’ajout express)</span>
           <input type="date" value={dateJ} onChange={(e) => setDateJ(e.target.value)} />
         </label>
         <label className="field">

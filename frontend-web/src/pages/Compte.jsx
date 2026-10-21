@@ -6,6 +6,7 @@ import { clubName, useKivu } from "../context.jsx";
 import { stripDemo } from "../display.js";
 import { useTheme } from "../theme.jsx";
 import { porteDuRole } from "../portes.js";
+import { isClubRole } from "../roles.js";
 
 const THEMES = [
   { id: "light", label: "Clair" },
@@ -150,8 +151,7 @@ export default function Compte() {
     const adminPorte = role === "admin";
     const orga = role === "organisateur" || role === "admin";
     const collecte = role === "collecteur" || role === "admin";
-    const clubPorte = role === "club_manager";
-    const coachPorte = role === "coach";
+    const clubPorte = isClubRole(role);
     return (
       <section className="hero">
         <p className="kicker"><Link to="/">← Accueil</Link></p>
@@ -179,7 +179,7 @@ export default function Compte() {
             </div>
           )}
         </div>
-        {(adminPorte || orga || collecte || clubPorte || coachPorte) && (
+        {(adminPorte || orga || collecte || clubPorte) && (
           <div className="sheet" style={{ marginTop: "1.1rem" }}>
             {adminPorte && (
               <Link to="/admin" className="avenir-row">
@@ -198,12 +198,7 @@ export default function Compte() {
             )}
             {clubPorte && (
               <Link to="/club" className="avenir-row">
-                <span className="avenir-noms"><span>Gérer l’effectif</span></span>
-              </Link>
-            )}
-            {coachPorte && (
-              <Link to="/coach" className="avenir-row">
-                <span className="avenir-noms"><span>Gérer les compositions</span></span>
+                <span className="avenir-noms"><span>Ouvrir l’espace club</span></span>
               </Link>
             )}
           </div>

@@ -6,11 +6,10 @@ from sqlalchemy import delete as sql_delete, select
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.dependencies import get_current_user
-from app.auth.rbac import require_roles, verifier_organisateur_de_competition, verifier_organisateur_du_match
+from app.auth.rbac import CLUB_ROLES, isClubRole, require_roles, verifier_organisateur_de_competition, verifier_organisateur_du_match
 from app.config import settings
 from app.database import get_db
-from app.models.competition import Saison, SaisonClub
+from app.models.competition import Saison
 from app.models.enums import (
     ActionAudit,
     EquipeConcernee,
@@ -56,7 +55,7 @@ from app.models.staff import Staff
 from app.services.calcul_stats import appliquer_evenement_valide
 from app.services.reglements import get_reglement_actif, get_reglement_pour_match
 from app.services.validation import valider_match
-from app.services.possession import officialiser_possession, suspendre_possession, terminer_possession
+from app.services.possession import suspendre_possession, terminer_possession
 from app.services.composition_positions import positions_titulaires_valides, slots_formation
 
 router = APIRouter(prefix="/matchs", tags=["Matchs"])
@@ -157,22 +156,20 @@ async def eligibilite_match(
         require_roles(
             RoleUtilisateur.ADMIN,
             RoleUtilisateur.ORGANISATEUR,
-            RoleUtilisateur.CLUB_MANAGER,
-            RoleUtilisateur.COACH,
+            *CLUB_ROLES,
         )
     ),
 ):
     match_ = await db.get(Match, match_id)
     if match_ is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Match introuvable.")
+    if club_id not in (match_.equipe_domicile_id, match_.equipe_exterieur_id):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Cette équipe ne participe pas à ce match.")
     role = _value(current_user.role)
     if role in (RoleUtilisateur.ADMIN.value, RoleUtilisateur.ORGANISATEUR.value):
         await verifier_organisateur_du_match(match_id, current_user, db)
-    else:
-        if current_user.club_id != club_id:
-            raise HTTPException(status.HTTP_403_FORBIDDEN, "Vous ne gérez pas cette équipe.")
-        if club_id not in (match_.equipe_domicile_id, match_.equipe_exterieur_id):
-            raise HTTPException(status.HTTP_400_BAD_REQUEST, "Cette équipe ne participe pas à ce match.")
+    elif current_user.club_id != club_id:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Vous ne gérez pas cette équipe.")
     joueurs = (
         await db.execute(select(Joueur.id).where(Joueur.club_actuel_id == club_id))
     ).scalars().all()
@@ -189,14 +186,15 @@ async def eligibilite_joueur(
         require_roles(
             RoleUtilisateur.ADMIN,
             RoleUtilisateur.ORGANISATEUR,
-            RoleUtilisateur.CLUB_MANAGER,
-            RoleUtilisateur.COACH,
+            *CLUB_ROLES,
         )
     ),
 ):
     match_ = await db.get(Match, match_id)
     if match_ is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Match introuvable.")
+    if club_id not in (match_.equipe_domicile_id, match_.equipe_exterieur_id):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Cette équipe ne participe pas à ce match.")
     role = _value(current_user.role)
     if role in (RoleUtilisateur.ADMIN.value, RoleUtilisateur.ORGANISATEUR.value):
         await verifier_organisateur_du_match(match_id, current_user, db)
@@ -440,6 +438,9 @@ async def valider_match_route(
     current_user: User = Depends(require_roles(RoleUtilisateur.ADMIN, RoleUtilisateur.ORGANISATEUR)),
 ):
     match_ = await verifier_organisateur_du_match(match_id, current_user, db)
+    # Lock before the checklist so a concurrent composition cannot be
+    # accepted between the checklist read and the final validation.
+    match_ = await db.scalar(select(Match).where(Match.id == match_id).with_for_update())
     checklist = await run_checklist(db, match_)
     bloquants = bloquants_effectifs(checklist)
     if bloquants:
@@ -761,34 +762,74 @@ async def ajouter_participation(
     payload: ParticipationCreate,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(
-        require_roles(RoleUtilisateur.ADMIN, RoleUtilisateur.ORGANISATEUR, RoleUtilisateur.COACH)
+        require_roles(RoleUtilisateur.ADMIN, RoleUtilisateur.ORGANISATEUR, *CLUB_ROLES)
     ),
 ):
-    match_ = await db.get(Match, match_id)
+    """Legacy feuille endpoint kept for the current OrgaMatch frontend.
+
+    It is deliberately subject to the same pre-kickoff, club-scope and
+    eligibility rules as the composition endpoint, and every player change
+    is auditable. New code should prefer /composition.
+    """
+    match_ = await db.scalar(select(Match).where(Match.id == match_id).with_for_update())
     if match_ is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Match introuvable.")
+    statut_match = _value(match_.statut)
+    if match_.locked or statut_match != StatutMatch.PROGRAMME.value:
+        raise HTTPException(status.HTTP_409_CONFLICT, "La feuille n'est modifiable que pour un match programmé et non verrouillé.")
+    if payload.club_id not in (match_.equipe_domicile_id, match_.equipe_exterieur_id):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Cette équipe ne participe pas à ce match.")
+
     role = _value(current_user.role)
     if role in (RoleUtilisateur.ADMIN.value, RoleUtilisateur.ORGANISATEUR.value):
-        match_ = await verifier_organisateur_du_match(match_id, current_user, db)
-    else:
-        if current_user.club_id != payload.club_id:
-            raise HTTPException(status.HTTP_403_FORBIDDEN, "Vous ne gérez pas cette équipe.")
-        if payload.club_id not in (match_.equipe_domicile_id, match_.equipe_exterieur_id):
-            raise HTTPException(status.HTTP_400_BAD_REQUEST, "Cette équipe ne participe pas à ce match.")
-        equipe_attendue = (
-            EquipeConcernee.DOMICILE
-            if payload.club_id == match_.equipe_domicile_id
-            else EquipeConcernee.EXTERIEUR
+        await verifier_organisateur_du_match(match_id, current_user, db)
+    elif not isClubRole(current_user.role) or current_user.club_id != payload.club_id:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Vous ne gérez pas cette équipe.")
+
+    equipe_attendue = (
+        EquipeConcernee.DOMICILE
+        if payload.club_id == match_.equipe_domicile_id
+        else EquipeConcernee.EXTERIEUR
+    )
+    if _value(payload.equipe_concernee) != _value(equipe_attendue):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "L'équipe ne correspond pas au club sélectionné.")
+    joueur = await db.get(Joueur, payload.joueur_id)
+    if joueur is None or joueur.club_actuel_id != payload.club_id:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Le joueur n'appartient pas à cette équipe.")
+    eligibilite = await verifier_joueur(
+        db, match_, payload.joueur_id, payload.club_id, equipe=_value(payload.equipe_concernee)
+    )
+    if eligibilite.statut == "BLOQUANT":
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, eligibilite.message)
+
+    duplicate = await db.scalar(
+        select(MatchParticipation).where(
+            MatchParticipation.match_id == match_id,
+            MatchParticipation.joueur_id == payload.joueur_id,
+            MatchParticipation.equipe_concernee == _value(payload.equipe_concernee),
         )
-        if _value(payload.equipe_concernee) != _value(equipe_attendue):
-            raise HTTPException(status.HTTP_403_FORBIDDEN, "L'équipe ne correspond pas à votre club.")
-        joueur = await db.get(Joueur, payload.joueur_id)
-        if joueur is None or joueur.club_actuel_id != payload.club_id:
-            raise HTTPException(status.HTTP_403_FORBIDDEN, "Le joueur n'appartient pas à votre équipe.")
-    if match_.locked:
-        raise HTTPException(status.HTTP_403_FORBIDDEN, "Ce match est verrouillé.")
+    )
+    if duplicate is not None:
+        raise HTTPException(status.HTTP_409_CONFLICT, "Ce joueur figure déjà dans la feuille de match.")
     participation = MatchParticipation(match_id=match_id, **payload.model_dump())
     db.add(participation)
+    await db.flush()
+    await log_audit(
+        db,
+        "match_compositions",
+        participation.id,
+        ActionAudit.INSERT,
+        current_user.id,
+        None,
+        {
+            "match_id": match_id,
+            "equipe": _value(payload.equipe_concernee),
+            "joueur_id": joueur.id,
+            "poste": _value(joueur.poste),
+            "statut": _value(payload.statut),
+            "numero": None,
+        },
+    )
     await db.commit()
     await db.refresh(participation)
     return participation
@@ -801,36 +842,119 @@ async def modifier_participation(
     payload: ParticipationUpdate,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(
-        require_roles(RoleUtilisateur.ADMIN, RoleUtilisateur.ORGANISATEUR, RoleUtilisateur.COACH)
+        require_roles(RoleUtilisateur.ADMIN, RoleUtilisateur.ORGANISATEUR, *CLUB_ROLES)
     ),
 ):
+    match_ = await db.scalar(select(Match).where(Match.id == match_id).with_for_update())
+    if match_ is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Match introuvable.")
     participation = await db.scalar(
-        select(MatchParticipation).where(
+        select(MatchParticipation)
+        .where(
             MatchParticipation.id == participation_id,
             MatchParticipation.match_id == match_id,
         )
+        .with_for_update()
     )
     if participation is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Participation introuvable.")
-    match_ = await db.get(Match, match_id)
-    if match_ is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Match introuvable.")
+    if match_.locked or _value(match_.statut) != StatutMatch.PROGRAMME.value:
+        raise HTTPException(status.HTTP_409_CONFLICT, "La feuille n'est modifiable que pour un match programmé et non verrouillé.")
+    if participation.club_id not in (match_.equipe_domicile_id, match_.equipe_exterieur_id):
+        raise HTTPException(status.HTTP_409_CONFLICT, "La participation n'est pas rattachée à une équipe de ce match.")
     role = _value(current_user.role)
     if role in (RoleUtilisateur.ADMIN.value, RoleUtilisateur.ORGANISATEUR.value):
         await verifier_organisateur_du_match(match_id, current_user, db)
-    elif current_user.club_id != participation.club_id:
+    elif not isClubRole(current_user.role) or current_user.club_id != participation.club_id:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Vous ne gérez pas cette équipe.")
-    if match_.locked:
-        raise HTTPException(status.HTTP_403_FORBIDDEN, "Ce match est verrouillé.")
+    joueur = await db.get(Joueur, participation.joueur_id)
+    if joueur is None:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Le joueur de cette participation est introuvable.")
+    eligibilite = await verifier_joueur(
+        db, match_, participation.joueur_id, participation.club_id,
+        equipe=_value(participation.equipe_concernee),
+    )
+    if eligibilite.statut == "BLOQUANT":
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, eligibilite.message)
+    avant = {
+        "joueur_id": participation.joueur_id,
+        "poste": _value(joueur.poste),
+        "statut": _value(participation.statut),
+        "numero": participation.numero,
+    }
     participation.statut = payload.statut
+    apres = {**avant, "statut": _value(payload.statut)}
+    await log_audit(db, "match_compositions", participation.id, ActionAudit.UPDATE, current_user.id, avant, apres)
     await db.commit()
     await db.refresh(participation)
     return participation
 
 
+@router.delete("/{match_id}/participations/{participation_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def retirer_participation(
+    match_id: int,
+    participation_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(
+        require_roles(RoleUtilisateur.ADMIN, RoleUtilisateur.ORGANISATEUR, *CLUB_ROLES)
+    ),
+):
+    match_ = await db.scalar(select(Match).where(Match.id == match_id).with_for_update())
+    if match_ is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Match introuvable.")
+    participation = await db.scalar(
+        select(MatchParticipation)
+        .where(
+            MatchParticipation.id == participation_id,
+            MatchParticipation.match_id == match_id,
+        )
+        .with_for_update()
+    )
+    if participation is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Participation introuvable.")
+    if match_.locked or _value(match_.statut) != StatutMatch.PROGRAMME.value:
+        raise HTTPException(status.HTTP_409_CONFLICT, "La feuille n'est modifiable que pour un match programmé et non verrouillé.")
+    role = _value(current_user.role)
+    if role in (RoleUtilisateur.ADMIN.value, RoleUtilisateur.ORGANISATEUR.value):
+        await verifier_organisateur_du_match(match_id, current_user, db)
+    elif not isClubRole(current_user.role) or current_user.club_id != participation.club_id:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Vous ne gérez pas cette équipe.")
+    joueur = await db.get(Joueur, participation.joueur_id)
+    avant = {
+        "joueur_id": participation.joueur_id,
+        "poste": _value(joueur.poste) if joueur else None,
+        "statut": _value(participation.statut),
+        "numero": participation.numero,
+    }
+    await log_audit(db, "match_compositions", participation.id, ActionAudit.DELETE, current_user.id, avant, None)
+    await db.delete(participation)
+    await db.commit()
+    return None
+
+
 @router.get("/{match_id}/participations", response_model=list[ParticipationOut])
-async def lister_participations(match_id: int, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(MatchParticipation).where(MatchParticipation.match_id == match_id))
+async def lister_participations(
+    match_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(
+        require_roles(RoleUtilisateur.ADMIN, RoleUtilisateur.ORGANISATEUR, *CLUB_ROLES)
+    ),
+):
+    match_ = await db.get(Match, match_id)
+    if match_ is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Match introuvable.")
+    role = _value(current_user.role)
+    query = select(MatchParticipation).where(MatchParticipation.match_id == match_id)
+    if role in (RoleUtilisateur.ADMIN.value, RoleUtilisateur.ORGANISATEUR.value):
+        await verifier_organisateur_du_match(match_id, current_user, db)
+    else:
+        if not isClubRole(current_user.role) or current_user.club_id not in (
+            match_.equipe_domicile_id,
+            match_.equipe_exterieur_id,
+        ):
+            raise HTTPException(status.HTTP_403_FORBIDDEN, "Vous ne gérez aucune équipe de ce match.")
+        query = query.where(MatchParticipation.club_id == current_user.club_id)
+    result = await db.execute(query.order_by(MatchParticipation.id))
     return result.scalars().all()
 
 
@@ -1054,22 +1178,25 @@ async def enregistrer_composition(
         require_roles(
             RoleUtilisateur.ADMIN,
             RoleUtilisateur.ORGANISATEUR,
-            RoleUtilisateur.CLUB_MANAGER,
-            RoleUtilisateur.COACH,
+            *CLUB_ROLES,
         )
     ),
 ):
-    match_ = await db.get(Match, match_id)
+    # Lock the match before reading or changing its team sheet. Two club
+    # sessions cannot both pass validation and overwrite one another.
+    match_ = await db.scalar(select(Match).where(Match.id == match_id).with_for_update())
     if not match_:
         raise HTTPException(status_code=404, detail="Match introuvable.")
-    if match_.locked or getattr(match_.statut, "value", match_.statut) in ("en_cours", "termine", "valide"):
+    if not isClubRole(current_user.role):
+        await verifier_organisateur_du_match(match_id, current_user, db)
+    statut_match = _value(match_.statut)
+    if match_.locked or statut_match != StatutMatch.PROGRAMME.value:
         raise HTTPException(status_code=400, detail="Match verrouillé : composition non modifiable.")
     equipe = getattr(payload.equipe, "value", payload.equipe)
     club_id = match_.equipe_domicile_id if equipe == "domicile" else match_.equipe_exterieur_id
     if club_id is None:
         raise HTTPException(status_code=400, detail="Équipe non définie pour ce match.")
-    role = getattr(current_user.role, "value", current_user.role)
-    if role in ("club_manager", "coach") and current_user.club_id != club_id:
+    if isClubRole(current_user.role) and current_user.club_id != club_id:
         raise HTTPException(status_code=403, detail="Vous ne gérez pas cette équipe.")
     saison = await db.get(Saison, match_.saison_id)
     compo = await db.get(Competition, saison.competition_id) if saison else None
@@ -1111,7 +1238,8 @@ async def enregistrer_composition(
         st = await db.get(Staff, payload.staff_id)
         if not st or st.club_id != club_id:
             raise HTTPException(status_code=400, detail="Entraîneur hors de ce club.")
-    ids_voulus = set()
+    ids_voulus: set[int] = set()
+    joueurs_valides: dict[int, Joueur] = {}
     for ligne in payload.joueurs:
         j = await db.get(Joueur, ligne.joueur_id)
         if not j or j.club_actuel_id != club_id:
@@ -1120,6 +1248,7 @@ async def enregistrer_composition(
         if eligibilite.statut == "BLOQUANT":
             raise HTTPException(status_code=400, detail=eligibilite.message)
         ids_voulus.add(ligne.joueur_id)
+        joueurs_valides[ligne.joueur_id] = j
     avant = {
         "formation": match_.formation_domicile if equipe == "domicile" else match_.formation_exterieur,
         "staff_id": match_.staff_domicile_id if equipe == "domicile" else match_.staff_exterieur_id,
@@ -1129,15 +1258,35 @@ async def enregistrer_composition(
             select(MatchParticipation)
             .where(MatchParticipation.match_id == match_.id)
             .where(MatchParticipation.equipe_concernee == equipe)
+            .with_for_update()
         )
     ).scalars().all()
-    par_joueur = {p.joueur_id: p for p in existantes}
+    anciens_joueurs = (
+        await db.execute(select(Joueur).where(Joueur.id.in_([part.joueur_id for part in existantes])))
+    ).scalars().all() if existantes else []
+    joueurs_par_id = {joueur.id: joueur for joueur in anciens_joueurs}
+    joueurs_par_id.update(joueurs_valides)
+    ancienne_par_joueur = {
+        part.joueur_id: {
+            "match_id": match_.id,
+            "equipe": equipe,
+            "joueur_id": part.joueur_id,
+            "poste": _value(joueurs_par_id[part.joueur_id].poste)
+            if part.joueur_id in joueurs_par_id
+            else None,
+            "statut": _value(part.statut),
+            "numero": part.numero,
+            "ligne_index": part.ligne_index,
+            "position_index": part.position_index,
+        }
+        for part in existantes
+    }
     for part in existantes:
         if part.joueur_id not in ids_voulus:
             await db.delete(part)
     for ligne in payload.joueurs:
         stat = getattr(ligne.statut, "value", ligne.statut)
-        part = par_joueur.get(ligne.joueur_id)
+        part = next((p for p in existantes if p.joueur_id == ligne.joueur_id), None)
         if part:
             part.statut = stat
             # Une valeur NULL signifie explicitement « numéro non renseigné ».
@@ -1147,19 +1296,55 @@ async def enregistrer_composition(
             part.ligne_index = ligne.ligne_index
             part.position_index = ligne.position_index
         else:
-            db.add(
-                MatchParticipation(
-                    match_id=match_.id,
-                    joueur_id=ligne.joueur_id,
-                    club_id=club_id,
-                    equipe_concernee=equipe,
-                    statut=stat,
-                    minute_entree=0,
-                    numero=ligne.numero,
-                    ligne_index=ligne.ligne_index,
-                    position_index=ligne.position_index,
-                )
+            part = MatchParticipation(
+                match_id=match_.id,
+                joueur_id=ligne.joueur_id,
+                club_id=club_id,
+                equipe_concernee=equipe,
+                statut=stat,
+                minute_entree=0,
+                numero=ligne.numero,
+                ligne_index=ligne.ligne_index,
+                position_index=ligne.position_index,
             )
+            db.add(part)
+            existantes.append(part)
+    await db.flush()
+    # One append-only audit row per player, including the effective user id
+    # through log_audit: added, removed, and all composition attributes.
+    for joueur_id, ancien in ancienne_par_joueur.items():
+        if joueur_id not in ids_voulus:
+            await log_audit(
+                db,
+                "match_compositions",
+                next(p.id for p in existantes if p.joueur_id == joueur_id),
+                ActionAudit.DELETE,
+                current_user.id,
+                ancien,
+                None,
+            )
+    for ligne in payload.joueurs:
+        part = next(p for p in existantes if p.joueur_id == ligne.joueur_id)
+        joueur = joueurs_valides[ligne.joueur_id]
+        nouveau = {
+            "match_id": match_.id,
+            "equipe": equipe,
+            "joueur_id": joueur.id,
+            "poste": _value(joueur.poste),
+            "statut": _value(ligne.statut),
+            "numero": ligne.numero,
+            "ligne_index": ligne.ligne_index,
+            "position_index": ligne.position_index,
+        }
+        await log_audit(
+            db,
+            "match_compositions",
+            part.id,
+            ActionAudit.INSERT if ligne.joueur_id not in ancienne_par_joueur else ActionAudit.UPDATE,
+            current_user.id,
+            ancienne_par_joueur.get(ligne.joueur_id),
+            nouveau,
+        )
     if equipe == "domicile":
         match_.formation_domicile = payload.formation
         match_.staff_domicile_id = payload.staff_id

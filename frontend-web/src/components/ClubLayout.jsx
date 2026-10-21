@@ -32,6 +32,8 @@ export default function ClubLayout() {
         <NavLink to="/club" end>Club</NavLink>
         <NavLink to="/club/effectif">Effectif</NavLink>
         <NavLink to="/club/matchs">Matchs</NavLink>
+        <NavLink to="/club/composition">Composition</NavLink>
+        <NavLink to="/club/staff">Staff</NavLink>
       </nav>
       <div className="shell">
         <Outlet />

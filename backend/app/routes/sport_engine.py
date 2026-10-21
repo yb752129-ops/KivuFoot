@@ -4,12 +4,13 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.rbac import require_roles, verifier_organisateur_de_competition, verifier_organisateur_du_match
+from app.auth.rbac import CLUB_ROLES, isClubRole, require_roles, verifier_organisateur_de_competition, verifier_organisateur_du_match, verifier_scope_club
 from app.database import get_db
 from app.models.competition import Saison
 from app.models.enums import ActionAudit, RoleUtilisateur, StatutMatch, StatutValidationEvenement, TypeEvenement
 from app.models.evenement import EvenementMatch
 from app.models.match import Match
+from app.models.joueur import Joueur
 from app.models.sport_engine import AnomalieHistorique, DecisionSportive, SanctionDisciplinaire
 from app.models.user import User
 from app.schemas.sport_engine import (
@@ -37,10 +38,20 @@ async def discipline_joueur(
     saison_id: int,
     match_id: int,
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(
+        require_roles(RoleUtilisateur.ADMIN, RoleUtilisateur.ORGANISATEUR, *CLUB_ROLES)
+    ),
 ):
     match = await db.get(Match, match_id)
-    if match is None or match.saison_id != saison_id:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Match ou saison introuvable.")
+    joueur = await db.get(Joueur, joueur_id)
+    if match is None or match.saison_id != saison_id or joueur is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Match, saison ou joueur introuvable.")
+    if current_user.role in (RoleUtilisateur.ADMIN, RoleUtilisateur.ORGANISATEUR):
+        await verifier_organisateur_du_match(match_id, current_user, db)
+    else:
+        verifier_scope_club(current_user, joueur.club_actuel_id or -1)
+        if joueur.club_actuel_id not in (match.equipe_domicile_id, match.equipe_exterieur_id):
+            raise HTTPException(status.HTTP_403_FORBIDDEN, "Ce joueur ne participe pas à ce match.")
     reglement = await get_reglement_pour_match(db, match, allow_active_for_new=True)
     return await get_discipline_summary(db, joueur_id, match, reglement)
 
@@ -50,7 +61,7 @@ async def discipline_match(
     match_id: int,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(
-        require_roles(RoleUtilisateur.ADMIN, RoleUtilisateur.ORGANISATEUR, RoleUtilisateur.CLUB_MANAGER, RoleUtilisateur.COACH)
+        require_roles(RoleUtilisateur.ADMIN, RoleUtilisateur.ORGANISATEUR, *CLUB_ROLES)
     ),
 ):
     match = await db.get(Match, match_id)
@@ -60,19 +71,22 @@ async def discipline_match(
         await verifier_organisateur_du_match(match_id, current_user, db)
     elif current_user.club_id not in (match.equipe_domicile_id, match.equipe_exterieur_id):
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Vous ne gérez pas une équipe de ce match.")
-    event_rows = (
-        await db.execute(
-            select(EvenementMatch.joueur_id)
-            .where(
-                EvenementMatch.match_id == match_id,
-                EvenementMatch.joueur_id.is_not(None),
-                EvenementMatch.type.in_([TypeEvenement.CARTON_JAUNE, TypeEvenement.CARTON_ROUGE]),
-                EvenementMatch.statut_validation == StatutValidationEvenement.VALIDE,
-                EvenementMatch.refuse.is_(False),
-            )
-            .distinct()
+    event_query = (
+        select(EvenementMatch.joueur_id)
+        .where(
+            EvenementMatch.match_id == match_id,
+            EvenementMatch.joueur_id.is_not(None),
+            EvenementMatch.type.in_([TypeEvenement.CARTON_JAUNE, TypeEvenement.CARTON_ROUGE]),
+            EvenementMatch.statut_validation == StatutValidationEvenement.VALIDE,
+            EvenementMatch.refuse.is_(False),
         )
-    ).scalars().all()
+        .distinct()
+    )
+    if isClubRole(current_user.role):
+        event_query = event_query.join(Joueur, Joueur.id == EvenementMatch.joueur_id).where(
+            Joueur.club_actuel_id == current_user.club_id
+        )
+    event_rows = (await db.execute(event_query)).scalars().all()
     reglement = await get_reglement_pour_match(db, match, allow_active_for_new=True)
     return [await get_discipline_summary(db, joueur_id, match, reglement) for joueur_id in event_rows]
 

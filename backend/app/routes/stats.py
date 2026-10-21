@@ -3,7 +3,7 @@ from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.auth.rbac import require_roles
+from app.auth.rbac import CLUB_ROLES, isClubRole, require_roles
 from app.database import get_db
 from app.models.actualite import HommeMatch
 from app.models.club import Club
@@ -567,10 +567,16 @@ async def stats_joueur(
     saison_id: int,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(
-        require_roles(RoleUtilisateur.ADMIN, RoleUtilisateur.ORGANISATEUR, RoleUtilisateur.CLUB_MANAGER)
+        require_roles(RoleUtilisateur.ADMIN, RoleUtilisateur.ORGANISATEUR, *CLUB_ROLES)
     ),
 ):
-    """Réservé (§11.8) : stats détaillées, potentiellement sensibles pour un mineur (§7.4)."""
+    """Protected detailed stats; a club portal account sees its club only."""
+    joueur = await db.get(Joueur, joueur_id)
+    if joueur is None or joueur.anonymise or joueur.fusionne:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Joueur introuvable.")
+    if isClubRole(current_user.role):
+        if current_user.club_id != joueur.club_actuel_id:
+            raise HTTPException(status.HTTP_403_FORBIDDEN, "Vous ne gérez pas ce joueur.")
     result = await db.execute(
         select(StatistiqueJoueur).where(
             StatistiqueJoueur.joueur_id == joueur_id, StatistiqueJoueur.saison_id == saison_id

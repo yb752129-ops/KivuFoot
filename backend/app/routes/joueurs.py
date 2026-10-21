@@ -4,8 +4,7 @@ from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.dependencies import get_current_user
-from app.auth.rbac import require_roles, verifier_scope_club
+from app.auth.rbac import CLUB_ROLES, isClubRole, require_roles, verifier_scope_club
 from app.database import get_db
 from app.models.club import Club
 from app.models.enums import ActionAudit, PosteJoueur, RoleUtilisateur, StatutPhoto, StatutVerificationJoueur
@@ -63,7 +62,7 @@ async def lister_joueurs(
 async def lister_propositions(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(
-        require_roles(RoleUtilisateur.ADMIN, RoleUtilisateur.ORGANISATEUR, RoleUtilisateur.CLUB_MANAGER)
+        require_roles(RoleUtilisateur.ADMIN, RoleUtilisateur.ORGANISATEUR, *CLUB_ROLES)
     ),
     joueur_id: int | None = None,
     statut: str | None = "en_attente",
@@ -73,7 +72,7 @@ async def lister_propositions(
         query = query.where(JoueurModificationProposee.joueur_id == joueur_id)
     if statut:
         query = query.where(JoueurModificationProposee.statut == statut)
-    if current_user.role == RoleUtilisateur.CLUB_MANAGER:
+    if isClubRole(current_user.role):
         if not current_user.club_id:
             return []
         query = query.join(Joueur, Joueur.id == JoueurModificationProposee.joueur_id).where(
@@ -125,14 +124,14 @@ async def proposer_photo_joueur(
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(
-        require_roles(RoleUtilisateur.CLUB_MANAGER, RoleUtilisateur.COACH, RoleUtilisateur.ADMIN)
+        require_roles(*CLUB_ROLES, RoleUtilisateur.ADMIN)
     ),
 ):
     """Le club propose une photo : elle entre EN_ATTENTE, rien ne change côté public."""
     joueur = await db.get(Joueur, joueur_id)
     if joueur is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Joueur introuvable.")
-    if current_user.role in (RoleUtilisateur.CLUB_MANAGER, RoleUtilisateur.COACH):
+    if isClubRole(current_user.role):
         verifier_scope_club(current_user, joueur.club_actuel_id or -1)
     data = await file.read()
     rang = await db.execute(
@@ -267,7 +266,7 @@ async def detail_prive_joueur(
     joueur_id: int,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(
-        require_roles(RoleUtilisateur.ADMIN, RoleUtilisateur.ORGANISATEUR, RoleUtilisateur.CLUB_MANAGER)
+        require_roles(RoleUtilisateur.ADMIN, RoleUtilisateur.ORGANISATEUR, *CLUB_ROLES)
     ),
 ):
     """Vue réservée au staff : inclut téléphone/email (§9.3 : endpoints protégés)."""
@@ -277,7 +276,7 @@ async def detail_prive_joueur(
     joueur = result.scalars().first()
     if joueur is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Joueur introuvable.")
-    if current_user.role == RoleUtilisateur.CLUB_MANAGER:
+    if isClubRole(current_user.role):
         verifier_scope_club(current_user, joueur.club_actuel_id or -1)
     return joueur
 
@@ -288,13 +287,13 @@ async def modifier_joueur_direct(
     payload: JoueurUpdate,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(
-        require_roles(RoleUtilisateur.ADMIN, RoleUtilisateur.ORGANISATEUR, RoleUtilisateur.CLUB_MANAGER)
+        require_roles(RoleUtilisateur.ADMIN, RoleUtilisateur.ORGANISATEUR, *CLUB_ROLES)
     ),
 ):
     joueur = await db.get(Joueur, joueur_id)
     if joueur is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Joueur introuvable.")
-    if current_user.role == RoleUtilisateur.CLUB_MANAGER:
+    if isClubRole(current_user.role):
         verifier_scope_club(current_user, joueur.club_actuel_id or -1)
     data = payload.model_dump(exclude_unset=True)
     avant = {k: getattr(joueur, k) for k in data}
@@ -314,30 +313,36 @@ async def creer_joueur(
         require_roles(
             RoleUtilisateur.ADMIN,
             RoleUtilisateur.ORGANISATEUR,
-            RoleUtilisateur.CLUB_MANAGER,
+            *CLUB_ROLES,
             RoleUtilisateur.COLLECTEUR,
         )
     ),
 ):
-    if current_user.role == RoleUtilisateur.CLUB_MANAGER:
+    if isClubRole(current_user.role):
         if not current_user.club_id:
             raise HTTPException(status.HTTP_400_BAD_REQUEST, "Aucun club rattaché à ce compte.")
         payload = payload.model_copy(update={"club_actuel_id": current_user.club_id})
         verifier_scope_club(current_user, payload.club_actuel_id)
 
-    # §7.4 : mineur -> autorisation parentale requise avant toute création publique.
+    # §7.4 : mineur -> autorisation parentale requise avant toute création
+    # lorsque la date est connue. En live, le club peut enregistrer un
+    # buteur sans date : l'identité reste explicitement à compléter.
     from datetime import date
-    age = date.today().year - payload.date_naissance.year
-    if age < 18 and payload.autorisation_parentale is not True:
-        raise HTTPException(
-            status.HTTP_400_BAD_REQUEST,
-            "Un joueur mineur ne peut être créé sans autorisation_parentale=true.",
-        )
+    if payload.date_naissance is not None:
+        age = date.today().year - payload.date_naissance.year
+        if age < 18 and payload.autorisation_parentale is not True:
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                "Un joueur mineur ne peut être créé sans autorisation_parentale=true.",
+            )
 
     doublons = await rechercher_doublons(db, payload.nom_complet, payload.date_naissance, payload.poste)
-    statut_verif = (
-        StatutVerificationJoueur.DOUBLON_SUSPECTE if doublons else StatutVerificationJoueur.VERIFIE
-    )
+    if payload.date_naissance is None:
+        statut_verif = StatutVerificationJoueur.EN_ATTENTE_VERIFICATION
+    else:
+        statut_verif = (
+            StatutVerificationJoueur.DOUBLON_SUSPECTE if doublons else StatutVerificationJoueur.VERIFIE
+        )
 
     joueur = Joueur(**payload.model_dump(), statut_verification=statut_verif)
     db.add(joueur)
@@ -356,7 +361,7 @@ async def detecter_doublon(
         require_roles(
             RoleUtilisateur.ADMIN,
             RoleUtilisateur.ORGANISATEUR,
-            RoleUtilisateur.CLUB_MANAGER,
+            *CLUB_ROLES,
             RoleUtilisateur.COLLECTEUR,
         )
     ),
@@ -388,7 +393,7 @@ async def proposer_modification(
     joueur_id: int,
     payload: ModificationProposeeCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles(RoleUtilisateur.CLUB_MANAGER, RoleUtilisateur.ADMIN)),
+    current_user: User = Depends(require_roles(*CLUB_ROLES, RoleUtilisateur.ADMIN)),
 ):
     """
     Workflow validé en Phase 0 (décision C1) : les champs sensibles
@@ -400,7 +405,7 @@ async def proposer_modification(
     joueur = await db.get(Joueur, joueur_id)
     if joueur is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Joueur introuvable.")
-    if current_user.role == RoleUtilisateur.CLUB_MANAGER:
+    if isClubRole(current_user.role):
         verifier_scope_club(current_user, joueur.club_actuel_id or -1)
     if payload.champ not in CHAMPS_SENSIBLES:
         raise HTTPException(

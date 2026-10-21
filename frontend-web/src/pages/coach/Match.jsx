@@ -6,7 +6,7 @@ import { clubName, useKivu } from "../../context.jsx";
 import { stripDemo } from "../../display.js";
 import { fmtQuand, STATUT_MATCH } from "../orga/saison.js";
 
-export default function CoachMatch() {
+export default function CoachMatch({ basePath = "/club" }) {
   const { id } = useParams();
   const { user } = useAuth();
   const { clubsById } = useKivu();
@@ -34,7 +34,7 @@ export default function CoachMatch() {
 
   return (
     <section className="hero">
-      <p className="kicker"><Link to="/coach/matchs">← Matchs</Link></p>
+      <p className="kicker"><Link to={`${basePath}/matchs`}>← Matchs</Link></p>
       <h1>{home} · {away}</h1>
       <p className="lead">
         {[STATUT_MATCH[match.statut] || match.statut, fmtQuand(match.date_heure)].filter(Boolean).join(" · ")}
@@ -54,7 +54,7 @@ export default function CoachMatch() {
                 : "Pas encore de feuille"}
             </span>
           </span>
-          <Link className="btn btn-primary" to={`/coach/matchs/${id}/composition`}>
+          <Link className="btn btn-primary" to={`${basePath}/matchs/${id}/composition`}>
             {verrouille ? "Voir la feuille" : "Composition"}
           </Link>
         </div>

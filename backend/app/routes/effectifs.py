@@ -4,14 +4,13 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.rbac import require_roles, verifier_organisateur_du_match, verifier_organisateur_de_competition, verifier_scope_club
+from app.auth.rbac import CLUB_ROLES, require_roles, verifier_organisateur_du_match, verifier_organisateur_de_competition
 from app.database import get_db
 from app.models.club import Club
 from app.models.competition import Saison, SaisonClub
 from app.models.effectif import EffectifClub
 from app.models.enums import ActionAudit, RoleUtilisateur, StatutEffectif, StatutJoueur
 from app.models.joueur import Joueur
-from app.models.match import Match
 from app.models.sport_engine import EffectifVersion, EffectifVersionJoueur
 from app.models.user import User
 from app.schemas.effectif import ControleEffectifMatchOut, EffectifClubOut, EffectifRetour
@@ -20,7 +19,7 @@ from app.services.effectifs import ligne_effectif, resume_effectif
 
 router = APIRouter(prefix="/effectifs", tags=["Effectifs"])
 
-ROLES_CLUB = (RoleUtilisateur.CLUB_MANAGER, RoleUtilisateur.COACH)
+ROLES_CLUB = CLUB_ROLES
 ROLES_ORGANISATEUR = (RoleUtilisateur.ADMIN, RoleUtilisateur.ORGANISATEUR)
 
 

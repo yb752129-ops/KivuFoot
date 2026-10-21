@@ -328,7 +328,7 @@ export const api = {
   checklistValidation: (matchId) => request(`/matchs/${matchId}/checklist-validation`, { auth: true }),
   eligibiliteMatch: (matchId, clubId) => request(`/matchs/${matchId}/eligibilite?club_id=${clubId}`, { auth: true }),
   eligibiliteJoueur: (matchId, joueurId, clubId) => request(`/matchs/${matchId}/eligibilite/${joueurId}?club_id=${clubId}`, { auth: true }),
-  disciplineJoueur: (joueurId, saisonId, matchId) => request(`/discipline/joueurs/${joueurId}?saison_id=${saisonId}&match_id=${matchId}`),
+  disciplineJoueur: (joueurId, saisonId, matchId) => request(`/discipline/joueurs/${joueurId}?saison_id=${saisonId}&match_id=${matchId}`, { auth: true }),
   disciplineMatch: (matchId) => request(`/discipline/matchs/${matchId}`, { auth: true }),
   anomaliesHistoriques: (saisonId, statut = "") => request(`/anomalies-historiques?saison_id=${saisonId}${statut ? `&statut_anomalie=${encodeURIComponent(statut)}` : ""}`, { auth: true }),
   scannerAnomalies: (saisonId) => request(`/anomalies-historiques/scan?saison_id=${saisonId}`, { method: "POST", auth: true }),
@@ -336,9 +336,9 @@ export const api = {
   timelineSaison: (saisonId) => request(`/saisons/${saisonId}/timeline`),
   historiquePublic: (saisonId) => request(`/historique-public?saison_id=${saisonId}`),
   records: (saisonId) => request(`/records?saison_id=${saisonId}`),
-  documentsMatch: (matchId) => request(`/documents/matchs/${matchId}`),
+  documentsMatch: (matchId) => request(`/documents/matchs/${matchId}`, { auth: true }),
   genererDocumentMatch: (matchId) => request(`/documents/matchs/${matchId}/generer`, { method: "POST", auth: true }),
-  documentsJoueur: (joueurId, saisonId) => request(`/documents/joueurs/${joueurId}${saisonId ? `?saison_id=${saisonId}` : ""}`),
+  documentsJoueur: (joueurId, saisonId) => request(`/documents/joueurs/${joueurId}${saisonId ? `?saison_id=${saisonId}` : ""}`, { auth: true }),
   login: (email, mot_de_passe) => request("/auth/login", { method: "POST", body: { email, mot_de_passe } }),
   register: (nom_complet, email, mot_de_passe) =>
     request("/auth/register", { method: "POST", body: { nom_complet, email, mot_de_passe } }),
@@ -370,7 +370,7 @@ export const api = {
   modifierProgrammation: (id, payload) =>
     request(`/matchs/${id}/programmation`, { method: "PUT", body: payload, auth: true }),
   supprimerMatch: (id) => request(`/matchs/${id}`, { method: "DELETE", auth: true }),
-  staffClub: (clubId) => request(`/clubs/${clubId}/staff`),
+  staffClub: (clubId) => request(`/clubs/${clubId}/staff`, { auth: true }),
   creerStaff: (clubId, payload) => request(`/clubs/${clubId}/staff`, { method: "POST", body: payload, auth: true }),
   modifierStaff: (staffId, payload) => request(`/clubs/staff/${staffId}`, { method: "PATCH", body: payload, auth: true }),
   retirerStaff: (staffId) => request(`/clubs/staff/${staffId}`, { method: "DELETE", auth: true }),
@@ -400,7 +400,7 @@ export const api = {
     request(`/matchs/${id}/periode?periode=${encodeURIComponent(periode)}`, { method: "PUT", auth: true }),
   forfait: (id, equipe) =>
     request(`/matchs/${id}/forfait?equipe_forfait=${encodeURIComponent(equipe)}`, { method: "POST", auth: true }),
-  participations: (id) => request(`/matchs/${id}/participations`),
+  participations: (id) => request(`/matchs/${id}/participations`, { auth: true }),
   ajouterParticipation: (id, payload) =>
     request(`/matchs/${id}/participations`, { method: "POST", body: payload, auth: true }),
   modifierParticipation: (id, pid, payload) =>
@@ -419,6 +419,8 @@ export const api = {
     request(`/admin/utilisateurs/${id}/reinitialiser`, { method: "POST", auth: true }),
   modifierUtilisateur: (id, payload) =>
     request(`/admin/utilisateurs/${id}`, { method: "PATCH", body: payload, auth: true }),
+  revoquerActivationUtilisateur: (id) =>
+    request(`/admin/utilisateurs/${id}/revoquer-activation`, { method: "POST", auth: true }),
   activerCompte: (email, jeton, mot_de_passe) =>
     request("/auth/activation", { method: "POST", body: { email, jeton, mot_de_passe } }),
   changerMotDePasse: (mot_de_passe_actuel, nouveau_mot_de_passe) =>

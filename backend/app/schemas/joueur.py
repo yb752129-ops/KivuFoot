@@ -25,7 +25,7 @@ class JoueurDetailOut(BaseModel):
 
     id: int
     nom_complet: str
-    date_naissance: date
+    date_naissance: date | None
     poste: PosteJoueur | None
     club_actuel_id: int | None
     telephone: str | None
@@ -43,7 +43,9 @@ class JoueurStatutUpdate(BaseModel):
 
 class JoueurCreate(BaseModel):
     nom_complet: str
-    date_naissance: date
+    # Optional for live-match express registration; complete it before the
+    # player's identity is considered complete.
+    date_naissance: date | None = None
     poste: PosteJoueur | None = None
     club_actuel_id: int | None = None
     telephone: str | None = None
@@ -53,8 +55,8 @@ class JoueurCreate(BaseModel):
 
     @field_validator("date_naissance")
     @classmethod
-    def date_naissance_passee(cls, v: date) -> date:
-        if v >= date.today():
+    def date_naissance_passee(cls, v: date | None) -> date | None:
+        if v is not None and v >= date.today():
             raise ValueError("La date de naissance doit être dans le passé.")
         return v
 

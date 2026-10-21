@@ -103,6 +103,13 @@ async def verifier_joueur(
             else:
                 sources.append({"type": "effectif", "id": effectif.id, "version": effectif.version})
 
+    if joueur.date_naissance is None and statut == "OK":
+        statut, code, message = (
+            "ATTENTION",
+            "identite_incomplete",
+            "⚠️ Date de naissance à compléter pour finaliser l'identité du joueur.",
+        )
+
     discipline = await get_discipline_summary(db, joueur_id, match, reglement)
     sources.extend(discipline.get("sources", []))
     if discipline["statut"] == "BLOQUANT":

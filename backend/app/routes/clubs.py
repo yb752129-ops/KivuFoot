@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
-from sqlalchemy import or_, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.rbac import require_roles, verifier_scope_club
+from app.auth.rbac import CLUB_ROLES, isClubRole, require_roles, verifier_scope_club
 from app.database import get_db
 from app.models.club import Club
 from app.models.enums import ActionAudit, RoleUtilisateur
@@ -13,7 +13,6 @@ from app.services.audit import log_audit
 from app.services.stockage_logo import DepotRefus, supprimer_objet, uploader_logo
 from app.services.stockage_photo import DepotRefus as PhotoDepotRefus, uploader_photo
 
-from sqlalchemy import func, select
 from app.models.photo import Photo, StatutPhoto
 from app.schemas.photo import PhotoOut
 from app.models.staff import Staff
@@ -30,7 +29,7 @@ async def _coach_noms(db: AsyncSession, club_ids: list[int]) -> dict[int, str]:
         return {}
     result = await db.execute(
         select(User.club_id, User.nom_complet).where(
-            User.role == RoleUtilisateur.COACH,
+            User.role.in_(CLUB_ROLES),
             User.est_actif.is_(True),
             User.club_id.in_(ids),
             User.nom_complet.is_not(None),
@@ -149,7 +148,15 @@ async def depot_logo(
 
 
 @router.get("/{club_id}/staff", response_model=list[StaffOut])
-async def lister_staff(club_id: int, db: AsyncSession = Depends(get_db)):
+async def lister_staff(
+    club_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(
+        require_roles(RoleUtilisateur.ADMIN, RoleUtilisateur.ORGANISATEUR, *CLUB_ROLES)
+    ),
+):
+    if isClubRole(current_user.role):
+        verifier_scope_club(current_user, club_id)
     result = await db.execute(
         select(Staff)
         .where(Staff.club_id == club_id)
@@ -179,13 +186,13 @@ async def creer_staff(
     payload: StaffCreate,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(
-        require_roles(RoleUtilisateur.CLUB_MANAGER, RoleUtilisateur.COACH, RoleUtilisateur.ADMIN)
+        require_roles(*CLUB_ROLES, RoleUtilisateur.ADMIN)
     ),
 ):
     club = await db.get(Club, club_id)
     if club is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Club introuvable.")
-    if current_user.role in (RoleUtilisateur.CLUB_MANAGER, RoleUtilisateur.COACH):
+    if isClubRole(current_user.role):
         verifier_scope_club(current_user, club_id)
     membre = Staff(club_id=club_id, nom_complet=payload.nom_complet, role=payload.role)
     db.add(membre)
@@ -203,13 +210,13 @@ async def proposer_photo_staff(
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(
-        require_roles(RoleUtilisateur.CLUB_MANAGER, RoleUtilisateur.COACH, RoleUtilisateur.ADMIN)
+        require_roles(*CLUB_ROLES, RoleUtilisateur.ADMIN)
     ),
 ):
     membre = await db.get(Staff, staff_id)
     if membre is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Membre du staff introuvable.")
-    if current_user.role in (RoleUtilisateur.CLUB_MANAGER, RoleUtilisateur.COACH):
+    if isClubRole(current_user.role):
         verifier_scope_club(current_user, membre.club_id)
     data = await file.read()
     rang = await db.execute(
@@ -280,13 +287,13 @@ async def modifier_staff(
     payload: StaffUpdate,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(
-        require_roles(RoleUtilisateur.CLUB_MANAGER, RoleUtilisateur.COACH, RoleUtilisateur.ADMIN)
+        require_roles(*CLUB_ROLES, RoleUtilisateur.ADMIN)
     ),
 ):
     membre = await db.get(Staff, staff_id)
     if membre is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Membre du staff introuvable.")
-    if current_user.role in (RoleUtilisateur.CLUB_MANAGER, RoleUtilisateur.COACH):
+    if isClubRole(current_user.role):
         verifier_scope_club(current_user, membre.club_id)
     role_avant = getattr(membre.role, "value", membre.role)
     avant = {"nom_complet": membre.nom_complet, "role": role_avant}
@@ -309,13 +316,13 @@ async def retirer_staff(
     staff_id: int,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(
-        require_roles(RoleUtilisateur.CLUB_MANAGER, RoleUtilisateur.COACH, RoleUtilisateur.ADMIN)
+        require_roles(*CLUB_ROLES, RoleUtilisateur.ADMIN)
     ),
 ):
     membre = await db.get(Staff, staff_id)
     if membre is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Membre du staff introuvable.")
-    if current_user.role in (RoleUtilisateur.CLUB_MANAGER, RoleUtilisateur.COACH):
+    if isClubRole(current_user.role):
         verifier_scope_club(current_user, membre.club_id)
     photos = await db.execute(
         select(Photo.id).where(Photo.sujet_type == "staff").where(Photo.sujet_id == staff_id)
