@@ -10,20 +10,18 @@ Principes (mission du 12 septembre 2026, aucune exception) :
 - aucune route ici ne renvoie mot_de_passe_hash ni jeton brut stocké.
 """
 import secrets
-from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.dependencies import get_current_user
 from app.auth.hashing import hash_password
-from app.auth.rbac import require_roles
+from app.auth.rbac import CLUB_ROLES, require_roles
 from app.database import get_db
 from app.models.club import Club
 from app.models.enums import ActionAudit, RoleUtilisateur
-from app.models.user import RefreshToken, User
-from app.routes.auth import _hash_jeton, _nouveau_jeton_activation, _revoquer_sessions
+from app.models.user import User
+from app.routes.auth import _nouveau_jeton_activation, _revoquer_sessions
 from app.schemas.auth import AdminUserCreate, AdminUserOut, AdminUserUpdate, CreationCompteOut
 from app.services.audit import log_audit
 
@@ -32,16 +30,16 @@ router = APIRouter(prefix="/admin/utilisateurs", tags=["Comptes (admin)"])
 # Seuls les rôles du championnat sont attribuables ici. `admin` ne se
 # multiplie pas via cette route ; `supporter` passe par l'inscription publique.
 ROLES_ATTRIBUABLES = {
-    RoleUtilisateur.COACH,
     RoleUtilisateur.CLUB_MANAGER,
+    RoleUtilisateur.CLUB,
     RoleUtilisateur.COLLECTEUR,
     RoleUtilisateur.ORGANISATEUR,
 }
-ROLES_A_CLUB = {RoleUtilisateur.COACH, RoleUtilisateur.CLUB_MANAGER}
+ROLES_A_CLUB = set(CLUB_ROLES)
 
 ROLE_LIBELLE = {
-    RoleUtilisateur.COACH: "coach",
     RoleUtilisateur.CLUB_MANAGER: "club_manager",
+    RoleUtilisateur.CLUB: "club",
     RoleUtilisateur.COLLECTEUR: "collecteur",
     RoleUtilisateur.ORGANISATEUR: "organisateur",
 }
@@ -84,7 +82,7 @@ async def creer_utilisateur(
     if role not in ROLES_ATTRIBUABLES:
         raise HTTPException(
             status.HTTP_400_BAD_REQUEST,
-            "Rôle non attribuable ici : coach, club, collecteur ou organisateur.",
+            "Rôle non attribuable ici : club, club_manager, collecteur ou organisateur.",
         )
     email = str(payload.email).lower()
     existant = await db.execute(select(User).where(User.email == email))
@@ -95,7 +93,7 @@ async def creer_utilisateur(
     if role in ROLES_A_CLUB and club_id is None:
         raise HTTPException(
             status.HTTP_400_BAD_REQUEST,
-            "Un compte coach ou club doit être rattaché à un club.",
+            "Un compte club doit être rattaché à un club.",
         )
     await _verifier_club(db, club_id)
 
@@ -157,6 +155,40 @@ async def reinitialiser_mot_de_passe(
     return CreationCompteOut(utilisateur=_out(user), jeton_activation=raw)
 
 
+@router.post("/{user_id}/revoquer-activation", response_model=AdminUserOut)
+async def revoquer_activation(
+    user_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles(RoleUtilisateur.ADMIN)),
+):
+    """Révoque explicitement un code d'activation encore en attente.
+
+    Le compte et son historique sont conservés ; seul le code hashé et son
+    échéance sont invalidés. Une demande sans code en attente est refusée,
+    afin d'éviter toute réémission ou suppression implicite de compte.
+    """
+    user = await db.get(User, user_id)
+    if user is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Compte introuvable.")
+    if not user.jeton_activation_hash:
+        raise HTTPException(status.HTTP_409_CONFLICT, "Aucun code d'activation en attente pour ce compte.")
+    user.jeton_activation_hash = None
+    user.jeton_activation_expire = None
+    await _revoquer_sessions(db, user.id)
+    await log_audit(
+        db,
+        "users",
+        user.id,
+        ActionAudit.UPDATE,
+        current_user.id,
+        {"activation": "en_attente"},
+        {"activation": "révoquée", "sessions": "révoquées"},
+    )
+    await db.commit()
+    await db.refresh(user)
+    return _out(user)
+
+
 @router.patch("/{user_id}", response_model=AdminUserOut)
 async def modifier_utilisateur(
     user_id: int,
@@ -173,12 +205,13 @@ async def modifier_utilisateur(
             "Votre propre compte admin ne se modifie pas ici.",
         )
     data = payload.model_dump(exclude_unset=True)
+    desactivation = data.get("est_actif") is False and user.est_actif is True
     if "role" in data:
         role = data["role"] if isinstance(data["role"], RoleUtilisateur) else RoleUtilisateur(str(data["role"]))
         if _role_value(user.role) == "admin" or role not in ROLES_ATTRIBUABLES:
             raise HTTPException(
                 status.HTTP_400_BAD_REQUEST,
-                "Rôle non modifiable ici : coach, club, collecteur ou organisateur.",
+                "Rôle non modifiable ici : club, club_manager, collecteur ou organisateur.",
             )
         data["role"] = role
     if "club_id" in data:
@@ -189,13 +222,22 @@ async def modifier_utilisateur(
     avant = {k: (_role_value(getattr(user, k)) if k == "role" else getattr(user, k)) for k in data}
     for champ, valeur in data.items():
         setattr(user, champ, valeur)
+    if desactivation:
+        await _revoquer_sessions(db, user.id)
+        # A disabled account must not be able to reactivate itself through an
+        # old pending activation code.
+        user.jeton_activation_hash = None
+        user.jeton_activation_expire = None
     role_final = _role_value(user.role)
-    if role_final in ("coach", "club_manager") and user.club_id is None:
+    if role_final in {role.value for role in ROLES_A_CLUB} and user.club_id is None:
         raise HTTPException(
             status.HTTP_400_BAD_REQUEST,
-            "Un compte coach ou club doit être rattaché à un club.",
+            "Un compte club doit être rattaché à un club.",
         )
     apres = {k: (_role_value(v) if k == "role" else v) for k, v in data.items()}
+    if desactivation:
+        apres["sessions"] = "révoquées"
+        apres["activation"] = "révoquée"
     await log_audit(db, "users", user.id, ActionAudit.UPDATE, current_user.id, avant, apres)
     await db.commit()
     await db.refresh(user)

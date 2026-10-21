@@ -2,21 +2,22 @@ import { useEffect, useState } from "react";
 import { api } from "../../api.js";
 import { stripDemo } from "../../display.js";
 
+// New accounts use only the unified club role. The legacy coach role is
+// migrated to club; club_manager remains an internal compatibility alias.
 const ROLES = [
-  { value: "coach", label: "Coach" },
-  { value: "club_manager", label: "Club" },
+  { value: "club", label: "Club" },
   { value: "collecteur", label: "Collecteur" },
   { value: "organisateur", label: "Organisateur" },
 ];
 const ROLE_LIBELLE = {
   supporter: "Lecteur",
   collecteur: "Collecteur",
-  club_manager: "Club",
-  coach: "Coach",
+  club: "Club",
+  club_manager: "Club (legacy)",
   organisateur: "Organisateur",
   admin: "Admin",
 };
-const ROLES_A_CLUB = ["coach", "club_manager"];
+const ROLES_A_CLUB = ["club"];
 
 function Jeton({ jeton, contexte, onFermer }) {
   const [copie, setCopie] = useState(false);
@@ -56,7 +57,7 @@ export default function AdminComptes() {
   const [msg, setMsg] = useState("");
   const [jeton, setJeton] = useState(null);
   const [busy, setBusy] = useState(0);
-  const [form, setForm] = useState({ nom_complet: "", email: "", role: "coach", club_id: "" });
+  const [form, setForm] = useState({ nom_complet: "", email: "", role: "club", club_id: "" });
 
   useEffect(() => {
     api.utilisateurs().then(setUsers).catch((e) => setErr(e.message));
@@ -87,7 +88,7 @@ export default function AdminComptes() {
       const res = await api.creerUtilisateur(payload);
       setJeton({ jeton: res.jeton_activation, contexte: `Compte créé — ${payload.email}` });
       setMsg("Compte créé. Transmettez le code à la personne.");
-      setForm({ nom_complet: "", email: "", role: "coach", club_id: "" });
+      setForm({ nom_complet: "", email: "", role: "club", club_id: "" });
       setUsers(await api.utilisateurs());
     } catch (ex) {
       setErr(ex.message);
@@ -116,6 +117,20 @@ export default function AdminComptes() {
     try {
       await api.modifierUtilisateur(u.id, { est_actif: !u.est_actif });
       setMsg(u.est_actif ? "Compte désactivé." : "Compte réactivé.");
+      setUsers(await api.utilisateurs());
+    } catch (ex) {
+      setErr(ex.message);
+    } finally {
+      setBusy(0);
+    }
+  }
+
+  async function revoquerActivation(u) {
+    if (!window.confirm(`Révoquer le code d’activation de ${u.email} ? Le compte sera conservé, mais le code ne fonctionnera plus.`)) return;
+    setErr(""); setMsg(""); setBusy(u.id);
+    try {
+      await api.revoquerActivationUtilisateur(u.id);
+      setMsg("Code d’activation révoqué. Le compte est conservé.");
       setUsers(await api.utilisateurs());
     } catch (ex) {
       setErr(ex.message);
@@ -162,7 +177,7 @@ export default function AdminComptes() {
             value={form.email}
             onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
             required
-            placeholder="coach@club.cd"
+            placeholder="club@club.cd"
           />
         </label>
         <label className="field">
@@ -214,6 +229,11 @@ export default function AdminComptes() {
             <button className="linkish" type="button" disabled={busy === u.id} onClick={() => reinitialiser(u)}>
               Réinitialiser
             </button>
+            {u.activation_en_attente && (
+              <button className="linkish" type="button" disabled={busy === u.id} onClick={() => revoquerActivation(u)}>
+                Révoquer le code
+              </button>
+            )}
             <button className="linkish" type="button" disabled={busy === u.id} onClick={() => basculer(u)}>
               {u.est_actif ? "Désactiver" : "Réactiver"}
             </button>

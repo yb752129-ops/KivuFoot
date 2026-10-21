@@ -13,11 +13,30 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user
-from app.database import get_db
 from app.models.competition import OrganisateurCompetition, Saison
 from app.models.enums import RoleUtilisateur
 from app.models.match import Match
 from app.models.user import User
+
+
+# Permission set explicitly shared by the unified club portal. `coach` was
+# a legacy account role and is converted to `club` by migration 0024; it is
+# intentionally no longer accepted here. `club_manager` remains a legacy
+# backend alias for existing accounts, but uses the same /club portal.
+CLUB_ROLES = (
+    RoleUtilisateur.CLUB,
+    RoleUtilisateur.CLUB_MANAGER,
+)
+CLUB_ROLE_VALUES = frozenset(role.value for role in CLUB_ROLES)
+
+
+def _role_value(role) -> str:
+    return role.value if hasattr(role, "value") else str(role)
+
+
+def isClubRole(role) -> bool:
+    """Return whether a role belongs to the unified club portal."""
+    return _role_value(role) in CLUB_ROLE_VALUES
 
 
 def require_roles(*roles: RoleUtilisateur):
@@ -75,8 +94,8 @@ async def verifier_organisateur_du_match(
 
 
 def verifier_scope_club(current_user: User, club_id: int) -> None:
-    """Un club_manager ne peut agir que sur son propre club."""
+    """A club-portal account can act only on its own club."""
     if current_user.role == RoleUtilisateur.ADMIN:
         return
-    if current_user.role in (RoleUtilisateur.CLUB_MANAGER, RoleUtilisateur.COACH) and current_user.club_id != club_id:
+    if isClubRole(current_user.role) and current_user.club_id != club_id:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Vous ne gérez pas ce club.")

@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { KivuProvider, useKivu } from "./context.jsx";
 import Layout from "./components/Layout.jsx";
 import ChargementEcran from "./components/ChargementEcran.jsx";
@@ -37,9 +37,7 @@ import ClubJoueur from "./pages/club/Joueur.jsx";
 import ClubMatchs from "./pages/club/Matchs.jsx";
 import ClubComposition from "./pages/club/Composition.jsx";
 import ClubCoach from "./pages/club/Coach.jsx";
-import CoachLayout from "./components/CoachLayout.jsx";
-import CoachVue from "./pages/coach/Vue.jsx";
-import CoachMatchs from "./pages/coach/Matchs.jsx";
+import ClubCompositionIndex from "./pages/club/CompositionIndex.jsx";
 import CoachMatch from "./pages/coach/Match.jsx";
 import AdminLayout from "./components/AdminLayout.jsx";
 import AdminVue from "./pages/admin/Vue.jsx";
@@ -51,6 +49,7 @@ import Installation from "./pages/Installation.jsx";
 import { AuthProvider, useAuth } from "./auth.jsx";
 import { isAuthenticated } from "./api.js";
 import Reseau from "./components/Reseau.jsx";
+import { isClubRole } from "./roles.js";
 
 function PorteChargement({ children }) {
   const { loading, error, competitions, reessayer } = useKivu();
@@ -69,12 +68,17 @@ function Porte({ roles, children }) {
   if (user && !roles.includes(user.role)) {
     if (user.role === "collecteur") return <Navigate to="/collecteur" replace />;
     if (user.role === "organisateur") return <Navigate to="/orga" replace />;
-    if (user.role === "club_manager") return <Navigate to="/club" replace />;
-    if (user.role === "coach") return <Navigate to="/coach" replace />;
+    if (isClubRole(user.role)) return <Navigate to="/club" replace />;
     if (user.role === "admin") return <Navigate to="/admin" replace />;
     return <Navigate to="/" replace />;
   }
   return children;
+}
+
+function CoachRedirect() {
+  const location = useLocation();
+  const target = location.pathname.replace(/^\/coach(?=\/|$)/, "/club") || "/club";
+  return <Navigate to={`${target}${location.search}${location.hash}`} replace />;
 }
 
 export default function App() {
@@ -144,7 +148,7 @@ export default function App() {
           <Route
             path="/club"
             element={
-              <Porte roles={["club_manager"]}>
+              <Porte roles={["club", "club_manager"]}>
                 <ClubLayout />
               </Porte>
             }
@@ -152,26 +156,14 @@ export default function App() {
             <Route index element={<ClubVue />} />
             <Route path="effectif" element={<ClubEffectif basePath="/club" />} />
             <Route path="effectif/:id" element={<ClubJoueur basePath="/club" />} />
-            <Route path="matchs/:matchId/composition" element={<ClubComposition />} />
-            <Route path="coach" element={<ClubCoach />} />
             <Route path="matchs" element={<ClubMatchs />} />
-          </Route>
-          <Route
-            path="/coach"
-            element={
-              <Porte roles={["coach"]}>
-                <CoachLayout />
-              </Porte>
-            }
-          >
-            <Route index element={<CoachVue />} />
-            <Route path="effectif" element={<ClubEffectif basePath="/coach" />} />
-            <Route path="effectif/:id" element={<ClubJoueur basePath="/coach" />} />
-            <Route path="staff" element={<ClubCoach />} />
-            <Route path="matchs" element={<CoachMatchs />} />
-            <Route path="matchs/:id" element={<CoachMatch />} />
+            <Route path="matchs/:id" element={<CoachMatch basePath="/club" />} />
             <Route path="matchs/:matchId/composition" element={<ClubComposition />} />
+            <Route path="composition" element={<ClubCompositionIndex />} />
+            <Route path="staff" element={<ClubCoach />} />
+            <Route path="coach" element={<Navigate to="/club/staff" replace />} />
           </Route>
+          <Route path="/coach/*" element={<CoachRedirect />} />
           <Route
             path="/admin"
             element={

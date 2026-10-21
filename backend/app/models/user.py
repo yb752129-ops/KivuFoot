@@ -17,7 +17,9 @@ class User(Base):
     mot_de_passe_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     role: Mapped[RoleUtilisateur] = mapped_column(String(50), nullable=False)
     nom_complet: Mapped[str | None] = mapped_column(String(255))
-    # club_id : club_manager (effectif) et coach (composition)
+    # club_id : the unified club role and the legacy club_manager
+    # compatibility role use the same /club portal scope. Legacy coach
+    # accounts are converted to club by migration 0024.
     club_id: Mapped[int | None] = mapped_column(ForeignKey("clubs.id", ondelete="SET NULL"))
     est_actif: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     # Première activation / réinitialisation du mot de passe : code à usage

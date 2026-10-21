@@ -37,7 +37,7 @@ async def test_coach_pose_sa_composition_pas_celle_de_ladversaire(client, db_ses
     orga = await creer_utilisateur(db_session, RoleUtilisateur.ORGANISATEUR, "orga.coach@test.example")
     _, saison = await creer_competition_avec_saison(db_session, orga)
     match_ = await creer_match(db_session, saison.id, club_a.id, club_b.id)
-    token = await _login(client, db_session, RoleUtilisateur.COACH, "coach.a@test.example", club_id=club_a.id)
+    token = await _login(client, db_session, RoleUtilisateur.CLUB, "coach.a@test.example", club_id=club_a.id)
     headers = _h(token)
 
     ok = await client.post(
@@ -88,7 +88,7 @@ async def test_composition_refuse_un_numero_de_maillot_duplique(client, db_sessi
     orga = await creer_utilisateur(db_session, RoleUtilisateur.ORGANISATEUR, "orga.composition@test.example")
     _, saison = await creer_competition_avec_saison(db_session, orga)
     match_ = await creer_match(db_session, saison.id, club_a.id, club_b.id)
-    token = await _login(client, db_session, RoleUtilisateur.COACH, "coach.composition@test.example", club_id=club_a.id)
+    token = await _login(client, db_session, RoleUtilisateur.CLUB, "coach.composition@test.example", club_id=club_a.id)
 
     response = await client.put(
         f"/api/v1/matchs/{match_.id}/composition",
@@ -125,7 +125,7 @@ async def test_composition_refuse_un_onze_incomplet(client, db_session):
     orga = await creer_utilisateur(db_session, RoleUtilisateur.ORGANISATEUR, "orga.onze@test.example")
     _, saison = await creer_competition_avec_saison(db_session, orga)
     match_ = await creer_match(db_session, saison.id, club_a.id, club_b.id)
-    token = await _login(client, db_session, RoleUtilisateur.COACH, "coach.onze@test.example", club_id=club_a.id)
+    token = await _login(client, db_session, RoleUtilisateur.CLUB, "coach.onze@test.example", club_id=club_a.id)
 
     def payload_for(rows):
         return {
@@ -167,7 +167,7 @@ async def test_coach_ne_peut_pas_saisir_un_fait(client, db_session):
     orga = await creer_utilisateur(db_session, RoleUtilisateur.ORGANISATEUR, "orga.coach2@test.example")
     _, saison = await creer_competition_avec_saison(db_session, orga)
     match_ = await creer_match(db_session, saison.id, club_a.id, club_b.id)
-    token = await _login(client, db_session, RoleUtilisateur.COACH, "coach.fait@test.example", club_id=club_a.id)
+    token = await _login(client, db_session, RoleUtilisateur.CLUB, "coach.fait@test.example", club_id=club_a.id)
     resp = await client.post(
         f"/api/v1/matchs/{match_.id}/evenements",
         json={

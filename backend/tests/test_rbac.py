@@ -1,11 +1,19 @@
 import pytest
 from fastapi import HTTPException
 
-from app.auth.rbac import verifier_organisateur_de_competition, verifier_scope_club
+from app.auth.rbac import isClubRole, verifier_organisateur_de_competition, verifier_scope_club
 from app.models.enums import RoleUtilisateur
 from tests.factories import creer_club, creer_competition_avec_saison, creer_utilisateur
 
 pytestmark = pytest.mark.asyncio
+
+
+async def test_is_club_role_partage_les_permissions_unifiees():
+    assert isClubRole(RoleUtilisateur.CLUB)
+    assert not isClubRole(RoleUtilisateur.COACH)
+    assert isClubRole(RoleUtilisateur.CLUB_MANAGER)
+    assert not isClubRole(RoleUtilisateur.ADMIN)
+    assert not isClubRole("supporter")
 
 
 async def test_organisateur_ne_peut_pas_valider_une_competition_qui_n_est_pas_la_sienne(db_session):
