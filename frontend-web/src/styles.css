@@ -6969,3 +6969,90 @@ body,
   .feuille-titulaire-public:last-child { border-bottom-color: var(--rule); }
   .feuille-titulaire-public:last-child { border-bottom-color: transparent; }
 }
+
+.feuille-titulaires-public-grid > :only-child { grid-column: 1 / -1; }
+.kf-public-frame .feuille-remplacements-equipe > span.feuille-nom-equipe {
+  display: block;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+/* Disposition publique estimée : indication explicite, sans la confondre avec une place enregistrée. */
+.feuille-disposition-estimee {
+  display: grid;
+  gap: 0.12rem;
+  margin: 0 0 0.6rem;
+  padding: 0.45rem 0.6rem;
+  border-left: 2px solid var(--warn);
+  color: var(--ink-soft);
+  font-size: 0.68rem;
+  line-height: 1.25;
+}
+.feuille-disposition-estimee strong {
+  color: var(--warn);
+  font-size: 0.72rem;
+}
+.feuille-terrain-formation-estimee { color: var(--warn); }
+.feuille-terrain-team .feuille-nom-equipe {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  font-size: inherit;
+  letter-spacing: inherit;
+  line-height: 1.16;
+}
+.feuille-titulaires-public-alert {
+  display: inline-block;
+  margin-top: 0.22rem;
+  color: var(--warn);
+  font-size: 0.65rem;
+  font-weight: 800;
+}
+.feuille-tactique-mixte .feuille-terrain-team {
+  width: 38%;
+  max-width: 42%;
+}
+.feuille-terrain-simple .feuille-terrain-team-away {
+  top: 0.7rem;
+  left: 50%;
+  right: auto;
+  width: 82%;
+  max-width: 82%;
+  transform: translateX(-50%);
+  text-align: center;
+}
+.feuille-terrain-simple .feuille-terrain-team-away span { justify-self: center; }
+.feuille-terrain-simple .feuille-terrain-rangs-away .feuille-terrain-rang {
+  padding-inline: 0.55rem;
+}
+@media (max-width: 560px) {
+  .feuille-disposition-estimee { font-size: 0.64rem; }
+}
+
+/* Orientation publique : le haut attaque vers le centre, le bas attaque vers le centre. */
+.feuille-tactique-mixte .feuille-terrain-team {
+  z-index: 4;
+  padding: 0.22rem 0.35rem;
+  border-radius: 8px;
+  background: rgba(15, 42, 29, 0.78);
+}
+.feuille-tactique-mixte .feuille-terrain-team strong,
+.feuille-tactique-mixte .feuille-terrain-team span {
+  position: relative;
+  z-index: 1;
+}
+.feuille-terrain-simple .feuille-terrain-logo-away {
+  top: 50%;
+  right: auto;
+  left: 50%;
+  width: 46%;
+  height: 32%;
+  opacity: 0.13;
+  transform: translate(-50%, -50%);
+}
+.feuille-terrain-simple .feuille-terrain-team-away {
+  z-index: 4;
+}
