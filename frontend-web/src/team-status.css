@@ -101,3 +101,96 @@ img.is-status-muted,
 @media (max-width: 420px) {
   .kf-team-status-badge { font-size: .62rem; }
 }
+
+
+/* Zones de qualification : la couleur complète le badge texte, sans le remplacer. */
+.kf-qualification-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .38rem .9rem;
+  margin: .85rem 0 .2rem;
+  color: var(--kf-ink-dim, #b7c3ba);
+  font-size: .68rem;
+  line-height: 1.4;
+}
+.kf-qualification-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: .34rem;
+}
+.kf-qualification-swatch {
+  display: inline-block;
+  width: .68rem;
+  height: .68rem;
+  flex: 0 0 .68rem;
+  border: 1px solid rgba(255,255,255,.38);
+  border-radius: 3px;
+}
+.kf-qualification-swatch--direct { background: #25a95f; }
+.kf-qualification-swatch--barrages-5-8 { background: #d7ad21; }
+.kf-qualification-swatch--barrages-9-12 { background: #357fcb; }
+.kf-qualification-swatch--decision { background: #c83d46; }
+.kf-qualification-note {
+  flex: 1 0 100%;
+  margin: .1rem 0 0;
+  color: var(--kf-ink-dim, #9da99f);
+}
+
+.kf-public-frame .kf-public-ranking .kf-public-rank-club-content.has-qualification-badge {
+  grid-template-rows: auto auto;
+  align-items: start;
+}
+.kf-public-frame .kf-public-ranking .kf-qualification-badge {
+  grid-column: 3;
+  grid-row: 2;
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  margin-top: .18rem;
+  padding: .12rem .34rem;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  font-size: .56rem;
+  font-weight: 900;
+  letter-spacing: .025em;
+  line-height: 1.25;
+  white-space: normal;
+}
+.kf-qualification-badge--direct { color: #72e4a0; background: rgba(37,169,95,.15); }
+.kf-qualification-badge--barrages-5-8 { color: #f3d46b; background: rgba(215,173,33,.15); }
+.kf-qualification-badge--barrages-9-12 { color: #8ec5ff; background: rgba(53,127,203,.16); }
+
+.kf-public-frame .kf-public-ranking .kf-public-rank-table tr.kf-rank-direct td {
+  background: rgba(37,169,95,.13);
+  border-top-color: rgba(37,169,95,.32);
+  border-bottom-color: rgba(37,169,95,.32);
+}
+.kf-public-frame .kf-public-ranking .kf-public-rank-table tr.kf-rank-direct td:first-child { border-left-color: #38c878; }
+.kf-public-frame .kf-public-ranking .kf-public-rank-table tr.kf-rank-barrages-5-8 td {
+  background: rgba(215,173,33,.12);
+  border-top-color: rgba(215,173,33,.32);
+  border-bottom-color: rgba(215,173,33,.32);
+}
+.kf-public-frame .kf-public-ranking .kf-public-rank-table tr.kf-rank-barrages-5-8 td:first-child { border-left-color: #e4c044; }
+.kf-public-frame .kf-public-ranking .kf-public-rank-table tr.kf-rank-barrages-9-12 td {
+  background: rgba(53,127,203,.14);
+  border-top-color: rgba(53,127,203,.34);
+  border-bottom-color: rgba(53,127,203,.34);
+}
+.kf-public-frame .kf-public-ranking .kf-public-rank-table tr.kf-rank-barrages-9-12 td:first-child { border-left-color: #5aa8f5; }
+.kf-public-frame .kf-public-ranking .kf-public-rank-table tr.team-status-muted {
+  opacity: 1;
+}
+.kf-public-frame .kf-public-ranking .kf-public-rank-table tr.team-status-muted td {
+  background: rgba(200,54,64,.11);
+  border-top-color: rgba(200,54,64,.32);
+  border-bottom-color: rgba(200,54,64,.32);
+}
+.kf-public-frame .kf-public-ranking .kf-public-rank-table tr.team-status-muted td:first-child { border-left-color: #e35b62; }
+
+@media (max-width: 520px) {
+  .kf-qualification-legend { gap: .35rem .65rem; font-size: .64rem; }
+  .kf-public-frame .kf-public-ranking .kf-qualification-badge { font-size: .53rem; }
+}

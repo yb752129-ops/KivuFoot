@@ -7056,3 +7056,71 @@ body,
 .feuille-terrain-simple .feuille-terrain-team-away {
   z-index: 4;
 }
+
+
+/* Admin equipes: commandes de statut visibles et utilisables sur petit écran. */
+.saison-statut-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .25rem .75rem;
+  min-width: 0;
+}
+.saison-statut-actions .linkish {
+  display: inline-flex;
+  align-items: center;
+  width: auto;
+  min-height: 2rem;
+  line-height: 1.25;
+  text-align: left;
+}
+
+@media (max-width: 760px) {
+  .saison-club-row {
+    display: grid;
+    grid-template-columns: 2.5rem minmax(0, 1fr) 5.5rem;
+    column-gap: .55rem;
+    row-gap: .5rem;
+    align-items: center;
+  }
+  .saison-club-row > .logo-libre,
+  .saison-club-row > .club-initiale {
+    grid-column: 1;
+    grid-row: 1;
+    justify-self: center;
+  }
+  .saison-club-row > .avenir-noms {
+    grid-column: 2;
+    grid-row: 1;
+    min-width: 0;
+  }
+  .saison-club-row > .saison-groupe {
+    grid-column: 3;
+    grid-row: 1;
+    width: 5.5rem;
+    min-width: 0;
+    flex: none;
+  }
+  .saison-club-row > .saison-statut-actions {
+    grid-column: 2 / 4;
+    grid-row: 2;
+    gap: .2rem .65rem;
+    padding-top: .1rem;
+  }
+  .saison-club-row .saison-statut-actions .linkish {
+    min-height: 2rem;
+    padding: .2rem 0;
+    font-size: .78rem;
+    white-space: normal;
+  }
+}
+
+@media (max-width: 380px) {
+  .saison-club-row {
+    grid-template-columns: 2.25rem minmax(0, 1fr) 5rem;
+    column-gap: .4rem;
+  }
+  .saison-club-row > .saison-groupe { width: 5rem; }
+  .saison-club-row .saison-statut-actions { column-gap: .45rem; }
+  .saison-club-row .saison-statut-actions .linkish { font-size: .74rem; }
+}
