@@ -39,6 +39,7 @@ from app.schemas.actualite import (
 )
 from app.services.audit import log_audit
 from app.services.stockage_actualite import ActualiteDepotRefus, uploader_image_actualite, url_publique
+from app.services.statut_equipe import match_sans_equipe_retiree, match_a_une_equipe_retiree
 
 router = APIRouter(prefix="/actualites", tags=["Actualités"])
 EDITOR_ROLES = (RoleUtilisateur.ADMIN, RoleUtilisateur.ORGANISATEUR)
@@ -76,6 +77,13 @@ async def _actualite_rattachee_a_match_annule(actualite: Actualite, db: AsyncSes
         return False
     match_ = await db.get(Match, actualite.match_id)
     return match_ is not None and _value(match_.statut) == StatutMatch.ANNULE.value
+
+
+async def _actualite_rattachee_a_match_retire(actualite: Actualite, db: AsyncSession) -> bool:
+    if actualite.match_id is None:
+        return False
+    match_ = await db.get(Match, actualite.match_id)
+    return match_ is not None and await match_a_une_equipe_retiree(db, match_)
 
 
 async def _like_count(actualite_id: int, db: AsyncSession) -> int:
@@ -335,7 +343,12 @@ async def lister_actualites_publiques(
             or_(
                 Actualite.match_id.is_(None),
                 ~Actualite.match_id.in_(
-                    select(Match.id).where(Match.statut == StatutMatch.ANNULE)
+                    select(Match.id).where(
+                        or_(
+                            Match.statut == StatutMatch.ANNULE.value,
+                            ~match_sans_equipe_retiree(),
+                        )
+                    )
                 ),
             ),
         )
@@ -596,6 +609,7 @@ async def aimer_actualite(
         actualite is None
         or actualite.statut != StatutActualite.PUBLIE
         or await _actualite_rattachee_a_match_annule(actualite, db)
+        or await _actualite_rattachee_a_match_retire(actualite, db)
     ):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Actualité introuvable.")
     token_hash = _token_hash(payload.client_token)
@@ -690,6 +704,7 @@ async def marquer_actualite_lue(
     if (
         actualite.statut != StatutActualite.PUBLIE
         or await _actualite_rattachee_a_match_annule(actualite, db)
+        or await _actualite_rattachee_a_match_retire(actualite, db)
     ):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Actualité introuvable.")
     await _marquer_lue(actualite.id, client_token, db)
@@ -706,6 +721,7 @@ async def detail_actualite_publique(
     if (
         actualite.statut != StatutActualite.PUBLIE
         or await _actualite_rattachee_a_match_annule(actualite, db)
+        or await _actualite_rattachee_a_match_retire(actualite, db)
     ):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Actualité introuvable.")
     return await _serialize_detail(actualite, db, client_token)

@@ -1,0 +1,103 @@
+.kf-team-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: .22rem;
+  margin-inline-start: .35rem;
+  color: #d94747;
+  font-size: .68rem;
+  font-weight: 800;
+  letter-spacing: .035em;
+  line-height: 1;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.kf-team-status-icon {
+  width: .82rem;
+  height: .82rem;
+  flex: 0 0 .82rem;
+}
+
+.kf-team-status-badge:not(.is-compact) > strong { display: none; }
+.kf-team-status-badge.is-compact .kf-team-status-label { display: none; }
+.kf-team-status-badge.is-compact strong { font-size: .63rem; }
+
+img.is-status-muted,
+.club-logo-missing.is-status-muted {
+  filter: grayscale(1);
+}
+
+.team-status-muted { opacity: .68; }
+
+.kf-team-status-legend {
+  margin: .7rem 0 0;
+  color: var(--kf-ink-dim, #9da99f);
+  font-size: 11px;
+  line-height: 1.45;
+  white-space: normal;
+}
+
+/* Classement mobile : le nom garde une colonne assez large pour ses deux
+   lignes ; le badge occupe sa propre ligne et ne la rétrécit pas. */
+.kf-public-frame .kf-public-ranking .kf-public-rank-table {
+  width: 509px;
+  min-width: 509px;
+}
+
+.kf-public-frame .kf-public-ranking .kf-public-rank-table th:first-child,
+.kf-public-frame .kf-public-ranking .kf-public-rank-table td:first-child {
+  width: 195px;
+  min-width: 195px;
+  max-width: 195px;
+}
+
+.kf-public-frame .kf-public-ranking .kf-public-rank-club-content {
+  grid-template-rows: auto auto;
+  align-items: start;
+}
+
+.kf-public-frame .kf-public-ranking .kf-public-rank-name {
+  display: block;
+  grid-column: 3;
+  grid-row: 1;
+  align-self: center;
+  max-height: 2.3em;
+  overflow: hidden;
+  font-size: 12px;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: normal;
+  word-break: normal;
+  -webkit-line-clamp: unset;
+}
+
+.kf-public-frame .kf-public-ranking .kf-public-rank-club-content.has-decision-badge .kf-public-rank-name {
+  align-self: start;
+}
+
+.kf-public-frame .kf-public-ranking .kf-team-status-badge.is-compact {
+  grid-column: 3;
+  grid-row: 2;
+  justify-self: start;
+  margin-inline-start: 0;
+  margin-top: .18rem;
+}
+
+.kf-match-team-statuses {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: .45rem;
+  margin: .6rem 0 .9rem;
+}
+
+.kf-home-team .kf-team-status-badge,
+.kf-home-rank-club .kf-team-status-badge {
+  flex: 0 0 auto;
+}
+
+.kf-home-rank-club .kf-team-status-badge { margin-inline-start: auto; }
+
+@media (max-width: 420px) {
+  .kf-team-status-badge { font-size: .62rem; }
+}

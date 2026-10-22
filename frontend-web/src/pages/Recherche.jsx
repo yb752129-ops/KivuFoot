@@ -3,6 +3,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { api } from "../api.js";
 import { clubName, useKivu } from "../context.jsx";
 import { stripDemo } from "../display.js";
+import { StatutEquipeBadge } from "../components/PublicDesign.jsx";
 
 function norm(s) {
   return (s || "")
@@ -15,7 +16,7 @@ export default function Recherche() {
   const [params] = useSearchParams();
   const q = (params.get("q") || "").trim();
   const nq = norm(q);
-  const { clubs, saison, clubsById } = useKivu();
+  const { clubs, saison, saisonClubs, clubsById } = useKivu();
   const [joueurs, setJoueurs] = useState([]);
   const [matchs, setMatchs] = useState([]);
 
@@ -29,8 +30,8 @@ export default function Recherche() {
   }, [saison]);
 
   const clubsTrouves = useMemo(
-    () => (clubs || []).filter((c) => norm(stripDemo(c.nom)).includes(nq)),
-    [clubs, nq],
+    () => (saisonClubs ?? clubs ?? []).filter((c) => norm(stripDemo(c.nom)).includes(nq)),
+    [clubs, saisonClubs, nq],
   );
   const joueursTrouves = useMemo(
     () => (joueurs || []).filter((j) => norm(j.nom_complet).includes(nq)),
@@ -59,9 +60,9 @@ export default function Recherche() {
         <>
           <div className="section-head"><h2>Équipes</h2></div>
           {clubsTrouves.map((c) => (
-            <Link key={c.id} to={`/clubs/${c.id}`} className="avenir-row">
+            <Link key={c.id} to={`/clubs/${c.id}${saison?.id ? `?saison_id=${saison.id}` : ""}`} className={`avenir-row${c.statut && c.statut !== "actif" ? " team-status-muted" : ""}`}>
               <span className="avenir-noms">
-                <span>{stripDemo(c.nom)}</span>
+                <span>{stripDemo(c.nom)} <StatutEquipeBadge statut={c.statut} compact /></span>
                 <span className="meta-line">{[c.ville, c.stade].filter(Boolean).join(" — ")}</span>
               </span>
             </Link>

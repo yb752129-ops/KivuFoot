@@ -3,7 +3,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict
 
-from app.models.enums import StatutSync, TypeSync
+from app.models.enums import StatutEquipeEdition, StatutSync, TypeSync
 from app.schemas.evenement import EvenementCreate
 
 
@@ -37,6 +37,7 @@ class SyncPullResponse(BaseModel):
 class ClassementLigne(BaseModel):
     club_id: int
     club_nom: str
+    statut: StatutEquipeEdition = StatutEquipeEdition.ACTIF
     matchs_joues: int
     victoires: int
     nuls: int

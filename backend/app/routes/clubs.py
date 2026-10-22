@@ -5,7 +5,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth.rbac import CLUB_ROLES, isClubRole, require_roles, verifier_scope_club
 from app.database import get_db
 from app.models.club import Club
-from app.models.enums import ActionAudit, RoleUtilisateur
+from app.models.competition import SaisonClub
+from app.models.enums import ActionAudit, RoleUtilisateur, StatutEquipeEdition
 from app.models.match import Match
 from app.models.user import User
 from app.schemas.competition import ClubCreate, ClubOut, ClubUpdate
@@ -47,18 +48,45 @@ def _club_out(club: Club, coach_nom: str | None) -> ClubOut:
 
 
 @router.get("", response_model=list[ClubOut])
-async def lister_clubs(db: AsyncSession = Depends(get_db), limit: int = 20, offset: int = 0):
-    result = await db.execute(select(Club).limit(min(limit, 100)).offset(offset))
+async def lister_clubs(
+    db: AsyncSession = Depends(get_db),
+    saison_id: int | None = None,
+    limit: int = 20,
+    offset: int = 0,
+):
+    query = select(Club)
+    if saison_id is not None:
+        query = (
+            query.join(SaisonClub, SaisonClub.club_id == Club.id)
+            .where(
+                SaisonClub.saison_id == saison_id,
+                SaisonClub.statut != StatutEquipeEdition.RETIRE.value,
+            )
+        )
+    result = await db.execute(query.limit(min(limit, 100)).offset(offset))
     clubs = result.scalars().all()
     noms = await _coach_noms(db, [c.id for c in clubs])
     return [_club_out(c, noms.get(c.id)) for c in clubs]
 
 
 @router.get("/{club_id}", response_model=ClubOut)
-async def detail_club(club_id: int, db: AsyncSession = Depends(get_db)):
+async def detail_club(
+    club_id: int,
+    saison_id: int | None = None,
+    db: AsyncSession = Depends(get_db),
+):
     club = await db.get(Club, club_id)
     if club is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Club introuvable.")
+    if saison_id is not None:
+        lien = await db.scalar(
+            select(SaisonClub).where(
+                SaisonClub.saison_id == saison_id,
+                SaisonClub.club_id == club_id,
+            )
+        )
+        if lien is not None and getattr(lien.statut, "value", lien.statut) == StatutEquipeEdition.RETIRE.value:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Club introuvable dans cette édition.")
     noms = await _coach_noms(db, [club_id])
     return _club_out(club, noms.get(club_id))
 

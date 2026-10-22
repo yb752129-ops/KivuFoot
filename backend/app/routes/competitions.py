@@ -1,5 +1,7 @@
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import delete as sql_delete, select
+from sqlalchemy import delete as sql_delete, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -9,7 +11,7 @@ from app.database import get_db
 from app.models.club import Club
 from app.models.evenement import EvenementMatch
 from app.models.competition import Competition, OrganisateurCompetition, Saison, SaisonClub
-from app.models.enums import ActionAudit, RoleUtilisateur
+from app.models.enums import ActionAudit, RoleUtilisateur, StatutEquipeEdition, StatutMatch
 from app.models.match import Match, MatchParticipation
 from app.models.stats import StatistiqueJoueur
 from app.models.user import User
@@ -18,11 +20,14 @@ from app.schemas.competition import (
     CompetitionCreate,
     CompetitionOut,
     SaisonClubCreate,
+    SaisonClubGestionOut,
     SaisonClubGroupeUpdate,
     SaisonClubOut,
+    SaisonClubStatutUpdate,
     SaisonCreate,
     SaisonOut,
 )
+from app.schemas.match import MatchOut
 from app.services.audit import log_audit
 
 router = APIRouter(tags=["Compétitions"])
@@ -39,7 +44,21 @@ def _saison_club_out(lien: SaisonClub, club: Club) -> SaisonClubOut:
         saison_id=lien.saison_id,
         club_id=lien.club_id,
         groupe=lien.groupe,
+        statut=lien.statut,
     )
+
+
+def _saison_club_gestion_out(lien: SaisonClub, club: Club) -> SaisonClubGestionOut:
+    return SaisonClubGestionOut(
+        **_saison_club_out(lien, club).model_dump(),
+        statut_at=lien.statut_at,
+        statut_motif=lien.statut_motif,
+        statut_modifie_par_id=lien.statut_modifie_par_id,
+    )
+
+
+def _enum_value(value):
+    return getattr(value, "value", value)
 
 
 @router.get("/competitions", response_model=list[CompetitionOut])
@@ -175,10 +194,66 @@ async def lister_clubs_saison(saison_id: int, db: AsyncSession = Depends(get_db)
     result = await db.execute(
         select(SaisonClub, Club)
         .join(Club, SaisonClub.club_id == Club.id)
-        .where(SaisonClub.saison_id == saison_id)
+        .where(
+            SaisonClub.saison_id == saison_id,
+            SaisonClub.statut != StatutEquipeEdition.RETIRE.value,
+        )
         .order_by(Club.nom, Club.id)
     )
     return [_saison_club_out(lien, club) for lien, club in result.all()]
+
+
+@router.get("/saisons/{saison_id}/clubs/gestion", response_model=list[SaisonClubGestionOut])
+async def lister_clubs_saison_gestion(
+    saison_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles(RoleUtilisateur.ADMIN, RoleUtilisateur.ORGANISATEUR)),
+):
+    """Vue complète réservée au bureau : le motif ne quitte jamais cet écran."""
+    saison = await db.get(Saison, saison_id)
+    if saison is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Saison introuvable.")
+    await verifier_organisateur_de_competition(saison.competition_id, current_user, db)
+    result = await db.execute(
+        select(SaisonClub, Club)
+        .join(Club, SaisonClub.club_id == Club.id)
+        .where(SaisonClub.saison_id == saison_id)
+        .order_by(Club.nom, Club.id)
+    )
+    return [_saison_club_gestion_out(lien, club) for lien, club in result.all()]
+
+
+@router.get("/saisons/{saison_id}/clubs/matchs-a-venir-statut", response_model=list[MatchOut])
+async def lister_matchs_a_confirmer_apres_statut(
+    saison_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles(RoleUtilisateur.ADMIN, RoleUtilisateur.ORGANISATEUR)),
+):
+    """Liste d'information : aucune annulation automatique n'est décidée."""
+    saison = await db.get(Saison, saison_id)
+    if saison is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Saison introuvable.")
+    await verifier_organisateur_de_competition(saison.competition_id, current_user, db)
+    result = await db.execute(
+        select(Match)
+        .where(
+            Match.saison_id == saison_id,
+            Match.statut == StatutMatch.PROGRAMME.value,
+            Match.date_heure >= datetime.now(timezone.utc),
+            select(SaisonClub.club_id)
+            .where(
+                SaisonClub.saison_id == saison_id,
+                SaisonClub.statut != StatutEquipeEdition.ACTIF.value,
+                or_(
+                    SaisonClub.club_id == Match.equipe_domicile_id,
+                    SaisonClub.club_id == Match.equipe_exterieur_id,
+                ),
+            )
+            .exists(),
+        )
+        .order_by(Match.date_heure, Match.id)
+    )
+    return result.scalars().all()
 
 
 @router.post("/saisons/{saison_id}/clubs", response_model=SaisonClubOut, status_code=status.HTTP_201_CREATED)
@@ -280,6 +355,157 @@ async def modifier_groupe_club_saison(
     await db.refresh(lien)
     await db.refresh(club)
     return _saison_club_out(lien, club)
+
+
+async def _changer_statut_equipe(
+    saison_id: int,
+    club_id: int,
+    nouveau_statut: StatutEquipeEdition,
+    motif: str | None,
+    db: AsyncSession,
+    current_user: User,
+) -> SaisonClubGestionOut:
+    saison = await db.get(Saison, saison_id)
+    if saison is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Saison introuvable.")
+    await verifier_organisateur_de_competition(saison.competition_id, current_user, db)
+    result = await db.execute(
+        select(SaisonClub, Club)
+        .join(Club, SaisonClub.club_id == Club.id)
+        .where(SaisonClub.saison_id == saison_id, SaisonClub.club_id == club_id)
+    )
+    row = result.one_or_none()
+    if row is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Équipe non inscrite.")
+    lien, club = row
+    ancien_statut = _enum_value(lien.statut)
+    cible = _enum_value(nouveau_statut)
+    motif_propre = motif.strip() if motif else None
+    if cible != StatutEquipeEdition.ACTIF.value and (not motif_propre or len(motif_propre) < 3):
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Un motif privé d'au moins 3 caractères est obligatoire.")
+    if ancien_statut == cible:
+        return _saison_club_gestion_out(lien, club)
+    if ancien_statut != StatutEquipeEdition.ACTIF.value and cible != StatutEquipeEdition.ACTIF.value:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "Rétablissez d'abord l'équipe avant d'appliquer une autre décision.",
+        )
+
+    now = datetime.now(timezone.utc)
+    old_data = {
+        "saison_id": saison_id,
+        "club_id": club_id,
+        "statut": ancien_statut,
+        "statut_at": lien.statut_at.isoformat() if lien.statut_at else None,
+        "statut_motif": lien.statut_motif,
+        "statut_modifie_par_id": lien.statut_modifie_par_id,
+    }
+    lien.statut = nouveau_statut
+    lien.statut_at = now
+    lien.statut_motif = motif_propre if cible != StatutEquipeEdition.ACTIF.value else None
+    lien.statut_modifie_par_id = current_user.id
+    new_data = {
+        "saison_id": saison_id,
+        "club_id": club_id,
+        "statut": cible,
+        "statut_at": now.isoformat(),
+        "statut_motif": lien.statut_motif,
+        "statut_modifie_par_id": current_user.id,
+        "motif": motif_propre or "Rétablissement administratif",
+    }
+    await log_audit(
+        db,
+        "saison_clubs",
+        saison_id,
+        ActionAudit.UPDATE,
+        current_user.id,
+        old_data,
+        new_data,
+    )
+    await db.commit()
+    await db.refresh(lien)
+    await db.refresh(club)
+    return _saison_club_gestion_out(lien, club)
+
+
+@router.patch("/saisons/{saison_id}/clubs/{club_id}/statut", response_model=SaisonClubGestionOut)
+async def modifier_statut_equipe(
+    saison_id: int,
+    club_id: int,
+    payload: SaisonClubStatutUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles(RoleUtilisateur.ADMIN, RoleUtilisateur.ORGANISATEUR)),
+):
+    """Décision réversible, auditée, sans suppression ni modification de match."""
+    if payload.statut is None:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Le statut demandé est obligatoire.")
+    return await _changer_statut_equipe(
+        saison_id, club_id, payload.statut, payload.motif, db, current_user
+    )
+
+
+async def _action_statut(
+    saison_id: int,
+    club_id: int,
+    statut_equipe: StatutEquipeEdition,
+    payload: SaisonClubStatutUpdate,
+    db: AsyncSession,
+    current_user: User,
+):
+    return await _changer_statut_equipe(
+        saison_id, club_id, statut_equipe, payload.motif, db, current_user
+    )
+
+
+@router.post("/saisons/{saison_id}/clubs/{club_id}/disqualifier", response_model=SaisonClubGestionOut)
+async def disqualifier_equipe(
+    saison_id: int,
+    club_id: int,
+    payload: SaisonClubStatutUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles(RoleUtilisateur.ADMIN, RoleUtilisateur.ORGANISATEUR)),
+):
+    return await _action_statut(saison_id, club_id, StatutEquipeEdition.DISQUALIFIE, payload, db, current_user)
+
+
+@router.post("/saisons/{saison_id}/clubs/{club_id}/eliminer", response_model=SaisonClubGestionOut)
+async def eliminer_equipe(
+    saison_id: int,
+    club_id: int,
+    payload: SaisonClubStatutUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles(RoleUtilisateur.ADMIN, RoleUtilisateur.ORGANISATEUR)),
+):
+    return await _action_statut(saison_id, club_id, StatutEquipeEdition.ELIMINE, payload, db, current_user)
+
+
+@router.post("/saisons/{saison_id}/clubs/{club_id}/retirer", response_model=SaisonClubGestionOut)
+async def retirer_equipe_edition(
+    saison_id: int,
+    club_id: int,
+    payload: SaisonClubStatutUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles(RoleUtilisateur.ADMIN, RoleUtilisateur.ORGANISATEUR)),
+):
+    return await _action_statut(saison_id, club_id, StatutEquipeEdition.RETIRE, payload, db, current_user)
+
+
+@router.post("/saisons/{saison_id}/clubs/{club_id}/retablir", response_model=SaisonClubGestionOut)
+async def retablir_equipe(
+    saison_id: int,
+    club_id: int,
+    payload: SaisonClubStatutUpdate | None = None,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles(RoleUtilisateur.ADMIN, RoleUtilisateur.ORGANISATEUR)),
+):
+    return await _changer_statut_equipe(
+        saison_id,
+        club_id,
+        StatutEquipeEdition.ACTIF,
+        payload.motif if payload else None,
+        db,
+        current_user,
+    )
 
 
 @router.delete("/saisons/{saison_id}/clubs/{club_id}", status_code=status.HTTP_204_NO_CONTENT)

@@ -4,9 +4,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.club import Club
 from app.models.competition import Saison, SaisonClub
-from app.models.enums import StatutMatch
+from app.models.enums import StatutEquipeEdition, StatutMatch
 from app.models.match import Match
 from app.services.calcul_classement import LigneClassement, calculer_classement
+from app.services.statut_equipe import match_sans_equipe_retiree
 from app.services.reglements import get_reglement_actif
 
 
@@ -39,7 +40,10 @@ async def progression_saison(db: AsyncSession, saison_id: int) -> dict:
         await db.execute(
             select(SaisonClub, Club)
             .join(Club, Club.id == SaisonClub.club_id)
-            .where(SaisonClub.saison_id == saison_id)
+            .where(
+                SaisonClub.saison_id == saison_id,
+                SaisonClub.statut != StatutEquipeEdition.RETIRE.value,
+            )
             .order_by(Club.nom, Club.id)
         )
     ).all()
@@ -48,7 +52,13 @@ async def progression_saison(db: AsyncSession, saison_id: int) -> dict:
         await db.execute(
             select(Match).where(
                 Match.saison_id == saison_id,
-                Match.statut.in_([StatutMatch.VALIDE, StatutMatch.PROGRAMME, StatutMatch.EN_COURS, StatutMatch.TERMINE]),
+                Match.statut.in_([
+                    StatutMatch.VALIDE.value,
+                    StatutMatch.PROGRAMME.value,
+                    StatutMatch.EN_COURS.value,
+                    StatutMatch.TERMINE.value,
+                ]),
+                match_sans_equipe_retiree(),
             )
         )
     ).scalars().all()

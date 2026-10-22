@@ -6,7 +6,7 @@ import Scoreboard from "../components/Scoreboard.jsx";
 import FeuilleApercu from "../components/FeuilleApercu.jsx";
 import FeuilleMatch from "../components/FeuilleMatch.jsx";
 import { LiveUne } from "../components/LignesMatch.jsx";
-import { scorePublicVisible } from "../components/PublicDesign.jsx";
+import { scorePublicVisible, StatutEquipeBadge } from "../components/PublicDesign.jsx";
 import { startVisibleRefresh } from "../liveRefresh.js";
 import { grouperFaits, journeeTitre, statsDesFaits, stripDemo } from "../display.js";
 
@@ -45,7 +45,7 @@ function compositionPubliee(compo) {
 
 export default function MatchDetail() {
   const { id } = useParams();
-  const { clubsById } = useKivu();
+  const { clubsById, saisonClubs } = useKivu();
   const [match, setMatch] = useState(null);
   const [evts, setEvts] = useState([]);
   const [joueurs, setJoueurs] = useState({});
@@ -137,6 +137,8 @@ export default function MatchDetail() {
   );
   const possessionA = possessionDisponible ? Number(possession.pourcentage_a) : null;
   const possessionB = possessionDisponible ? Number(possession.pourcentage_b) : null;
+  const statutHome = (saisonClubs || []).find((row) => Number(row.id ?? row.club_id) === Number(match.equipe_domicile_id))?.statut;
+  const statutAway = (saisonClubs || []).find((row) => Number(row.id ?? row.club_id) === Number(match.equipe_exterieur_id))?.statut;
   const possessionAdminView = Boolean(moi && ["admin", "organisateur"].includes(moi.role));
 
   return (
@@ -151,9 +153,15 @@ export default function MatchDetail() {
         <LiveUne match={match} clubsById={clubsById} />
       ) : (
         <div className="sheet mc-score" style={{ marginTop: "0.85rem" }}>
-          <Scoreboard match={match} clubsById={clubsById} />
+          <Scoreboard match={match} clubsById={clubsById} saisonClubs={saisonClubs} />
         </div>
       )}
+      {(statutHome && statutHome !== "actif") || (statutAway && statutAway !== "actif") ? (
+        <div className="kf-match-team-statuses" aria-label="Statut des équipes">
+          <StatutEquipeBadge statut={statutHome} />
+          <StatutEquipeBadge statut={statutAway} />
+        </div>
+      ) : null}
       {possessionAdminView && match.statut === "valide" && <p className="stamp">Validé</p>}
       {moi && ["admin", "organisateur"].includes(moi.role) && match.statut === "valide" && (
         <section className="sheet document-actions" aria-label="Document officiel">

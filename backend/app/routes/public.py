@@ -7,6 +7,7 @@ from app.models.enums import StatutMatch, StatutValidationEvenement
 from app.models.evenement import EvenementMatch
 from app.models.match import Match
 from app.schemas.evenement import EvenementOut
+from app.services.statut_equipe import match_a_une_equipe_retiree
 
 router = APIRouter(prefix="/matchs", tags=["Public"])
 MATCH_STATUTS_PUBLICS = {
@@ -24,8 +25,12 @@ async def evenements_publics(match_id: int, db: AsyncSession = Depends(get_db)):
     brutes/en_attente/rejetées ne sont JAMAIS exposées ici.
     """
     match_ = await db.get(Match, match_id)
-    statut = match_.statut.value if match_ and hasattr(match_.statut, "value") else match_.statut
+    statut = (
+        match_.statut.value if hasattr(match_.statut, "value") else match_.statut
+    ) if match_ else None
     if match_ is None or statut not in MATCH_STATUTS_PUBLICS:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Match introuvable ou non publié.")
+    if await match_a_une_equipe_retiree(db, match_):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Match introuvable ou non publié.")
     result = await db.execute(
         select(EvenementMatch).where(

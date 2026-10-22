@@ -1,10 +1,11 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { api } from "../../api.js";
 import { useAuth } from "../../auth.jsx";
 import { useKivu } from "../../context.jsx";
 import { stripDemo } from "../../display.js";
 import { assurerSaison } from "./saison.js";
+import { StatutEquipeBadge } from "../../components/PublicDesign.jsx";
 
 const GROUPES = ["A", "B", "C", "D"];
 
@@ -25,9 +26,33 @@ export default function OrgaEquipes() {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const [msg, setMsg] = useState("");
+  const [gestionClubs, setGestionClubs] = useState(null);
+  const [matchsStatut, setMatchsStatut] = useState([]);
+
+  async function chargerGestion() {
+    if (!saison) {
+      setGestionClubs([]);
+      setMatchsStatut([]);
+      return;
+    }
+    const [clubs, matchs] = await Promise.all([
+      api.clubsSaisonGestion(saison.id),
+      api.matchsStatutsEquipes(saison.id).catch(() => []),
+    ]);
+    setGestionClubs(clubs || []);
+    setMatchsStatut(matchs || []);
+  }
+
+  useEffect(() => {
+    chargerGestion().catch(() => {
+      setGestionClubs(null);
+      setMatchsStatut([]);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [saison]);
 
   const list = useMemo(() => {
-    const rows = saisonClubs ?? [];
+    const rows = gestionClubs ?? saisonClubs ?? [];
     const n = q.trim().toLowerCase();
     if (!n) return rows;
     return rows.filter((c) =>
@@ -51,6 +76,7 @@ export default function OrgaEquipes() {
       await api.inscrireClub(s.id, club.id, groupe || null);
       await rechargerClubs();
       await chargerClubsSaison(s.id);
+      await chargerGestion();
       setNom("");
       setVille("");
       setStade("");
@@ -72,7 +98,35 @@ export default function OrgaEquipes() {
     try {
       await api.modifierGroupeSaison(saison.id, club.id, value || null);
       await chargerClubsSaison(saison.id);
+      await chargerGestion();
       setMsg(`Groupe de ${stripDemo(club.nom)} enregistré.`);
+    } catch (ex) {
+      setErr(ex.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function changerStatut(club, action) {
+    if (!saison) return;
+    const actif = club.statut === "actif";
+    const motif = actif
+      ? window.prompt("Motif privé de la décision (obligatoire)", "")
+      : null;
+    if (actif && motif === null) return;
+    if (actif && !motif.trim()) {
+      setErr("Le motif privé est obligatoire.");
+      return;
+    }
+    if (action === "retirer" && !window.confirm("Retirer cette équipe de toute la représentation publique de l’édition ? Les données et les matchs sont conservés.")) return;
+    setBusy(true);
+    setErr("");
+    setMsg("");
+    try {
+      await api.actionStatutEquipe(saison.id, club.club_id || club.id, action, motif);
+      await chargerClubsSaison(saison.id);
+      await chargerGestion();
+      setMsg(action === "retablir" ? `${stripDemo(club.nom)} rétablie.` : `Décision « ${action} » enregistrée pour ${stripDemo(club.nom)}.`);
     } catch (ex) {
       setErr(ex.message);
     } finally {
@@ -122,17 +176,18 @@ export default function OrgaEquipes() {
       )}
       {list.length === 0 && <p className="empty">Aucune équipe inscrite.</p>}
       {list.map((c) => (
-        <div key={c.id} className="avenir-row saison-club-row">
+        <div key={c.id} className={`avenir-row saison-club-row${c.statut && c.statut !== "actif" ? " team-status-muted" : ""}`}>
           {c.logo_url ? (
-            <img className="logo-libre" src={c.logo_url} alt="" />
+            <img className={`logo-libre${c.statut && c.statut !== "actif" ? " is-status-muted" : ""}`} src={c.logo_url} alt="" />
           ) : (
             <span className="club-initiale" aria-hidden="true">
               {(stripDemo(c.nom) || "?").charAt(0)}
             </span>
           )}
           <Link to={`/orga/equipes/${c.id}`} className="avenir-noms">
-            <span>{stripDemo(c.nom)}</span>
+            <span>{stripDemo(c.nom)} <StatutEquipeBadge statut={c.statut} compact /></span>
             <span className="meta-line">{[c.ville, c.stade].filter(Boolean).join(" — ") || "à compléter"}</span>
+            {c.statut_motif && <span className="meta-line">Motif privé : {c.statut_motif}</span>}
           </Link>
           <label className="saison-groupe">
             <span>Groupe</span>
@@ -146,8 +201,28 @@ export default function OrgaEquipes() {
               {GROUPES.map((g) => <option key={g} value={g}>{g}</option>)}
             </select>
           </label>
+          <div className="saison-statut-actions">
+            {c.statut === "actif" ? (
+              <>
+                <button className="linkish" type="button" disabled={busy} onClick={() => changerStatut(c, "disqualifier")}>Disqualifier</button>
+                <button className="linkish" type="button" disabled={busy} onClick={() => changerStatut(c, "eliminer")}>Éliminer</button>
+                <button className="linkish danger-link" type="button" disabled={busy} onClick={() => changerStatut(c, "retirer")}>Retirer de l’édition</button>
+              </>
+            ) : (
+              <button className="linkish" type="button" disabled={busy} onClick={() => changerStatut(c, "retablir")}>Rétablir</button>
+            )}
+          </div>
         </div>
       ))}
+      {matchsStatut.length > 0 && (
+        <section className="sheet saison-matchs-statut" aria-label="Matchs à confirmer">
+          <h2>Matchs à venir à confirmer</h2>
+          <p className="muted small">Aucune annulation automatique : l’organisation décide séparément du sort de chaque match.</p>
+          {matchsStatut.map((m) => (
+            <p key={m.id} className="meta-line">#{m.id} · {m.date_heure ? new Date(m.date_heure).toLocaleString("fr-FR") : "date à confirmer"} · {m.equipe_domicile_id} – {m.equipe_exterieur_id}</p>
+          ))}
+        </section>
+      )}
     </section>
   );
 }

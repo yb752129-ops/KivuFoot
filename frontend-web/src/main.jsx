@@ -5,6 +5,7 @@ import App from "./App.jsx";
 import { ThemeProvider } from "./theme.jsx";
 import "./styles.css";
 import "./actualites.css";
+import "./team-status.css";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>

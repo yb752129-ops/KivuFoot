@@ -59,6 +59,7 @@ from app.services.reglements import get_reglement_actif, get_reglement_pour_matc
 from app.services.validation import valider_match
 from app.services.possession import suspendre_possession, terminer_possession
 from app.services.composition_positions import positions_titulaires_valides, slots_formation
+from app.services.statut_equipe import match_a_une_equipe_retiree, match_sans_equipe_retiree
 
 router = APIRouter(prefix="/matchs", tags=["Matchs"])
 
@@ -82,14 +83,17 @@ async def lister_matchs(
     """
     query = select(Match).where(
         Match.statut.in_([
-            StatutMatch.PROGRAMME,
-            StatutMatch.EN_COURS,
-            StatutMatch.TERMINE,
-            StatutMatch.VALIDE,
+            StatutMatch.PROGRAMME.value,
+            StatutMatch.EN_COURS.value,
+            StatutMatch.TERMINE.value,
+            StatutMatch.VALIDE.value,
         ])
     )
     if saison_id:
         query = query.where(Match.saison_id == saison_id)
+    # Le retrait masque le match de toutes les projections publiques, sans
+    # toucher à son statut ni à ses événements en base.
+    query = query.where(match_sans_equipe_retiree())
     if phase:
         query = query.where(Match.phase == phase)
     if groupe:
@@ -133,8 +137,12 @@ async def detail_match_gestion(
 @router.get("/{match_id}", response_model=MatchOut)
 async def detail_match(match_id: int, db: AsyncSession = Depends(get_db)):
     match_ = await db.get(Match, match_id)
-    statut = match_.statut.value if match_ and hasattr(match_.statut, "value") else match_.statut
+    statut = (
+        match_.statut.value if hasattr(match_.statut, "value") else match_.statut
+    ) if match_ else None
     if match_ is None or statut not in ("programme", "en_cours", "termine", "valide"):
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Match introuvable ou non publié.")
+    if await match_a_une_equipe_retiree(db, match_):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Match introuvable ou non publié.")
     return match_
 

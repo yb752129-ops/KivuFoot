@@ -20,6 +20,7 @@ import {
   formatPublicRound,
   PublicClubLogo,
   scorePublicVisible,
+  StatutEquipeBadge,
 } from "../components/PublicDesign.jsx";
 import Chrono, { LiveMinute } from "../components/Chrono.jsx";
 import { startVisibleRefresh } from "../liveRefresh.js";
@@ -135,9 +136,10 @@ function compactHomeTeamName(name) {
 
 function HomeTeam({ club, name, align = "left", label = name }) {
   return (
-    <span className={`kf-home-team kf-home-team-${align}`}>
-      <PublicClubLogo club={club} name={name} />
+    <span className={`kf-home-team kf-home-team-${align}${club?.statut && club.statut !== "actif" ? " team-status-muted" : ""}`}>
+      <PublicClubLogo club={club} name={name} statut={club?.statut} />
       <span>{label}</span>
+      <StatutEquipeBadge statut={club?.statut} compact />
     </span>
   );
 }
@@ -255,8 +257,8 @@ function HomeLiveCompactRow({ match, clubsById, saisonClubs }) {
         {pause && <span className="live-break-code">MT</span>}
       </span>
       <span className="kf-home-live-compact-teams">
-        <span><PublicClubLogo club={home} name={homeName} />{homeName}</span>
-        <span><PublicClubLogo club={away} name={awayName} />{awayName}</span>
+        <span className={home?.statut && home.statut !== "actif" ? "team-status-muted" : ""}><PublicClubLogo club={home} name={homeName} statut={home?.statut} />{homeName}<StatutEquipeBadge statut={home?.statut} compact /></span>
+        <span className={away?.statut && away.statut !== "actif" ? "team-status-muted" : ""}><PublicClubLogo club={away} name={awayName} statut={away?.statut} />{awayName}<StatutEquipeBadge statut={away?.statut} compact /></span>
       </span>
       <span className="kf-home-live-compact-score">
         {displayValue(match.score_domicile)}–{displayValue(match.score_exterieur)}
@@ -291,8 +293,8 @@ function HomeDayRow({ match, clubsById, saisonClubs }) {
     <Link to={`/matchs/${match.id}`} className="kf-home-day-row">
       <span className={`kf-home-day-time${live ? " live" : ""}`}>{heure}</span>
       <span className="kf-home-day-teams">
-        <span><PublicClubLogo club={home} name={homeName} /><span className="kf-home-day-name">{compactHomeTeamName(homeName)}</span></span>
-        <span><PublicClubLogo club={away} name={awayName} /><span className="kf-home-day-name">{compactHomeTeamName(awayName)}</span></span>
+        <span className={home?.statut && home.statut !== "actif" ? "team-status-muted" : ""}><PublicClubLogo club={home} name={homeName} statut={home?.statut} /><span className="kf-home-day-name">{compactHomeTeamName(homeName)}</span><StatutEquipeBadge statut={home?.statut} compact /></span>
+        <span className={away?.statut && away.statut !== "actif" ? "team-status-muted" : ""}><PublicClubLogo club={away} name={awayName} statut={away?.statut} /><span className="kf-home-day-name">{compactHomeTeamName(awayName)}</span><StatutEquipeBadge statut={away?.statut} compact /></span>
       </span>
       <span className={`kf-home-day-score${live ? " live" : ""}`}>
         {status && <small>{status}</small>}
@@ -330,15 +332,16 @@ function HomeRanking({ classement, clubsById, saisonClubs, saison }) {
             const club = findPublicClub(clubsById, saisonClubs, row.club_id);
             const name = stripDemo(row.club_nom || club?.nom || "—") || "—";
             const followed = followedClubId !== null && Number(row.club_id) === followedClubId;
+            const statut = row.statut || club?.statut || "actif";
             return (
               <Link
                 key={row.club_id ?? `${name}-${index}`}
-                to={row.club_id ? `/clubs/${row.club_id}` : "/clubs"}
-                className={`kf-home-rank-row${followed ? " followed" : ""}`}
+                to={row.club_id ? `/clubs/${row.club_id}?saison_id=${saison?.id}` : "/clubs"}
+                className={`kf-home-rank-row${followed ? " followed" : ""}${statut !== "actif" ? " team-status-muted" : ""}`}
                 role="row"
               >
                 <strong role="cell">{index + 1}</strong>
-                <span className="kf-home-rank-club" role="cell"><PublicClubLogo club={club} name={name} /><span>{name}</span></span>
+                <span className="kf-home-rank-club" role="cell"><PublicClubLogo club={club} name={name} statut={statut} /><span>{name}</span><StatutEquipeBadge statut={statut} compact /></span>
                 <strong role="cell">{displayValue(row.points)}</strong>
                 <span role="cell">{displayValue(row.matchs_joues)}</span>
                 <span role="cell">{displayDifference(row.difference_buts)}</span>

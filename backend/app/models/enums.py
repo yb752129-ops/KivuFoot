@@ -30,6 +30,15 @@ class GroupePoule(str, enum.Enum):
     D = "D"
 
 
+class StatutEquipeEdition(str, enum.Enum):
+    """État administratif d'une équipe dans une édition donnée."""
+
+    ACTIF = "actif"
+    DISQUALIFIE = "disqualifie"
+    ELIMINE = "elimine"
+    RETIRE = "retire"
+
+
 class PosteJoueur(str, enum.Enum):
     GARDIEN = "gardien"
     DEFENSEUR = "defenseur"

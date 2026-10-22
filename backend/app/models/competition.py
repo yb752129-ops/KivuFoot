@@ -4,7 +4,7 @@ from sqlalchemy import Boolean, CheckConstraint, Date, DateTime, ForeignKey, Int
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
-from app.models.enums import TypeCompetition
+from app.models.enums import StatutEquipeEdition, TypeCompetition
 
 # Marqueur utilisé pour toute compétition de démonstration - jamais mélangée
 # aux données réelles (règle non négociable de la spécification).
@@ -55,6 +55,10 @@ class SaisonClub(Base):
             "groupe IS NULL OR groupe IN ('A','B','C','D')",
             name="ck_saison_clubs_groupe",
         ),
+        CheckConstraint(
+            "statut IN ('actif','disqualifie','elimine','retire')",
+            name="ck_saison_clubs_statut",
+        ),
     )
 
     saison_id: Mapped[int] = mapped_column(ForeignKey("saisons.id", ondelete="CASCADE"), primary_key=True)
@@ -62,9 +66,22 @@ class SaisonClub(Base):
     # Source officielle de l'appartenance à une poule pour cette saison.
     # NULL reste autorisé pour les anciennes saisons non reconstructibles.
     groupe: Mapped[str | None] = mapped_column(String(1), nullable=True)
+    # Le statut est propre à l'édition : aucune ligne de club ou de match
+    # n'est supprimée lors d'une décision administrative.
+    statut: Mapped[StatutEquipeEdition] = mapped_column(
+        String(20), default=StatutEquipeEdition.ACTIF, server_default="actif", nullable=False
+    )
+    statut_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=True
+    )
+    statut_motif: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    statut_modifie_par_id: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
 
     saison = relationship("Saison", back_populates="clubs")
     club = relationship("Club")
+    statut_modifie_par = relationship("User", foreign_keys=[statut_modifie_par_id])
 
 
 class OrganisateurCompetition(Base):

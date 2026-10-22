@@ -20,6 +20,7 @@ async def classement_saison(
         ClassementLigne(
             club_id=l.club_id,
             club_nom=l.club_nom,
+            statut=l.statut,
             matchs_joues=l.matchs_joues,
             victoires=l.victoires,
             nuls=l.nuls,
@@ -47,6 +48,7 @@ async def position_club(
                 "position": position,
                 "club_id": ligne.club_id,
                 "club_nom": ligne.club_nom,
+                "statut": ligne.statut,
                 "points": ligne.points,
                 "matchs_joues": ligne.matchs_joues,
                 "difference_buts": ligne.difference_buts,

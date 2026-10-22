@@ -1,8 +1,8 @@
 """Calcul du classement d'une saison.
 
 Règles :
-- toutes les inscriptions ``saison_clubs`` créent une ligne, initialisée à 0 ;
-- seuls les matchs ``statut = valide`` modifient le classement ;
+- toutes les inscriptions non retirées ``saison_clubs`` créent une ligne, initialisée à 0 ;
+- seuls les matchs ``statut = valide`` sans équipe retirée modifient le classement ;
 - un filtre de groupe lit ``saison_clubs.groupe``, jamais ``matchs.groupe`` ;
 - points : victoire = 3, nul = 1, défaite = 0.
 """
@@ -12,15 +12,17 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.club import Club
 from app.models.competition import SaisonClub
-from app.models.enums import StatutMatch
+from app.models.enums import StatutEquipeEdition, StatutMatch
 from app.models.match import Match
 from app.services.reglements import get_reglement_actif
+from app.services.statut_equipe import match_sans_equipe_retiree
 
 
 class LigneClassement:
-    def __init__(self, club_id: int, club_nom: str):
+    def __init__(self, club_id: int, club_nom: str, statut: StatutEquipeEdition | str = StatutEquipeEdition.ACTIF.value):
         self.club_id = club_id
         self.club_nom = club_nom
+        self.statut = getattr(statut, "value", statut) or StatutEquipeEdition.ACTIF.value
         self.matchs_joues = 0
         self.victoires = 0
         self.nuls = 0
@@ -64,7 +66,10 @@ async def calculer_classement(
     inscriptions = await db.execute(
         select(SaisonClub, Club)
         .join(Club, Club.id == SaisonClub.club_id)
-        .where(SaisonClub.saison_id == saison_id)
+        .where(
+            SaisonClub.saison_id == saison_id,
+            SaisonClub.statut != StatutEquipeEdition.RETIRE.value,
+        )
         .order_by(Club.nom, Club.id)
     )
     inscrits = inscriptions.all()
@@ -77,7 +82,7 @@ async def calculer_classement(
         lignes_clubs = inscrits
 
     lignes: dict[int, LigneClassement] = {
-        lien.club_id: LigneClassement(lien.club_id, club.nom)
+        lien.club_id: LigneClassement(lien.club_id, club.nom, lien.statut)
         for lien, club in lignes_clubs
     }
     if not lignes:
@@ -96,7 +101,10 @@ async def calculer_classement(
     result = await db.execute(
         select(Match).where(
             Match.saison_id == saison_id,
-            Match.statut == StatutMatch.VALIDE,
+            Match.statut == StatutMatch.VALIDE.value,
+            # Un retrait sort la rencontre de la projection de l'édition.
+            # Les matchs de l'équipe restent toutefois inchangés en base.
+            match_sans_equipe_retiree(),
         )
     )
     matchs_valides = result.scalars().all()
@@ -157,6 +165,21 @@ async def calculer_classement(
         if critere in {"points", "difference_buts", "buts_marques", "buts_encaisses", "victoires", "nuls", "defaites", "matchs_joues"}
     ] or ["points", "difference_buts", "buts_marques"]
     def cle_tri(ligne: LigneClassement):
+        # Les décisions disqualifié/éliminé restent des lignes officielles,
+        # mais forment un bloc après toutes les équipes actives. À l'intérieur
+        # du bloc, le départage public demandé est fixe : points, différence,
+        # buts pour. Le nom reste le dernier départage déterministe.
+        statut = ligne.statut
+        bloc_statut = 0 if statut == StatutEquipeEdition.ACTIF.value else 1
+        if bloc_statut:
+            return (
+                bloc_statut,
+                -ligne.points,
+                -ligne.difference_buts,
+                -ligne.buts_marques,
+                ligne.club_nom,
+            )
+
         valeurs = []
         for critere in criteres_reconnus:
             valeur = {
@@ -172,7 +195,7 @@ async def calculer_classement(
             if valeur is not None:
                 valeurs.append(-valeur)
         valeurs.append(ligne.club_nom)
-        return tuple(valeurs)
+        return (bloc_statut, *valeurs)
 
     classement.sort(key=cle_tri)
     return classement

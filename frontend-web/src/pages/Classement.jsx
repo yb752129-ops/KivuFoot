@@ -10,6 +10,7 @@ import {
   findPublicClub,
   followedPublicClubId,
   PublicClubLogo,
+  StatutEquipeBadge,
 } from "../components/PublicDesign.jsx";
 
 const GROUPES = ["A", "B", "C", "D"];
@@ -18,20 +19,22 @@ function nomClub(ligne, club) {
   return stripDemo(ligne.club_nom || club?.nom || "—");
 }
 
-function RankingRow({ ligne, index, club, followedClubId }) {
+function RankingRow({ ligne, index, club, followedClubId, saisonId }) {
   const nom = nomClub(ligne, club);
+  const statut = ligne.statut || club?.statut || "actif";
   const followed = followedClubId !== null && Number(ligne.club_id) === followedClubId;
   const contenu = (
-    <span className="kf-public-rank-club-content">
+    <span className={`kf-public-rank-club-content${statut === "disqualifie" || statut === "elimine" ? " has-decision-badge" : ""}`}>
       <span className="kf-public-rank-position">{index + 1}</span>
-      <PublicClubLogo club={club} name={nom} />
+      <PublicClubLogo club={club} name={nom} statut={statut} />
       <span className="kf-public-rank-name">{nom}</span>
+      <StatutEquipeBadge statut={statut} compact />
     </span>
   );
   return (
-    <tr className={followed ? "followed" : ""}>
+    <tr className={`${followed ? "followed " : ""}${statut !== "actif" ? "team-status-muted" : ""}`}>
       <td className="kf-public-rank-club">
-        {ligne.club_id ? <Link to={`/clubs/${ligne.club_id}`}>{contenu}</Link> : <span>{contenu}</span>}
+        {ligne.club_id ? <Link to={`/clubs/${ligne.club_id}?saison_id=${saisonId}`}>{contenu}</Link> : <span>{contenu}</span>}
       </td>
       <td><strong>{displayValue(ligne.points)}</strong></td>
       <td>{displayValue(ligne.matchs_joues)}</td>
@@ -72,6 +75,10 @@ export default function Classement() {
   }, [saison, groupe]);
 
   const lignesTriees = useMemo(() => [...lignes].sort(compareClassementRows), [lignes]);
+  const hasDecisionStatus = useMemo(
+    () => lignesTriees.some((ligne) => ["disqualifie", "elimine"].includes(ligne?.statut)),
+    [lignesTriees],
+  );
   const followedClubId = followedPublicClubId();
   const clubSuivi = followedClubId === null
     ? null
@@ -151,11 +158,18 @@ export default function Classement() {
                   index={index}
                   club={findPublicClub(clubsById, saisonClubs, ligne.club_id)}
                   followedClubId={followedClubId}
+                  saisonId={saison?.id}
                 />
               ))}
             </tbody>
           </table>
         </div>
+      )}
+
+      {hasDecisionStatus && (
+        <p className="kf-team-status-legend">
+          DISQ. : disqualifié par décision de l'organisation · ÉLIM. : éliminé
+        </p>
       )}
     </section>
   );

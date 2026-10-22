@@ -179,8 +179,8 @@ export const api = {
   supprimerCompetition: (id, purger = false) => request(`/competitions/${id}${purger ? "?purger=true" : ""}`, { method: "DELETE", auth: true }),
   saisons: (competitionId) => request(`/saisons?competition_id=${competitionId}`),
   creerSaison: (payload) => request("/saisons", { method: "POST", body: payload, auth: true }),
-  clubs: () => request("/clubs?limit=100").then(avecLogosLocaux),
-  club: (id) => request(`/clubs/${id}`).then(avecLogoLocal),
+  clubs: (saisonId) => request(`/clubs?limit=100${saisonId ? `&saison_id=${saisonId}` : ""}`).then(avecLogosLocaux),
+  club: (id, saisonId) => request(`/clubs/${id}${saisonId ? `?saison_id=${saisonId}` : ""}`).then(avecLogoLocal),
   creerClub: (payload) => request("/clubs", { method: "POST", body: payload, auth: true }),
   modifierClub: (id, payload) => request(`/clubs/${id}`, { method: "PUT", body: payload, auth: true }),
   uploaderLogo: (id, file) => {
@@ -215,6 +215,20 @@ export const api = {
   },
   supprimerClub: (id) => request(`/clubs/${id}`, { method: "DELETE", auth: true }),
   clubsSaison: (saisonId) => request(`/saisons/${saisonId}/clubs`).then(avecLogosLocaux),
+  clubsSaisonGestion: (saisonId) => request(`/saisons/${saisonId}/clubs/gestion`).then(avecLogosLocaux),
+  matchsStatutsEquipes: (saisonId) => request(`/saisons/${saisonId}/clubs/matchs-a-venir-statut`, { auth: true }),
+  modifierStatutEquipe: (saisonId, clubId, statut, motif) =>
+    request(`/saisons/${saisonId}/clubs/${clubId}/statut`, {
+      method: "PATCH",
+      body: { statut, motif: motif || null },
+      auth: true,
+    }),
+  actionStatutEquipe: (saisonId, clubId, action, motif) =>
+    request(`/saisons/${saisonId}/clubs/${clubId}/${action}`, {
+      method: "POST",
+      body: { motif: motif || null },
+      auth: true,
+    }),
   inscrireClub: (saisonId, clubId, groupe = null) =>
     request(`/saisons/${saisonId}/clubs`, {
       method: "POST",

@@ -4,18 +4,19 @@ import { api } from "../api.js";
 import { useKivu } from "../context.jsx";
 import { AVenirLigne, TermineLigne } from "../components/LignesMatch.jsx";
 import { labelPoste, stripDemo } from "../display.js";
+import { PublicClubLogo, StatutEquipeBadge } from "../components/PublicDesign.jsx";
 
 export default function ClubDetail() {
   const { id } = useParams();
-  const { saison, clubsById } = useKivu();
+  const { saison, saisonClubs, clubsById } = useKivu();
   const [club, setClub] = useState(null);
   const [joueurs, setJoueurs] = useState([]);
   const [matchs, setMatchs] = useState([]);
 
   useEffect(() => {
-    api.club(id).then(setClub).catch(() => setClub(null));
+    api.club(id, saison?.id).then(setClub).catch(() => setClub(null));
     api.joueurs(id).then(setJoueurs).catch(() => setJoueurs([]));
-  }, [id]);
+  }, [id, saison?.id]);
 
   useEffect(() => {
     if (!saison) return;
@@ -28,6 +29,8 @@ export default function ClubDetail() {
   if (!club) return <p className="empty">Chargement…</p>;
 
   const lieu = [club.ville, club.stade].filter(Boolean).join(" — ");
+  const saisonClub = (saisonClubs || []).find((row) => Number(row.id ?? row.club_id) === Number(id));
+  const statutEquipe = saisonClub?.statut || "actif";
   const aVenir = matchs.filter((m) => m.statut === "programme").sort((a, b) => new Date(a.date_heure) - new Date(b.date_heure));
   const termines = matchs
     .filter((m) => m.statut === "termine" || m.statut === "valide")
@@ -36,16 +39,10 @@ export default function ClubDetail() {
   return (
     <section className="hero">
       <p className="kicker"><Link to="/clubs">← Équipes</Link></p>
-      <div className="id-head">
-        {club.logo_url ? (
-          <img className="logo-libre logo-libre-grand" src={club.logo_url} alt="" />
-        ) : (
-          <span className="id-mark" aria-hidden="true">
-            {(stripDemo(club.nom) || "?").charAt(0)}
-          </span>
-        )}
+      <div className={`id-head${statutEquipe !== "actif" ? " team-status-muted" : ""}`}>
+        <PublicClubLogo club={club} name={club.nom} statut={statutEquipe} className="logo-libre logo-libre-grand" />
         <div>
-          <h1>{stripDemo(club.nom)}</h1>
+          <h1>{stripDemo(club.nom)} <StatutEquipeBadge statut={statutEquipe} /></h1>
           <p className="journee-date">{lieu || "Lieu à compléter"}</p>
         </div>
       </div>

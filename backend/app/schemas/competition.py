@@ -2,7 +2,7 @@ from datetime import date, datetime
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from app.models.enums import GroupePoule, TypeCompetition
+from app.models.enums import GroupePoule, StatutEquipeEdition, TypeCompetition
 
 
 class ClubOut(BaseModel):
@@ -63,11 +63,24 @@ class ClubUpdate(BaseModel):
 
 
 class SaisonClubOut(ClubOut):
-    """Équipe inscrite avec sa configuration propre à la saison."""
+    """Projection publique d'une équipe inscrite dans une édition.
+
+    Le motif, l'auteur et les détails de l'audit ne font volontairement pas
+    partie de ce schéma public.
+    """
 
     saison_id: int
     club_id: int
     groupe: GroupePoule | None = None
+    statut: StatutEquipeEdition = StatutEquipeEdition.ACTIF
+
+
+class SaisonClubGestionOut(SaisonClubOut):
+    """Projection réservée à l'administration et à l'organisation."""
+
+    statut_at: datetime | None = None
+    statut_motif: str | None = None
+    statut_modifie_par_id: int | None = None
 
 
 class SaisonClubCreate(BaseModel):
@@ -92,6 +105,19 @@ class SaisonClubGroupeUpdate(BaseModel):
         if v is None:
             return None
         valeur = str(v).strip().upper()
+        return valeur or None
+
+
+class SaisonClubStatutUpdate(BaseModel):
+    statut: StatutEquipeEdition | None = None
+    motif: str | None = Field(default=None, max_length=500)
+
+    @field_validator("motif")
+    @classmethod
+    def motif_normalise(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        valeur = v.strip()
         return valeur or None
 
 

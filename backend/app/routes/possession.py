@@ -20,6 +20,7 @@ from app.services.possession import (
     snapshot_public_possession,
     transition_possession,
 )
+from app.services.statut_equipe import match_a_une_equipe_retiree
 
 router = APIRouter(prefix="/matchs", tags=["Possession"])
 _GESTION_ROLES = (RoleUtilisateur.ADMIN, RoleUtilisateur.ORGANISATEUR, RoleUtilisateur.COLLECTEUR)
@@ -47,6 +48,8 @@ async def lire_possession_publique(match_id: int, db: AsyncSession = Depends(get
     par le service existant au moment de la lecture.
     """
     match = await _match_existant(db, match_id)
+    if await match_a_une_equipe_retiree(db, match):
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Match introuvable.")
     return await snapshot_public_possession(db, match, await get_possession(db, match_id))
 
 
