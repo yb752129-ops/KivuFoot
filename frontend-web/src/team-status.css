@@ -167,19 +167,19 @@ img.is-status-muted,
   border-top-color: rgba(37,169,95,.32);
   border-bottom-color: rgba(37,169,95,.32);
 }
-.kf-public-frame .kf-public-ranking .kf-public-rank-table tr.kf-rank-direct td:first-child { border-left-color: #38c878; }
+.kf-public-frame .kf-public-ranking .kf-public-rank-table tr.kf-rank-direct td:first-child { border-left-color: #38c878; background-color: #173d2a; }
 .kf-public-frame .kf-public-ranking .kf-public-rank-table tr.kf-rank-barrages-5-8 td {
   background: rgba(215,173,33,.12);
   border-top-color: rgba(215,173,33,.32);
   border-bottom-color: rgba(215,173,33,.32);
 }
-.kf-public-frame .kf-public-ranking .kf-public-rank-table tr.kf-rank-barrages-5-8 td:first-child { border-left-color: #e4c044; }
+.kf-public-frame .kf-public-ranking .kf-public-rank-table tr.kf-rank-barrages-5-8 td:first-child { border-left-color: #e4c044; background-color: #3b3215; }
 .kf-public-frame .kf-public-ranking .kf-public-rank-table tr.kf-rank-barrages-9-12 td {
   background: rgba(53,127,203,.14);
   border-top-color: rgba(53,127,203,.34);
   border-bottom-color: rgba(53,127,203,.34);
 }
-.kf-public-frame .kf-public-ranking .kf-public-rank-table tr.kf-rank-barrages-9-12 td:first-child { border-left-color: #5aa8f5; }
+.kf-public-frame .kf-public-ranking .kf-public-rank-table tr.kf-rank-barrages-9-12 td:first-child { border-left-color: #5aa8f5; background-color: #172e48; }
 .kf-public-frame .kf-public-ranking .kf-public-rank-table tr.team-status-muted {
   opacity: 1;
 }
@@ -188,9 +188,12 @@ img.is-status-muted,
   border-top-color: rgba(200,54,64,.32);
   border-bottom-color: rgba(200,54,64,.32);
 }
-.kf-public-frame .kf-public-ranking .kf-public-rank-table tr.team-status-muted td:first-child { border-left-color: #e35b62; }
+.kf-public-frame .kf-public-ranking .kf-public-rank-table tr.team-status-muted td:first-child { border-left-color: #e35b62; background-color: #3a1e22; }
 
 @media (max-width: 520px) {
   .kf-qualification-legend { gap: .35rem .65rem; font-size: .64rem; }
   .kf-public-frame .kf-public-ranking .kf-qualification-badge { font-size: .53rem; }
 }
+
+
+/* Les cellules sticky restent opaques pour masquer les colonnes défilées dessous. */
