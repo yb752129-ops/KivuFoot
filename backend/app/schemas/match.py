@@ -1,7 +1,7 @@
 from datetime import datetime
 import re
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.models.enums import EquipeConcernee, GroupePoule, PeriodeMatch, StatutMatch, StatutParticipation
 
@@ -12,7 +12,7 @@ class MatchOut(BaseModel):
     id: int
     saison_id: int
     journee: str | None
-    date_heure: datetime
+    date_heure: datetime | None
     stade: str | None
     equipe_domicile_id: int | None
     equipe_exterieur_id: int | None
@@ -44,7 +44,7 @@ class MatchOut(BaseModel):
 class MatchCreate(BaseModel):
     saison_id: int
     journee: str | None = None
-    date_heure: datetime
+    date_heure: datetime | None = None
     stade: str | None = None
     equipe_domicile_id: int
     equipe_exterieur_id: int
@@ -66,6 +66,12 @@ class MatchCreate(BaseModel):
         if dom is not None and v == dom:
             raise ValueError("Une équipe ne peut pas jouer contre elle-même.")
         return v
+
+    @model_validator(mode="after")
+    def date_heure_requise_hors_barrage(self):
+        if self.phase != "barrage" and self.date_heure is None:
+            raise ValueError("La date et l’heure sont obligatoires hors barrage.")
+        return self
 
 
 class MatchPhaseUpdate(BaseModel):

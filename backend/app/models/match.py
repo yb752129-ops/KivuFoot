@@ -23,7 +23,7 @@ class Match(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     saison_id: Mapped[int] = mapped_column(ForeignKey("saisons.id", ondelete="CASCADE"), nullable=False)
     journee: Mapped[str | None] = mapped_column(String(20))
-    date_heure: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    date_heure: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     stade: Mapped[str | None] = mapped_column(String(255))
     equipe_domicile_id: Mapped[int | None] = mapped_column(ForeignKey("clubs.id", ondelete="SET NULL"))
     equipe_exterieur_id: Mapped[int | None] = mapped_column(ForeignKey("clubs.id", ondelete="SET NULL"))

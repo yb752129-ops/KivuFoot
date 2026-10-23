@@ -755,6 +755,7 @@ export default function OrgaMatch({ backTo = "/orga/matchs", mode = "orga" } = {
               Phase
               <select value={phaseSel} onChange={(e) => setPhaseSel(e.target.value)}>
                 <option value="poule">Poule</option>
+                <option value="barrage">Barrage</option>
                 <option value="quart">Quart de finale</option>
                 <option value="demi">Demi-finale</option>
                 <option value="finale">Finale</option>

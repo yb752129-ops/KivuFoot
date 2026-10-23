@@ -93,13 +93,17 @@ export function AVenirLigne({ match, clubsById, to }) {
   const home = nomClub(clubsById, match.equipe_domicile_id);
   const away = nomClub(clubsById, match.equipe_exterieur_id);
   const lieu = formatDateline(match.date_heure, match.stade);
+  const dateHeure = match.date_heure ? formatHeure(match.date_heure) : "À confirmer";
+  const lieuAffiche = !match.date_heure
+    ? [lieu, "Date et heure à confirmer"].filter(Boolean).join(" · ")
+    : lieu;
   const logoHome = clubsById[match.equipe_domicile_id]?.logo_url;
   const logoAway = clubsById[match.equipe_exterieur_id]?.logo_url;
   return (
     <Link to={to || `/matchs/${match.id}`} className="bulletin-row">
       <span className="bulletin-quand">
-        <span className="bulletin-etat">À venir</span>
-        <span className="bulletin-heure">{formatHeure(match.date_heure)}</span>
+        <span className="bulletin-etat">{match.phase === "barrage" ? "Barrage" : "À venir"}</span>
+        <span className="bulletin-heure">{dateHeure}</span>
       </span>
       <span className="bulletin-noms">
         <span className="bulletin-nom">
@@ -110,7 +114,7 @@ export function AVenirLigne({ match, clubsById, to }) {
           {logoAway ? <img className="bulletin-logo" src={logoAway} alt="" /> : <span className="bulletin-logo-vide" />}
           {away || "Équipe à nommer"}
         </span>
-        {lieu && <span className="bulletin-lieu"><IcoEpingle className="lieu-ico" />{lieu}</span>}
+        {lieuAffiche && <span className="bulletin-lieu">{match.stade && <IcoEpingle className="lieu-ico" />}{lieuAffiche}</span>}
       </span>
       <Chevron />
     </Link>

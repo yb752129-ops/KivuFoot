@@ -76,13 +76,16 @@ export default function OrgaCalendrier() {
       if (phase === "poule" && !groupeAuto) {
         throw new Error("Affectez d'abord un groupe officiel aux deux équipes.");
       }
+      const dateHeure = phase === "barrage" && !dateMatch && !heureMatch
+        ? null
+        : isoDepuisDateHeure(dateMatch, heureMatch);
       const equipeDomicile = equipes.find((c) => c.id === d) || clubsById[d];
       await api.creerMatch({
         saison_id: s.id,
         journee: journee.trim().slice(0, 20) || null,
         phase: phase || "poule",
         groupe: phase === "poule" ? groupeAuto : groupe || null,
-        date_heure: isoDepuisDateHeure(dateMatch, heureMatch),
+        date_heure: dateHeure,
         stade: stadeMatch.trim() || equipeDomicile?.stade || null,
         equipe_domicile_id: d,
         equipe_exterieur_id: x,
@@ -103,7 +106,12 @@ export default function OrgaCalendrier() {
 
   const aVenir = matchs
     .filter((m) => m.statut === "programme")
-    .sort((a, b) => new Date(a.date_heure) - new Date(b.date_heure));
+    .sort((a, b) => {
+      if (!a.date_heure && !b.date_heure) return Number(a.id || 0) - Number(b.id || 0);
+      if (!a.date_heure) return 1;
+      if (!b.date_heure) return -1;
+      return new Date(a.date_heure) - new Date(b.date_heure);
+    });
 
   return (
     <section className="hero">
@@ -137,13 +145,16 @@ export default function OrgaCalendrier() {
           <div className="comp-grid">
             <label className="field">
               Date
-              <input type="date" value={dateMatch} onChange={(e) => setDateMatch(e.target.value)} required />
+              <input type="date" value={dateMatch} onChange={(e) => setDateMatch(e.target.value)} required={phase !== "barrage"} />
             </label>
             <label className="field">
               Heure
-              <input type="time" value={heureMatch} onChange={(e) => setHeureMatch(e.target.value)} required />
+              <input type="time" value={heureMatch} onChange={(e) => setHeureMatch(e.target.value)} required={phase !== "barrage"} />
             </label>
           </div>
+          {phase === "barrage" && (
+            <p className="lead">Pour un barrage, laissez les deux champs vides si le coup d’envoi n’est pas fixé. Les deux équipes officielles restent obligatoires.</p>
+          )}
           <label className="field">
             Stade
             <input
@@ -156,6 +167,7 @@ export default function OrgaCalendrier() {
             Phase
             <select value={phase} onChange={(e) => setPhase(e.target.value)}>
               <option value="poule">Poule</option>
+            <option value="barrage">Barrage</option>
               <option value="quart">Quart de finale</option>
               <option value="demi">Demi-finale</option>
               <option value="finale">Finale</option>

@@ -40,6 +40,13 @@ function classeHalo(match) {
   return match.id % 2 === 0 ? "halo-blue" : "halo-gold";
 }
 
+function comparerDateProgramme(a, b) {
+  if (!a.date_heure && !b.date_heure) return Number(a.id || 0) - Number(b.id || 0);
+  if (!a.date_heure) return 1;
+  if (!b.date_heure) return -1;
+  return new Date(a.date_heure) - new Date(b.date_heure);
+}
+
 function scoreWinners(match) {
   if (!scorePublicVisible(match)) return { home: false, away: false };
   const home = numericValue(match.score_domicile);
@@ -78,7 +85,7 @@ function PublicMatchCard({ match, clubsById, saisonClubs, event }) {
         ) : (
           <span className="kf-public-match-status">{statutLabel(match.statut)}</span>
         )}
-        <span>{upcoming ? formatPublicRound(match.journee) : formatPublicDate(match.date_heure)}</span>
+        <span>{upcoming ? (match.phase === "barrage" ? "BARRAGE" : formatPublicRound(match.journee)) : formatPublicDate(match.date_heure)}</span>
       </div>
       <div className="kf-public-match-teams">
         <span className={`kf-public-match-team${winners.home ? " winner" : ""}`}>
@@ -94,7 +101,7 @@ function PublicMatchCard({ match, clubsById, saisonClubs, event }) {
           <strong>{awayName}</strong>
         </span>
       </div>
-      {upcoming && <p className="kf-public-match-kickoff">{formatPublicKickoff(match.date_heure)}</p>}
+      {upcoming && <p className="kf-public-match-kickoff">{match.date_heure ? formatPublicKickoff(match.date_heure) : "Date et heure à confirmer"}</p>}
       {event && (
         <p className={`kf-public-live-event ${classeEvenementLive(event)}`}>
           {formatMinute(event.minute, event.minute_additionnelle)} · {labelEvenement(event)}
@@ -189,7 +196,7 @@ export default function Matchs() {
 
   const aVenir = [...affiches]
     .filter((match) => match.statut === "programme")
-    .sort((a, b) => new Date(a.date_heure) - new Date(b.date_heure));
+    .sort(comparerDateProgramme);
   const lives = [...affiches]
     .filter((match) => match.statut === "en_cours" && !match.ended_at)
     .sort((a, b) => new Date(a.date_heure) - new Date(b.date_heure));

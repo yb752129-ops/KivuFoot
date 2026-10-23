@@ -223,6 +223,8 @@ async def creer_match(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_roles(RoleUtilisateur.ADMIN, RoleUtilisateur.ORGANISATEUR)),
 ):
+    if payload.phase not in PHASES_VALIDES:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Phase inconnue : poule, barrage, quart, demi ou finale.")
     saison = await db.get(Saison, payload.saison_id)
     if saison is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Saison introuvable.")
@@ -272,9 +274,9 @@ async def supprimer_match_programme(
             "Seul un match encore programmé peut être supprimé.",
         )
     date_heure = match_.date_heure
-    if date_heure.tzinfo is None:
+    if date_heure is not None and date_heure.tzinfo is None:
         date_heure = date_heure.replace(tzinfo=timezone.utc)
-    if match_.started_at is not None or date_heure <= datetime.now(timezone.utc):
+    if match_.started_at is not None or (date_heure is not None and date_heure <= datetime.now(timezone.utc)):
         raise HTTPException(
             status.HTTP_409_CONFLICT,
             "Ce match a déjà commencé ou son coup d’envoi est dépassé.",
@@ -293,7 +295,7 @@ async def supprimer_match_programme(
     avant = {
         "saison_id": match_.saison_id,
         "journee": match_.journee,
-        "date_heure": match_.date_heure.isoformat(),
+        "date_heure": match_.date_heure.isoformat() if match_.date_heure else None,
         "equipe_domicile_id": match_.equipe_domicile_id,
         "equipe_exterieur_id": match_.equipe_exterieur_id,
         "stade": match_.stade,
@@ -515,7 +517,7 @@ async def modifier_programmation_match(
     statut = match_.statut.value if hasattr(match_.statut, "value") else match_.statut
     if statut != StatutMatch.PROGRAMME.value and statut != StatutMatch.PROGRAMME:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Seul un match programmé peut être replanifié.")
-    avant = {"date_heure": match_.date_heure.isoformat(), "stade": match_.stade}
+    avant = {"date_heure": match_.date_heure.isoformat() if match_.date_heure else None, "stade": match_.stade}
     match_.date_heure = payload.date_heure
     if payload.stade is not None:
         match_.stade = payload.stade.strip() or None
@@ -1108,7 +1110,7 @@ async def lister_participations(
     return result.scalars().all()
 
 
-PHASES_VALIDES = ("poule", "quart", "demi", "finale")
+PHASES_VALIDES = ("poule", "barrage", "quart", "demi", "finale")
 
 
 @router.put("/{match_id}/phase", response_model=MatchOut)
@@ -1122,7 +1124,7 @@ async def changer_phase_match(
     if match_.locked:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Match verrouillé : phase non modifiable.")
     if payload.phase not in PHASES_VALIDES:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Phase inconnue : poule, quart, demi ou finale.")
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Phase inconnue : poule, barrage, quart, demi ou finale.")
     if payload.phase == "poule":
         if match_.equipe_domicile_id is None or match_.equipe_exterieur_id is None:
             raise HTTPException(status.HTTP_400_BAD_REQUEST, "Les deux équipes sont nécessaires pour une poule.")

@@ -147,7 +147,9 @@ function HomeTeam({ club, name, align = "left", label = name }) {
 function HomeMatchMeta({ match }) {
   const date = scorePublicVisible(match)
     ? formatPublicDate(match.date_heure)
-    : formatPublicKickoff(match.date_heure);
+    : match.date_heure
+      ? formatPublicKickoff(match.date_heure)
+      : "Date et heure à confirmer";
   return (
     <div className="kf-home-match-meta">
       <span><IcoCalendrier /> {date}</span>
@@ -199,7 +201,7 @@ function HomeUpcomingCard({ match, clubsById, saisonClubs }) {
     <Link to={`/matchs/${match.id}`} className="kf-home-match-card kf-home-upcoming-card">
       <div className="kf-home-card-top">
         <span className="kf-home-status">À VENIR</span>
-        <span>{formatPublicRound(match.journee)}</span>
+        <span>{match.phase === "barrage" ? "BARRAGE" : formatPublicRound(match.journee)}</span>
       </div>
       <div className="kf-home-upcoming-title" title={`${homeName} — ${awayName}`}>
         <HomeTeam club={home} name={homeName} label={compactHomeTeamName(homeName)} />
@@ -473,10 +475,15 @@ export default function Home() {
   const livePrincipal = lives[0] || null;
   const autresLives = lives.slice(1);
   const resultats = matchs.filter(isFinished).sort((a, b) => new Date(b.date_heure) - new Date(a.date_heure));
-  const programmes = matchs.filter(isScheduled).sort((a, b) => new Date(a.date_heure) - new Date(b.date_heure));
+  const programmes = matchs.filter(isScheduled).sort((a, b) => {
+    if (!a.date_heure && !b.date_heure) return Number(a.id || 0) - Number(b.id || 0);
+    if (!a.date_heure) return 1;
+    if (!b.date_heure) return -1;
+    return new Date(a.date_heure) - new Date(b.date_heure);
+  });
   const aujourdHui = todayCivil();
   const jour = addCivilDays(aujourdHui, jourOffset);
-  const prochains = programmes.filter((match) => civilDate(match.date_heure) > jour);
+  const prochains = programmes.filter((match) => !match.date_heure || civilDate(match.date_heure) > jour);
   const matchsDuJour = matchs
     .filter((match) => civilDate(match.date_heure) === jour && !isLive(match))
     .sort((a, b) => (
