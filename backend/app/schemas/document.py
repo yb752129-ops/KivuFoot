@@ -22,3 +22,12 @@ class DocumentOut(BaseModel):
     created_at: datetime
     published_at: datetime | None
     url: str | None = None
+
+
+class DocumentPublicOut(BaseModel):
+    """Champs sans données internes, lisibles sans compte pour le PDF publié."""
+
+    titre: str
+    version: int
+    published_at: datetime | None
+    url: str

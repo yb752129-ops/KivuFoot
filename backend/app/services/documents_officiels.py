@@ -25,7 +25,7 @@ from app.services.stockage_document import DepotDocumentRefus, uploader_document
 from app.config import settings
 
 
-PDF_LAYOUT_VERSION = 2
+PDF_LAYOUT_VERSION = 3
 
 
 def _value(value):
@@ -299,15 +299,15 @@ def _pdf_section_heading(title, count, styles):
     return heading
 
 
-def _pdf_fact_table(rows, styles, empty_text):
+def _pdf_fact_table(rows, styles, empty_text, headers=("MINUTE", "JOUEUR", "FAIT")):
     from reportlab.lib import colors
     from reportlab.lib.units import mm
     from reportlab.platypus import Paragraph, Table, TableStyle
 
     data = [[
-        Paragraph("MINUTE", styles["table_head"]),
-        Paragraph("JOUEUR", styles["table_head"]),
-        Paragraph("FAIT", styles["table_head"]),
+        Paragraph(escape(headers[0]), styles["table_head"]),
+        Paragraph(escape(headers[1]), styles["table_head"]),
+        Paragraph(escape(headers[2]), styles["table_head"]),
     ]]
     if rows:
         for minute, player, fact in rows:
@@ -463,6 +463,8 @@ def _match_pdf_bytes(
     goals: list[tuple[str, str, str]],
     discipline: list[tuple[str, str, str]],
     man_of_match: str | None,
+    shootout_score: tuple[int, int] | None = None,
+    shootout: list[tuple[str, str, str]] | None = None,
 ) -> bytes:
     """Feuille de match A4, lisible à l'écran comme à l'impression."""
     from reportlab.lib import colors
@@ -538,6 +540,16 @@ def _match_pdf_bytes(
     story.append(Spacer(1, 5 * mm))
     story.append(_pdf_section_heading("BUTEURS ET FAITS OFFENSIFS", f"{len(goals)} fait(s)", styles))
     story.append(_pdf_fact_table(goals, styles, "Aucun but ou penalty enregistré."))
+    if shootout:
+        story.append(Spacer(1, 5 * mm))
+        score_label = f"{shootout_score[0]}–{shootout_score[1]} (TAB)" if shootout_score else "SÉANCE"
+        story.append(_pdf_section_heading("SÉANCE DE TIRS AU BUT", score_label, styles))
+        story.append(_pdf_fact_table(
+            shootout,
+            styles,
+            "Aucun tir enregistré.",
+            headers=("ORDRE / ÉQUIPE", "TIREUR", "RÉSULTAT"),
+        ))
     story.append(Spacer(1, 5 * mm))
     story.append(_pdf_section_heading("DISCIPLINE", f"{len(discipline)} sanction(s)", styles))
     story.append(_pdf_fact_table(discipline, styles, "Aucune sanction disciplinaire enregistrée."))
@@ -582,7 +594,13 @@ async def generer_document_match(db: AsyncSession, match_id: int, user_id: int) 
             .order_by(EvenementMatch.minute, EvenementMatch.id)
         )
     ).scalars().all()
-    player_ids = {event.joueur_id for event in events if event.joueur_id} | {event.joueur_secondaire_id for event in events if event.joueur_secondaire_id}
+    tirs_au_but = list(match.tirs_au_but or [])
+    tireurs_ids = {tir.get("joueur_id") for tir in tirs_au_but if tir.get("joueur_id")}
+    player_ids = (
+        {event.joueur_id for event in events if event.joueur_id}
+        | {event.joueur_secondaire_id for event in events if event.joueur_secondaire_id}
+        | tireurs_ids
+    )
     players = {}
     if player_ids:
         players = {row.id: row for row in (await db.execute(select(Joueur).where(Joueur.id.in_(player_ids)))).scalars().all()}
@@ -604,6 +622,21 @@ async def generer_document_match(db: AsyncSession, match_id: int, user_id: int) 
             goals.append((minute, player_name, fact))
         elif event_type in ("carton_jaune", "carton_rouge"):
             discipline.append((minute, player_name, "Carton jaune" if event_type == "carton_jaune" else "Carton rouge"))
+    score_tirs = {"domicile": 0, "exterieur": 0}
+    tirs_pdf = []
+    for index, tir in enumerate(tirs_au_but, start=1):
+        cote = tir.get("equipe_concernee")
+        resultat = tir.get("resultat")
+        if cote not in score_tirs:
+            continue
+        if resultat == "marque":
+            score_tirs[cote] += 1
+        equipe_nom = home.nom if cote == "domicile" and home else away.nom if cote == "exterieur" and away else ("Domicile" if cote == "domicile" else "Extérieur")
+        tireur = players.get(tir.get("joueur_id"))
+        ordre = tir.get("ordre", index)
+        resultat_label = "Marqué" if resultat == "marque" else "Raté" if resultat == "rate" else "Non précisé"
+        tirs_pdf.append((f"#{ordre} · {equipe_nom}", tireur.nom_complet if tireur else "Joueur non renseigné", resultat_label))
+
     homme = await db.scalar(select(HommeMatch).where(HommeMatch.match_id == match.id))
     homme_text = "Non désigné"
     if homme:
@@ -622,6 +655,7 @@ async def generer_document_match(db: AsyncSession, match_id: int, user_id: int) 
         "stade": match.stade,
         "score": [match.score_domicile, match.score_exterieur],
         "events": [{"id": event.id, "type": _value(event.type), "minute": event.minute, "joueur_id": event.joueur_id} for event in events],
+        "tirs_au_but": tirs_au_but,
         "homme_du_match": homme.joueur_id if homme else None,
     }
     canonical = json.dumps(snapshot, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
@@ -654,6 +688,8 @@ async def generer_document_match(db: AsyncSession, match_id: int, user_id: int) 
         goals=goals,
         discipline=discipline,
         man_of_match=homme_text,
+        shootout_score=(score_tirs["domicile"], score_tirs["exterieur"]) if tirs_au_but else None,
+        shootout=tirs_pdf,
     )
     document = DocumentOfficiel(
         type_document="match",
