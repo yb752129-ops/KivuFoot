@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { clubName } from "../context.jsx";
 import { findPublicClub, formatPublicKickoff, PublicClubLogo, scorePublicVisible, StatutEquipeBadge } from "./PublicDesign.jsx";
+import { vainqueurTirsAuBut } from "../tirsAuBut.js";
 
 function displayName(name) {
   return (name || "").replace(/^DEMO\s*[-–]?\s*/i, "").trim() || name;
@@ -18,8 +19,9 @@ export default function Scoreboard({ match, clubsById, saisonClubs, to }) {
   const played = scorePublicVisible(match) && sd != null && se != null;
   const upcoming = !scorePublicVisible(match);
   const finished = ["termine", "valide"].includes(match.statut);
-  const homeWin = played && sd > se;
-  const awayWin = played && se > sd;
+  const shootoutWinner = played && sd === se ? vainqueurTirsAuBut(match.tirs_au_but || []) : null;
+  const homeWin = played && (sd > se || shootoutWinner === "domicile");
+  const awayWin = played && (se > sd || shootoutWinner === "exterieur");
   const meta = upcoming ? formatPublicKickoff(match.date_heure) : "";
   const inner = (
     <>

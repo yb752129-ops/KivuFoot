@@ -3,6 +3,8 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { api, clearTokens } from "../api.js";
 import Chrono from "../components/Chrono.jsx";
 import PossessionControle from "../components/PossessionControle.jsx";
+import { TirsAuButAdmin } from "../components/TirsAuBut.jsx";
+import { PHASES_ELIMINATOIRES } from "../tirsAuBut.js";
 import { clubName, useKivu } from "../context.jsx";
 import { civilDate, clockFromMatch, formatHeure, formatMinute, grouperFaits, labelEvenement, MOTIF_REFUS, periodeLabel, splitMinute, stripDemo } from "../display.js";
 import { isoDepuisDateHeure, STATUT_MATCH } from "./orga/saison.js";
@@ -692,6 +694,18 @@ export default function OrgaMatch({ backTo = "/orga/matchs", mode = "orga" } = {
         onChange={setPossession}
         mode={collecteur ? "collecteur" : "organisateur"}
       />
+
+      {!collecteur && PHASES_ELIMINATOIRES.includes(match.phase) && (
+        <TirsAuButAdmin
+          key={match.id}
+          match={match}
+          home={home}
+          away={away}
+          joueursDom={joueursDom}
+          joueursExt={joueursExt}
+          onUpdated={setMatch}
+        />
+      )}
 
       {!collecteur && !match.locked && match.statut === "programme" && (
         <form className="phase-box" onSubmit={enregistrerResultatRetroactif}>

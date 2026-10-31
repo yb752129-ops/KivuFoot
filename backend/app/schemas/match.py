@@ -1,9 +1,23 @@
 from datetime import datetime
 import re
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.models.enums import EquipeConcernee, GroupePoule, PeriodeMatch, StatutMatch, StatutParticipation
+
+
+class TirAuButCreate(BaseModel):
+    equipe_concernee: EquipeConcernee
+    joueur_id: int = Field(ge=1)
+    resultat: Literal["marque", "rate"]
+
+
+class TirAuButOut(BaseModel):
+    ordre: int = Field(ge=1)
+    equipe_concernee: EquipeConcernee
+    joueur_id: int | None = None
+    resultat: Literal["marque", "rate"]
 
 
 class MatchOut(BaseModel):
@@ -39,6 +53,7 @@ class MatchOut(BaseModel):
     motif_resultat_retroactif: str | None = None
     note_officielle: str | None = None
     buteurs_a_verifier: bool = False
+    tirs_au_but: list[TirAuButOut] = Field(default_factory=list)
 
 
 class MatchCreate(BaseModel):

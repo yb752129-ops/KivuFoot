@@ -1,6 +1,7 @@
 from datetime import datetime
 
-from sqlalchemy import Boolean, CheckConstraint, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint, func
+from sqlalchemy import Boolean, CheckConstraint, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint, func, text
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -69,6 +70,9 @@ class Match(Base):
     motif_resultat_retroactif: Mapped[str | None] = mapped_column(String(500))
     note_officielle: Mapped[str | None] = mapped_column(Text)
     buteurs_a_verifier: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+
+    # Séance de tirs au but distincte du score et des événements du match.
+    tirs_au_but: Mapped[list[dict]] = mapped_column(JSONB, default=list, server_default=text("'[]'::jsonb"), nullable=False)
 
     # Composition (pack 11 sept) : formation et entraîneur par équipe,
     # colonnes additives, jamais destructives.

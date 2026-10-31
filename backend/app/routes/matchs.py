@@ -36,6 +36,7 @@ from app.schemas.match import (
     ParticipationCreate,
     ParticipationOut,
     ParticipationUpdate,
+    TirAuButCreate,
 )
 from app.services.audit import log_audit
 from app.services.groupes_saison import determiner_groupe_match
@@ -60,6 +61,7 @@ from app.services.validation import valider_match
 from app.services.possession import suspendre_possession, terminer_possession
 from app.services.composition_positions import positions_titulaires_valides, slots_formation
 from app.services.statut_equipe import match_a_une_equipe_retiree, match_sans_equipe_retiree
+from app.services.tirs_au_but import PHASES_ELIMINATOIRES, vainqueur_tirs_au_but
 
 router = APIRouter(prefix="/matchs", tags=["Matchs"])
 
@@ -583,6 +585,80 @@ async def changer_periode_match(
     return match_
 
 
+def _verifier_seance_tirs_au_but(match_: Match) -> None:
+    if match_.locked:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Match verrouillé : tirs au but non modifiables.")
+    if _value(match_.statut) != StatutMatch.TERMINE.value:
+        raise HTTPException(status.HTTP_409_CONFLICT, "La séance est saisissable après la fin du match.")
+    if match_.forfait:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Une séance de tirs au but n'est pas applicable à un forfait.")
+    if match_.phase not in PHASES_ELIMINATOIRES:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Les tirs au but sont réservés aux phases à élimination directe.")
+    if match_.score_domicile != match_.score_exterieur:
+        raise HTTPException(status.HTTP_409_CONFLICT, "La séance n'est possible que si le score du match est à égalité.")
+
+
+@router.post("/{match_id}/tirs-au-but", response_model=MatchOut)
+async def ajouter_tir_au_but(
+    match_id: int,
+    payload: TirAuButCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles(RoleUtilisateur.ADMIN, RoleUtilisateur.ORGANISATEUR)),
+):
+    await verifier_organisateur_du_match(match_id, current_user, db)
+    match_ = await db.scalar(select(Match).where(Match.id == match_id).with_for_update())
+    if match_ is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Match introuvable.")
+    _verifier_seance_tirs_au_but(match_)
+    tirs = list(match_.tirs_au_but or [])
+    if vainqueur_tirs_au_but(tirs):
+        raise HTTPException(status.HTTP_409_CONFLICT, "La séance est déjà mathématiquement décidée.")
+    equipe = _value(payload.equipe_concernee)
+    if tirs and _value(tirs[-1].get("equipe_concernee")) == equipe:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Les équipes tirent alternativement.")
+    joueur = await db.get(Joueur, payload.joueur_id)
+    club_attendu = match_.equipe_domicile_id if equipe == EquipeConcernee.DOMICILE.value else match_.equipe_exterieur_id
+    if joueur is None or joueur.club_actuel_id != club_attendu:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Le tireur doit appartenir à l'équipe sélectionnée.")
+    avant = list(tirs)
+    tirs.append({
+        "ordre": len(tirs) + 1,
+        "equipe_concernee": equipe,
+        "joueur_id": payload.joueur_id,
+        "resultat": payload.resultat,
+    })
+    match_.tirs_au_but = tirs
+    await log_audit(db, "matchs", match_.id, ActionAudit.UPDATE, current_user.id,
+                    {"tirs_au_but": avant}, {"tirs_au_but": tirs})
+    await db.commit()
+    await db.refresh(match_)
+    return match_
+
+
+@router.delete("/{match_id}/tirs-au-but/dernier", response_model=MatchOut)
+async def annuler_dernier_tir_au_but(
+    match_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles(RoleUtilisateur.ADMIN, RoleUtilisateur.ORGANISATEUR)),
+):
+    await verifier_organisateur_du_match(match_id, current_user, db)
+    match_ = await db.scalar(select(Match).where(Match.id == match_id).with_for_update())
+    if match_ is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Match introuvable.")
+    _verifier_seance_tirs_au_but(match_)
+    tirs = list(match_.tirs_au_but or [])
+    if not tirs:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Aucun tir à annuler.")
+    avant = list(tirs)
+    tirs.pop()
+    match_.tirs_au_but = tirs
+    await log_audit(db, "matchs", match_.id, ActionAudit.UPDATE, current_user.id,
+                    {"tirs_au_but": avant}, {"tirs_au_but": tirs})
+    await db.commit()
+    await db.refresh(match_)
+    return match_
+
+
 @router.post("/{match_id}/valider", response_model=MatchOut)
 async def valider_match_route(
     match_id: int,
@@ -593,6 +669,8 @@ async def valider_match_route(
     # Lock before the checklist so a concurrent composition cannot be
     # accepted between the checklist read and the final validation.
     match_ = await db.scalar(select(Match).where(Match.id == match_id).with_for_update())
+    if match_.phase in PHASES_ELIMINATOIRES and match_.score_domicile == match_.score_exterieur and not vainqueur_tirs_au_but(match_.tirs_au_but or []):
+        raise HTTPException(status.HTTP_409_CONFLICT, "Match éliminatoire à égalité : terminez la séance de tirs au but avant validation.")
     checklist = await run_checklist(db, match_)
     bloquants = bloquants_effectifs(checklist)
     if bloquants:

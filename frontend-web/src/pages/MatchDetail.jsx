@@ -5,6 +5,7 @@ import { useKivu } from "../context.jsx";
 import Scoreboard from "../components/Scoreboard.jsx";
 import FeuilleApercu from "../components/FeuilleApercu.jsx";
 import FeuilleMatch from "../components/FeuilleMatch.jsx";
+import { TirsAuButPublic } from "../components/TirsAuBut.jsx";
 import { LiveUne } from "../components/LignesMatch.jsx";
 import { scorePublicVisible, StatutEquipeBadge } from "../components/PublicDesign.jsx";
 import { startVisibleRefresh } from "../liveRefresh.js";
@@ -187,6 +188,13 @@ export default function MatchDetail() {
           )}
         </aside>
       )}
+
+      <TirsAuButPublic
+        match={match}
+        home={stripDemo(home?.nom) || "Domicile"}
+        away={stripDemo(away?.nom) || "Extérieur"}
+        joueurs={joueurs}
+      />
 
       <div className="mc-tabs" role="tablist">
         {ONGLETS.map((t) => (

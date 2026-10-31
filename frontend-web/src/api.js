@@ -324,6 +324,8 @@ export const api = {
   enregistrerComposition: (matchId, payload) =>
     request(`/matchs/${matchId}/composition`, { method: "PUT", body: payload, auth: true }),
   evenementsPublics: (id) => request(`/matchs/${id}/evenements-publics`),
+  ajouterTirAuBut: (id, payload) => request(`/matchs/${id}/tirs-au-but`, { method: "POST", body: payload, auth: true }),
+  annulerDernierTirAuBut: (id) => request(`/matchs/${id}/tirs-au-but/dernier`, { method: "DELETE", auth: true }),
   classement: (saisonId, groupe) => request(`/classement?saison_id=${saisonId}${groupe ? `&groupe=${encodeURIComponent(groupe)}` : ""}`),
   buteurs: (saisonId) => request(`/stats/meilleurs-buteurs?saison_id=${saisonId}&limit=10`),
   passeurs: (saisonId) => request(`/stats/meilleurs-passeurs?saison_id=${saisonId}&limit=10`),
