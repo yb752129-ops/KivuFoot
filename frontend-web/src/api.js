@@ -353,7 +353,6 @@ export const api = {
   historiquePublic: (saisonId) => request(`/historique-public?saison_id=${saisonId}`),
   records: (saisonId) => request(`/records?saison_id=${saisonId}`),
   documentsMatch: (matchId) => request(`/documents/matchs/${matchId}`, { auth: true }),
-  documentMatchPublic: (matchId) => request(`/documents/matchs/${matchId}/public`),
   genererDocumentMatch: (matchId) => request(`/documents/matchs/${matchId}/generer`, { method: "POST", auth: true }),
   documentsJoueur: (joueurId, saisonId) => request(`/documents/joueurs/${joueurId}${saisonId ? `?saison_id=${saisonId}` : ""}`, { auth: true }),
   login: (email, mot_de_passe) => request("/auth/login", { method: "POST", body: { email, mot_de_passe } }),

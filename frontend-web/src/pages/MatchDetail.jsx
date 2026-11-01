@@ -55,7 +55,7 @@ export default function MatchDetail() {
   const [moi, setMoi] = useState(null);
   const [documentBusy, setDocumentBusy] = useState(false);
   const [documentMsg, setDocumentMsg] = useState("");
-  const [documentPublic, setDocumentPublic] = useState(null);
+  const [documentAdmin, setDocumentAdmin] = useState(null);
   const [onglet, setOnglet] = useState("apercu");
   const [err, setErr] = useState("");
 
@@ -66,7 +66,7 @@ export default function MatchDetail() {
       const document = await api.genererDocumentMatch(id);
       const publie = document?.statut === "publie" && document?.url;
       if (publie) {
-        setDocumentPublic(document);
+        setDocumentAdmin(document);
         setDocumentMsg("PDF officiel prêt au téléchargement.");
       } else {
         setDocumentMsg(document?.message_erreur || "Le PDF n’a pas pu être publié.");
@@ -80,13 +80,13 @@ export default function MatchDetail() {
 
   async function load() {
     const m = await api.match(id);
-    const [e, joueursDom, joueursExt, p, possessionPublique, pdfPublic] = await Promise.all([
+    const [e, joueursDom, joueursExt, p, possessionPublique, documentsAdmin] = await Promise.all([
       api.evenementsPublics(id).catch(() => []),
       api.joueurs(m.equipe_domicile_id).catch(() => []),
       api.joueurs(m.equipe_exterieur_id).catch(() => []),
       api.composition(id).catch(() => null),
       api.possession(id).catch(() => ({ disponible: false, message: "Possession non disponible" })),
-      api.documentMatchPublic(id).catch(() => null),
+      api.documentsMatch(id).catch(() => []),
     ]);
     const js = [...(joueursDom || []), ...(joueursExt || [])];
     setErr("");
@@ -95,7 +95,7 @@ export default function MatchDetail() {
     setJoueurs(Object.fromEntries(js.map((j) => [j.id, j])));
     setCompo(p || null);
     setPossession(possessionPublique || null);
-    setDocumentPublic(pdfPublic?.url ? pdfPublic : null);
+    setDocumentAdmin((documentsAdmin || []).find((document) => document.url) || null);
     api.me().then(setMoi).catch(() => setMoi(null));
   }
 
@@ -168,15 +168,6 @@ export default function MatchDetail() {
         </div>
       ) : null}
       {possessionAdminView && match.statut === "valide" && <p className="stamp">Validé</p>}
-      {documentPublic?.url && !(moi && ["admin", "organisateur"].includes(moi.role) && match.statut === "valide") && (
-        <section className="sheet document-actions" aria-label="Télécharger le document officiel">
-          <p className="kicker">Document officiel</p>
-          <p className="muted small">PDF publié · version {documentPublic.version}</p>
-          <a className="btn btn-primary" href={documentPublic.url} target="_blank" rel="noreferrer">
-            Ouvrir le PDF officiel
-          </a>
-        </section>
-      )}
       {moi && ["admin", "organisateur"].includes(moi.role) && match.statut === "valide" && (
         <section className="sheet document-actions" aria-label="Document officiel">
           <p className="kicker">Document officiel</p>
@@ -184,8 +175,8 @@ export default function MatchDetail() {
           <button className="btn btn-primary" type="button" disabled={documentBusy} onClick={genererPDF}>
             {documentBusy ? "Génération…" : "Générer le PDF officiel"}
           </button>
-          {documentPublic?.url && (
-            <p><a className="btn" href={documentPublic.url} target="_blank" rel="noreferrer">Ouvrir le PDF officiel</a></p>
+          {documentAdmin?.url && (
+            <p><a className="btn" href={documentAdmin.url} target="_blank" rel="noreferrer">Ouvrir le PDF officiel</a></p>
           )}
           {documentMsg && <p className="empty">{documentMsg}</p>}
         </section>

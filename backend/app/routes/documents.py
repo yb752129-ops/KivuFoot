@@ -18,7 +18,7 @@ from app.models.match import Match
 from app.models.competition import Saison
 from app.models.enums import RoleUtilisateur
 from app.models.user import User
-from app.schemas.document import DocumentOut, DocumentPublicOut
+from app.schemas.document import DocumentOut
 from app.services.documents_officiels import document_url, generer_document_joueur, generer_document_match
 
 router = APIRouter(prefix="/documents", tags=["Documents officiels"])
@@ -82,43 +82,11 @@ async def generer_match(
     return await _out(document)
 
 
-@router.get("/matchs/{match_id}/public", response_model=DocumentPublicOut)
-async def document_match_public(
-    match_id: int,
-    db: AsyncSession = Depends(get_db),
-):
-    """Lien public vers le dernier PDF publié d'un match officiellement validé."""
-    match_ = await db.get(Match, match_id)
-    if match_ is None or getattr(match_.statut, "value", match_.statut) != "valide":
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Document officiel introuvable.")
-    document = await db.scalar(
-        select(DocumentOfficiel)
-        .where(
-            DocumentOfficiel.type_document == "match",
-            DocumentOfficiel.scope_id == match_id,
-            DocumentOfficiel.statut == "publie",
-        )
-        .order_by(DocumentOfficiel.version.desc(), DocumentOfficiel.id.desc())
-        .limit(1)
-    )
-    if document is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Aucun PDF officiel publié pour ce match.")
-    url = await document_url(document)
-    if not url:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Document officiel introuvable.")
-    return DocumentPublicOut(
-        titre=document.titre,
-        version=document.version,
-        published_at=document.published_at,
-        url=url,
-    )
-
-
 @router.get("/matchs/{match_id}", response_model=list[DocumentOut])
 async def documents_match(
     match_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_roles(*DOCUMENT_READ_ROLES)),
+    current_user: User = Depends(require_roles(RoleUtilisateur.ADMIN, RoleUtilisateur.ORGANISATEUR)),
 ):
     await _match_scope(match_id, current_user, db)
     rows = (
@@ -177,6 +145,8 @@ async def telecharger_document(
     if document is None or document.statut != "publie":
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Document officiel introuvable.")
     if document.type_document == "match":
+        if current_user.role not in (RoleUtilisateur.ADMIN, RoleUtilisateur.ORGANISATEUR):
+            raise HTTPException(status.HTTP_403_FORBIDDEN, "Le PDF de match est réservé à l'administration et à l'organisation.")
         await _match_scope(document.scope_id, current_user, db)
     elif document.type_document == "joueur":
         await _joueur_scope(document.scope_id, document.saison_id, current_user, db)

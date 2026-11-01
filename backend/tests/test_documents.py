@@ -3,7 +3,6 @@ from datetime import datetime, timezone
 import pytest
 
 from app.services.documents_officiels import _match_pdf_bytes, _pdf_bytes
-from app.schemas.document import DocumentPublicOut
 
 
 @pytest.mark.parametrize(
@@ -65,13 +64,3 @@ def test_feuille_officielle_pdf_peut_inclure_la_seance_separee():
     )
     assert data.startswith(b"%PDF")
     assert len(data) > 10_000
-
-
-def test_document_public_ne_contient_que_les_infos_publiables():
-    document = DocumentPublicOut(
-        titre="FEUILLE OFFICIELLE DU MATCH",
-        version=1,
-        published_at=datetime(2026, 10, 31, tzinfo=timezone.utc),
-        url="https://example.test/match.pdf",
-    )
-    assert document.url.endswith("match.pdf")
