@@ -13,6 +13,7 @@ import Marque from "./Marque.jsx";
 const SOMMAIRE = [
   { to: "/", label: "Accueil", end: true, Icon: IcoHome },
   { to: "/matchs", label: "Matchs", Icon: IcoCalendrier },
+  { to: "/phase-finale", label: "Phase finale", Icon: IcoClassement },
   { to: "/classement", label: "Classement", Icon: IcoClassement },
   { to: "/clubs", label: "Clubs", Icon: IcoBouclier },
 ];

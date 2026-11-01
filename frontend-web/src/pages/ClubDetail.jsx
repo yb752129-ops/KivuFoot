@@ -4,6 +4,7 @@ import { api } from "../api.js";
 import { useKivu } from "../context.jsx";
 import { AVenirLigne, TermineLigne } from "../components/LignesMatch.jsx";
 import { labelPoste, stripDemo } from "../display.js";
+import { eliminationClub } from "../phaseFinale.js";
 import { PublicClubLogo, StatutEquipeBadge } from "../components/PublicDesign.jsx";
 
 export default function ClubDetail() {
@@ -31,6 +32,7 @@ export default function ClubDetail() {
   const lieu = [club.ville, club.stade].filter(Boolean).join(" — ");
   const saisonClub = (saisonClubs || []).find((row) => Number(row.id ?? row.club_id) === Number(id));
   const statutEquipe = saisonClub?.statut || "actif";
+  const elimination = eliminationClub(matchs, id);
   const aVenir = matchs.filter((m) => m.statut === "programme").sort((a, b) => new Date(a.date_heure) - new Date(b.date_heure));
   const termines = matchs
     .filter((m) => m.statut === "termine" || m.statut === "valide")
@@ -47,6 +49,13 @@ export default function ClubDetail() {
         </div>
       </div>
       <p className="lead">Coach · {club.coach_nom || "à compléter"}</p>
+      {elimination && (
+        <aside className="club-elimination-note" aria-label="Résultat de phase finale">
+          <strong>Éliminé · {elimination.libelle}</strong>
+          <span>Résultat dérivé d’un match validé · le statut administratif du club reste inchangé.</span>
+          <Link to={`/matchs/${elimination.match.id}`}>Voir le match</Link>
+        </aside>
+      )}
 
       <div className="section-head">
         <h2>Effectif</h2>

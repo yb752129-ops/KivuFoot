@@ -7,6 +7,7 @@ import CollecteurLayout from "./components/CollecteurLayout.jsx";
 import Home from "./pages/Home.jsx";
 import Classement from "./pages/Classement.jsx";
 import Matchs from "./pages/Matchs.jsx";
+import PhaseFinale from "./pages/PhaseFinale.jsx";
 import MatchDetail from "./pages/MatchDetail.jsx";
 import Actualites from "./pages/Actualites.jsx";
 import ActualiteDetail from "./pages/ActualiteDetail.jsx";
@@ -93,6 +94,7 @@ export default function App() {
             <Route path="/" element={<Home />} />
             <Route path="/classement" element={<Classement />} />
             <Route path="/matchs" element={<Matchs />} />
+            <Route path="/phase-finale" element={<PhaseFinale />} />
             <Route path="/matchs/:id" element={<MatchDetail />} />
             <Route path="/actualites" element={<Actualites />} />
             <Route path="/actualites/:id" element={<ActualiteDetail />} />

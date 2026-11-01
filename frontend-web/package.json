@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "test:composition": "node scripts/test-composition-positions.mjs",
+    "test:phase-finale": "node scripts/test-phase-finale.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

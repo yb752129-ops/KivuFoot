@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { clubName } from "../context.jsx";
 import { findPublicClub, formatPublicKickoff, PublicClubLogo, scorePublicVisible, StatutEquipeBadge } from "./PublicDesign.jsx";
-import { vainqueurTirsAuBut } from "../tirsAuBut.js";
+import { scoreTirsAuBut, vainqueurTirsAuBut } from "../tirsAuBut.js";
 
 function displayName(name) {
   return (name || "").replace(/^DEMO\s*[-–]?\s*/i, "").trim() || name;
@@ -19,7 +19,10 @@ export default function Scoreboard({ match, clubsById, saisonClubs, to }) {
   const played = scorePublicVisible(match) && sd != null && se != null;
   const upcoming = !scorePublicVisible(match);
   const finished = ["termine", "valide"].includes(match.statut);
-  const shootoutWinner = played && sd === se ? vainqueurTirsAuBut(match.tirs_au_but || []) : null;
+  const tirsAuBut = Array.isArray(match.tirs_au_but) ? match.tirs_au_but : [];
+  const scoreTirs = scoreTirsAuBut(tirsAuBut);
+  const shootoutVisible = played && Number(sd) === Number(se) && tirsAuBut.length > 0;
+  const shootoutWinner = shootoutVisible ? vainqueurTirsAuBut(tirsAuBut) : null;
   const homeWin = played && (sd > se || shootoutWinner === "domicile");
   const awayWin = played && (se > sd || shootoutWinner === "exterieur");
   const meta = upcoming ? formatPublicKickoff(match.date_heure) : "";
@@ -31,12 +34,20 @@ export default function Scoreboard({ match, clubsById, saisonClubs, to }) {
           <span>{home}</span>
           <StatutEquipeBadge statut={homeStatus} compact />
         </span>
-        <span className="sb-score">
+        <span
+          className={`sb-score${shootoutVisible ? " has-shootout" : ""}`}
+          aria-label={shootoutVisible ? `${sd}–${se} · t.a.b. ${scoreTirs.domicile}–${scoreTirs.exterieur}` : undefined}
+        >
           {played ? (
             <>
-              {sd}
-              <span className="sb-dash">–</span>
-              {se}
+              <span className="sb-score-main">
+                {sd}
+                <span className="sb-dash">–</span>
+                {se}
+              </span>
+              {shootoutVisible && (
+                <span className="sb-score-shootout">· t.a.b. {scoreTirs.domicile}–{scoreTirs.exterieur}</span>
+              )}
             </>
           ) : (
             <span className="sb-dash">—</span>

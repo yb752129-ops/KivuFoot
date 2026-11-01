@@ -1,0 +1,204 @@
+/* Phase finale et séances de tirs au but */
+.bottom-nav,
+.kf-public-bottom-nav,
+.kf-public-frame .kf-public-bottom-nav {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.sb-score.has-shootout {
+  display: flex;
+  min-width: 6rem;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.16rem;
+  line-height: 1;
+}
+.sb-score-main { display: inline-block; white-space: nowrap; }
+.sb-score-shootout {
+  display: block;
+  color: var(--stamp);
+  font-family: var(--sans);
+  font-size: clamp(0.6rem, 2.6vw, 0.78rem);
+  font-weight: 800;
+  letter-spacing: 0;
+  line-height: 1.15;
+  white-space: nowrap;
+}
+
+.tirs-au-but { margin: 0.8rem 0; }
+.tirs-sequence {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0.75rem 0;
+}
+.tirs-sequence-row {
+  display: grid;
+  grid-template-columns: minmax(4.5rem, 0.8fr) minmax(0, 2fr);
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.45rem 0;
+  border-bottom: 1px solid var(--rule);
+}
+.tirs-sequence-team {
+  overflow: hidden;
+  color: var(--ink-soft);
+  font-size: 0.78rem;
+  font-weight: 750;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tirs-sequence-pills { display: flex; min-width: 0; flex-wrap: wrap; gap: 0.3rem; }
+.tirs-pill {
+  display: inline-grid;
+  width: 1.6rem;
+  height: 1.6rem;
+  flex: 0 0 1.6rem;
+  place-items: center;
+  border: 1px solid var(--rule-strong);
+  border-radius: 50%;
+  font-size: 0.9rem;
+  font-weight: 900;
+  line-height: 1;
+}
+.tirs-pill.is-marque { border-color: var(--stamp); background: color-mix(in srgb, var(--stamp) 12%, transparent); color: var(--stamp); }
+.tirs-pill.is-rate { border-color: var(--err); background: color-mix(in srgb, var(--err) 10%, transparent); color: var(--err); }
+.tirs-sequence-empty { color: var(--ink-soft); }
+.tirs-historique { margin-top: 0.7rem; }
+.tirs-historique li { align-items: center; gap: 0.55rem; }
+.tirs-public-details { width: 100%; }
+.tirs-public-summary {
+  display: flex;
+  min-height: 3rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  cursor: pointer;
+  list-style: none;
+}
+.tirs-public-summary::-webkit-details-marker { display: none; }
+.tirs-public-summary::marker { content: ""; }
+.tirs-public-title { font-weight: 800; }
+.tirs-public-score {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.6rem;
+  color: var(--stamp);
+  font-family: var(--score);
+  font-size: 1.2rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.tirs-public-chevron { display: inline-block; font-family: var(--sans); font-size: 1rem; transition: transform 0.16s ease; }
+.tirs-public-details[open] .tirs-public-chevron { transform: rotate(180deg); }
+.tirs-public-body { padding-top: 0.6rem; }
+.tirs-public-winner { margin: 0.65rem 0; color: var(--stamp); font-size: 0.9rem; }
+.tirs-historique-details { margin-top: 0.75rem; border-top: 1px solid var(--rule); padding-top: 0.6rem; }
+.tirs-historique-details > summary { cursor: pointer; color: var(--ink-soft); font-size: 0.82rem; font-weight: 750; }
+.tirs-saisie {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--rule-strong);
+}
+.tirs-saisie-head { display: grid; gap: 0.5rem; }
+.tirs-saisie-head .kicker { margin: 0; }
+.tirs-prochain { margin: 0; color: var(--ink-soft); font-size: 0.9rem; }
+.tirs-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.6rem; }
+.tirs-action { min-height: 2.8rem; font-weight: 850; }
+.tirs-action-marque { border-color: var(--stamp); background: var(--stamp); color: var(--paper); }
+.tirs-action-rate { border-color: var(--err); color: var(--err); }
+.tirs-action:disabled { cursor: not-allowed; opacity: 0.5; }
+
+.phase-finale-page { min-width: 0; }
+.phase-finale-header h1 { margin-bottom: 0.25rem; }
+.phase-finale-note {
+  margin: 0.8rem 0 1rem;
+  padding: 0.7rem 0.8rem;
+  border-left: 3px solid var(--stamp);
+  background: var(--paper-2);
+  color: var(--ink-soft);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+.phase-finale-board {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(270px, 1fr));
+  gap: 0.85rem;
+  margin: 0.8rem -0.15rem 1.2rem;
+  padding: 0.2rem 0.15rem 0.8rem;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+}
+.phase-finale-board:focus-visible { outline: 2px solid var(--stamp); outline-offset: 3px; }
+.phase-finale-round { min-width: 0; scroll-snap-align: start; }
+.phase-finale-round-heading {
+  display: flex;
+  min-height: 2.5rem;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.55rem;
+  padding: 0.4rem 0;
+  border-top: 2px solid var(--rule-strong);
+}
+.phase-finale-round-heading h2 { margin: 0; font-size: 0.95rem; }
+.phase-finale-round-index { color: var(--stamp); font-family: var(--score); font-size: 0.75rem; font-weight: 800; }
+.phase-finale-arrow { margin-left: auto; color: var(--stamp); font-size: 1.2rem; font-weight: 800; }
+.phase-finale-round-empty {
+  margin: 0;
+  padding: 0.85rem 0.7rem;
+  border: 1px dashed var(--rule-strong);
+  color: var(--ink-soft);
+  font-size: 0.82rem;
+}
+.phase-finale-matches { display: grid; gap: 0.7rem; }
+.phase-finale-match {
+  min-width: 0;
+  padding: 0.55rem 0.65rem 0.45rem;
+  border: 1px solid var(--rule);
+  background: var(--paper);
+}
+.phase-finale-match-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  color: var(--ink-soft);
+  font-size: 0.7rem;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.phase-finale-match-meta time { text-align: right; }
+.phase-finale-match .scoreboard { padding: 0.5rem 0 0.4rem; }
+.phase-finale-match .sb-line { gap: 0.25rem; }
+.phase-finale-match .sb-name { font-size: 0.78rem; }
+.phase-finale-match .sb-score { font-size: 1.65rem; }
+.phase-finale-match .sb-score.has-shootout { min-width: 5.5rem; }
+.phase-finale-match .sb-score-shootout { font-size: 0.62rem; }
+.phase-finale-qualifie,
+.phase-finale-attente { margin: 0.45rem 0 0.1rem; font-size: 0.76rem; font-weight: 750; }
+.phase-finale-qualifie { color: var(--stamp); }
+.phase-finale-attente { color: var(--ink-soft); }
+
+.club-elimination-note {
+  display: grid;
+  gap: 0.25rem;
+  margin: 0.65rem 0 1rem;
+  padding: 0.65rem 0.8rem;
+  border-left: 3px solid var(--err);
+  background: var(--paper-2);
+}
+.club-elimination-note strong { color: var(--err); font-size: 0.9rem; }
+.club-elimination-note span { color: var(--ink-soft); font-size: 0.74rem; line-height: 1.35; }
+.club-elimination-note a { width: fit-content; color: var(--stamp); font-size: 0.78rem; font-weight: 750; }
+
+@media (max-width: 520px) {
+  .phase-finale-board { grid-template-columns: repeat(4, minmax(78vw, 1fr)); }
+  .tirs-sequence-row { grid-template-columns: minmax(4rem, 0.75fr) minmax(0, 2fr); gap: 0.4rem; }
+  .tirs-pill { width: 1.5rem; height: 1.5rem; flex-basis: 1.5rem; }
+  .tirs-actions { gap: 0.45rem; }
+  .tirs-action { padding-inline: 0.4rem; font-size: 0.88rem; }
+}
