@@ -127,7 +127,7 @@ export function statsDesFaits(evts) {
 }
 
 export function estPeriodeUn(e) {
-  if (e?.periode === "2") return false;
+  if (["2", "3", "4"].includes(String(e?.periode ?? ""))) return false;
   if (e?.periode === "1") return true;
   return (Number(e?.minute) || 0) <= 45;
 }
@@ -141,8 +141,11 @@ export function formatMinute(minute, added) {
 
 export function periodeLabel(periode) {
   if (periode === "mi_temps") return "Mi-temps";
-  if (periode === "2") return "2e période";
+  if (periode === "mi_temps_et") return "Mi-temps des prolongations";
   if (periode === "1") return "1re période";
+  if (periode === "2") return "2e période";
+  if (periode === "3") return "1re période de prolongation";
+  if (periode === "4") return "2e période de prolongation";
   return "";
 }
 
@@ -175,16 +178,18 @@ export function elapsed(startedAt, endedAt, now = Date.now()) {
   return { min: Math.floor(ms / 60000), sec: Math.floor((ms % 60000) / 1000) };
 }
 
-/** Horloge de match : P1 depuis le coup d'envoi, P2 depuis la reprise (affiche 45+). */
+/** Horloge de match : temps réglementaire puis, le cas échéant, les deux prolongations. */
 export function clockFromMatch(match, now = Date.now()) {
   const periode = match?.periode || "1";
   if (!match?.started_at) return { min: 0, sec: 0, periode };
   if (periode === "mi_temps") {
     return { ...elapsed(match.started_at, match.paused_at || now, now), periode };
   }
-  if (periode === "2" && match.periode_started_at) {
-    const p2 = elapsed(match.periode_started_at, match.ended_at, now);
-    return { min: 45 + p2.min, sec: p2.sec, periode };
+  const offsets = { "2": 45, "3": 90, mi_temps_et: 90, "4": 105 };
+  if (Object.hasOwn(offsets, periode) && match.periode_started_at) {
+    const fin = periode === "mi_temps_et" ? (match.paused_at || now) : match.ended_at;
+    const periodElapsed = elapsed(match.periode_started_at, fin, now);
+    return { min: offsets[periode] + periodElapsed.min, sec: periodElapsed.sec, periode };
   }
   return { ...elapsed(match.started_at, match.ended_at, now), periode };
 }
@@ -199,20 +204,17 @@ export function formatClock(min, sec) {
 export function formatClockMinute(min, _sec, periode, minuteAdditionnelle = 0) {
   const minute = Math.max(0, Number(min) || 0);
   const additionnelle = Math.max(0, Number(minuteAdditionnelle) || 0);
-  const base = periode === "2" ? 90 : 45;
+  const base = { "1": 45, "2": 90, "3": 105, "4": 120 }[periode] ?? 45;
   if (additionnelle > 0 && minute >= base) return `${base}+${additionnelle}′`;
   return `${minute}′`;
 }
 
 export function splitMinute(min, periode) {
-  const p = periode === "2" ? "2" : "1";
+  const p = ["1", "2", "3", "4"].includes(String(periode)) ? String(periode) : "1";
   const n = Math.max(0, Number.parseInt(String(min), 10) || 0);
-  if (p === "1") {
-    if (n > 45) return { minute: 45, minute_additionnelle: n - 45, periode: "1" };
-    return { minute: n, minute_additionnelle: 0, periode: "1" };
-  }
-  if (n > 90) return { minute: 90, minute_additionnelle: n - 90, periode: "2" };
-  return { minute: n, minute_additionnelle: 0, periode: "2" };
+  const base = { "1": 45, "2": 90, "3": 105, "4": 120 }[p];
+  if (n > base) return { minute: base, minute_additionnelle: n - base, periode: p };
+  return { minute: n, minute_additionnelle: 0, periode: p };
 }
 
 export function journeeTitre(code) {

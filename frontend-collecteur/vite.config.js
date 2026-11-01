@@ -1,6 +1,11 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
+import { cpus } from "node:os";
+
+// Android/Termux may report zero CPUs; Workbox's Terser worker pool then
+// never starts. Keep production minification elsewhere, with a safe fallback.
+const modeWorkbox = cpus().length === 0 ? "development" : "production";
 
 export default defineConfig({
   plugins: [
@@ -10,6 +15,7 @@ export default defineConfig({
       // Mise en cache locale des matchs/clubs/joueurs consultés (§12.3) via
       // le cache du Service Worker pour les requêtes GET de l'API.
       workbox: {
+        mode: modeWorkbox,
         runtimeCaching: [
           {
             urlPattern: /\/api\/v1\/(clubs|joueurs|matchs)/,

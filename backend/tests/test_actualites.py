@@ -14,6 +14,7 @@ from app.models.competition import Competition, OrganisateurCompetition, Saison,
 from app.models.enums import CategorieActualite, RoleUtilisateur, StatutActualite, StatutMatch, TypeCompetition
 from app.models.joueur import Joueur
 from app.models.match import Match, MatchParticipation
+from app.models.sport_engine import MatchQualificationSlot
 from app.models.photo import Photo
 from app.models.staff import Staff
 from app.models.user import User
@@ -27,6 +28,7 @@ from app.routes.actualites import (
     publier_actualite,
 )
 from app.schemas.actualite import ActualiteCreate, HommeMatchCreate, LikePayload
+from tests.sqlite_compat import utiliser_types_sqlite
 
 pytestmark = pytest.mark.asyncio
 
@@ -41,15 +43,19 @@ async def db_session(monkeypatch):
     tables = [
         User.__table__, Club.__table__, Competition.__table__, Saison.__table__, SaisonClub.__table__,
         OrganisateurCompetition.__table__, Photo.__table__, Staff.__table__, Joueur.__table__,
-        Match.__table__, MatchParticipation.__table__, Actualite.__table__, ActualiteImage.__table__,
+        Match.__table__, MatchQualificationSlot.__table__, MatchParticipation.__table__, Actualite.__table__, ActualiteImage.__table__,
         ActualiteLike.__table__, ActualiteLecture.__table__, HommeMatch.__table__,
     ]
-    async with engine.begin() as connection:
-        await connection.run_sync(lambda sync: Base.metadata.create_all(sync, tables=tables))
-    factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False, autoflush=False)
-    async with factory() as session:
-        yield session
-    await engine.dispose()
+    restore_types = utiliser_types_sqlite(tables)
+    try:
+        async with engine.begin() as connection:
+            await connection.run_sync(lambda sync: Base.metadata.create_all(sync, tables=tables))
+        factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False, autoflush=False)
+        async with factory() as session:
+            yield session
+    finally:
+        await engine.dispose()
+        restore_types()
 
 
 async def contexte(db_session):

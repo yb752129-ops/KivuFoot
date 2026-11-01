@@ -5,6 +5,7 @@ from app.database import get_db
 from app.models.enums import GroupePoule
 from app.schemas.sync import ClassementLigne
 from app.services.calcul_classement import calculer_classement
+from app.services.progression_sportive import etats_sportifs_saison
 
 router = APIRouter(prefix="/classement", tags=["Classement"])
 
@@ -16,11 +17,15 @@ async def classement_saison(
     groupe: GroupePoule | None = None,
 ):
     lignes = await calculer_classement(db, saison_id, groupe=groupe)
+    etats_sportifs = await etats_sportifs_saison(db, saison_id)
     return [
         ClassementLigne(
             club_id=l.club_id,
             club_nom=l.club_nom,
             statut=l.statut,
+            statut_sportif=etats_sportifs.get(l.club_id, {}).get("statut_sportif", "en_course"),
+            phase_sportive=etats_sportifs.get(l.club_id, {}).get("phase_sportive"),
+            match_sportif_id=etats_sportifs.get(l.club_id, {}).get("match_sportif_id"),
             matchs_joues=l.matchs_joues,
             victoires=l.victoires,
             nuls=l.nuls,
@@ -42,6 +47,7 @@ async def position_club(
     groupe: GroupePoule | None = None,
 ):
     lignes = await calculer_classement(db, saison_id, groupe=groupe)
+    etats_sportifs = await etats_sportifs_saison(db, saison_id)
     for position, ligne in enumerate(lignes, start=1):
         if ligne.club_id == club_id:
             return {
@@ -49,6 +55,9 @@ async def position_club(
                 "club_id": ligne.club_id,
                 "club_nom": ligne.club_nom,
                 "statut": ligne.statut,
+                "statut_sportif": etats_sportifs.get(ligne.club_id, {}).get("statut_sportif", "en_course"),
+                "phase_sportive": etats_sportifs.get(ligne.club_id, {}).get("phase_sportive"),
+                "match_sportif_id": etats_sportifs.get(ligne.club_id, {}).get("match_sportif_id"),
                 "points": ligne.points,
                 "matchs_joues": ligne.matchs_joues,
                 "difference_buts": ligne.difference_buts,

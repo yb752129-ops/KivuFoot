@@ -23,6 +23,7 @@ from app.models.enums import (
 from app.models.evenement import EvenementMatch
 from app.models.match import Match, MatchParticipation
 from app.models.stats import StatistiqueJoueur
+from app.services.regles_temps_match import duree_officielle_match_minutes
 
 
 DUREE_MATCH_MINUTES = 90
@@ -82,6 +83,7 @@ async def reconstruire_stats_saison(db: AsyncSession, saison_id: int) -> None:
         )
     ).scalars().all()
     match_ids = [match.id for match in matchs_valides]
+    match_par_id = {match.id: match for match in matchs_valides}
 
     if match_ids:
         participations = (
@@ -94,10 +96,11 @@ async def reconstruire_stats_saison(db: AsyncSession, saison_id: int) -> None:
             stat.matchs_joues += 1
             if _value(participation.statut) == StatutParticipation.TITULAIRE.value:
                 stat.titularisations += 1
+            duree_match = duree_officielle_match_minutes(match_par_id[participation.match_id])
             minute_fin = (
                 participation.minute_sortie
                 if participation.minute_sortie is not None
-                else DUREE_MATCH_MINUTES
+                else duree_match
             )
             stat.minutes_jouees += max(0, minute_fin - participation.minute_entree)
 

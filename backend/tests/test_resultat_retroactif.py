@@ -19,6 +19,7 @@ from app.models.enums import (
 from app.models.evenement import EvenementMatch
 from app.models.joueur import Joueur
 from app.models.match import Match, MatchParticipation
+from app.models.sport_engine import MatchQualificationSlot
 from app.models.possession import PossessionMatch
 from app.models.stats import StatistiqueJoueur
 from app.models.user import User
@@ -33,6 +34,7 @@ from app.schemas.match import (
     ButeursVerifiesCreate,
     MatchResultatRetroactif,
 )
+from tests.sqlite_compat import utiliser_types_sqlite
 
 pytestmark = pytest.mark.asyncio
 
@@ -45,20 +47,26 @@ async def db_session():
         Club.__table__,
         Saison.__table__,
         SaisonClub.__table__,
+        User.__table__,
         Joueur.__table__,
         Match.__table__,
+        MatchQualificationSlot.__table__,
         MatchParticipation.__table__,
         EvenementMatch.__table__,
         PossessionMatch.__table__,
         StatistiqueJoueur.__table__,
     ]
-    async with engine.begin() as connection:
-        await connection.run_sync(lambda sync: Base.metadata.create_all(sync, tables=tables))
+    restore_types = utiliser_types_sqlite(tables)
+    try:
+        async with engine.begin() as connection:
+            await connection.run_sync(lambda sync: Base.metadata.create_all(sync, tables=tables))
 
-    session_factory = async_sessionmaker(engine, expire_on_commit=False, autoflush=False)
-    async with session_factory() as session:
-        yield session
-    await engine.dispose()
+        session_factory = async_sessionmaker(engine, expire_on_commit=False, autoflush=False)
+        async with session_factory() as session:
+            yield session
+    finally:
+        await engine.dispose()
+        restore_types()
 
 
 @pytest.fixture(autouse=True)

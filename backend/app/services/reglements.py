@@ -30,7 +30,7 @@ async def get_reglement_actif(db: AsyncSession, saison_id: int) -> ReglementVers
     # table des règlements. Dans ce cas, l'appelant conserve son comportement
     # legacy sans fabriquer de règlement ni de configuration implicite.
     table_presente = await db.run_sync(
-        lambda sync_session: inspect(sync_session.bind).has_table(ReglementVersion.__tablename__)
+        lambda sync_session: inspect(sync_session.connection()).has_table(ReglementVersion.__tablename__)
     )
     if not table_presente:
         return None

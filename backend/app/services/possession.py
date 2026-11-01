@@ -216,7 +216,7 @@ def _verifier_match_pour_etat(match: Match, courant: EtatPossession, demande: Et
                 status.HTTP_409_CONFLICT,
                 "Le chronomètre de possession ne fonctionne que pendant un match en cours.",
             )
-        if _value(match.periode) == PeriodeMatch.MI_TEMPS.value and demande in _TEAM_STATES:
+        if _value(match.periode) in (PeriodeMatch.MI_TEMPS.value, PeriodeMatch.MI_TEMPS_PROLONGATION.value) and demande in _TEAM_STATES:
             raise HTTPException(
                 status.HTTP_409_CONFLICT,
                 "Mi-temps : la reprise exige d'abord la fin de la pause puis une sélection explicite A ou B.",

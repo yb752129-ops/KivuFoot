@@ -172,5 +172,6 @@ export function KivuProvider({ children }) {
 }
 
 export function clubName(clubsById, id) {
+  if (id === null || id === undefined || id === "") return "Équipe à déterminer";
   return clubsById[id]?.nom || `Club #${id}`;
 }

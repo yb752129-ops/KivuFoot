@@ -14,6 +14,7 @@ from app.models.competition import Saison
 from app.models.enums import StatutParticipation
 from app.models.match import Match, MatchParticipation
 from app.models.stats import StatistiqueJoueur
+from app.services.regles_temps_match import duree_officielle_match_minutes
 
 
 async def _get_or_create_stat(
@@ -46,11 +47,12 @@ async def appliquer_feuille_de_match(db: AsyncSession, match_: Match) -> None:
     result = await db.execute(select(MatchParticipation).where(MatchParticipation.match_id == match_.id))
     participations = result.scalars().all()
 
+    duree_match = duree_officielle_match_minutes(match_)
     for p in participations:
         stat = await _get_or_create_stat(db, p.joueur_id, competition_id, match_.saison_id)
         stat.matchs_joues += 1
         if p.statut == StatutParticipation.TITULAIRE:
             stat.titularisations += 1
-        minute_fin = p.minute_sortie if p.minute_sortie is not None else DUREE_MATCH_MINUTES
+        minute_fin = p.minute_sortie if p.minute_sortie is not None else duree_match
         minutes = max(0, minute_fin - p.minute_entree)
         stat.minutes_jouees += minutes

@@ -9,6 +9,7 @@ from app.models.match import Match
 from app.services.calcul_classement import LigneClassement, calculer_classement
 from app.services.statut_equipe import match_sans_equipe_retiree
 from app.services.reglements import get_reglement_actif
+from app.services.progression_sportive import etats_sportifs_saison
 
 
 def _value(value):
@@ -48,10 +49,12 @@ async def progression_saison(db: AsyncSession, saison_id: int) -> dict:
         )
     ).all()
     general = {row.club_id: row for row in await calculer_classement(db, saison_id)}
+    etats_sportifs = await etats_sportifs_saison(db, saison_id)
     matches = (
         await db.execute(
             select(Match).where(
                 Match.saison_id == saison_id,
+                Match.phase == "poule",
                 Match.statut.in_([
                     StatutMatch.VALIDE.value,
                     StatutMatch.PROGRAMME.value,
@@ -97,6 +100,7 @@ async def progression_saison(db: AsyncSession, saison_id: int) -> dict:
         done = [m for m in played if _value(m.statut) == StatutMatch.VALIDE.value]
         not_official = [m for m in played if _value(m.statut) != StatutMatch.VALIDE.value]
         row = general.get(club.id)
+        etat_sportif = etats_sportifs.get(club.id, {})
         status = "indetermine"
         explanation = "Règlement de qualification non configuré pour cette édition."
         group = _value(link.groupe)
@@ -130,8 +134,11 @@ async def progression_saison(db: AsyncSession, saison_id: int) -> dict:
                 "buts_marques": row.buts_marques if row else 0,
                 "rang_groupe": rank,
                 "statut_qualification": status,
+                "statut_sportif": etat_sportif.get("statut_sportif", "en_course"),
+                "phase_sportive": etat_sportif.get("phase_sportive"),
+                "match_sportif_id": etat_sportif.get("match_sportif_id"),
                 "explication": explanation,
-                "source": "matchs_valides_et_reglement_versionne",
+                "source": "matchs_de_poule_valides_et_reglement_versionne",
             }
         )
     return {

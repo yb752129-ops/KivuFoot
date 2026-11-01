@@ -95,9 +95,9 @@ export default function PossessionControle({ match, possession, onChange, mode =
 
   const etat = possession?.etat_courant || "NOT_STARTED";
   const termine = etat === "FINISHED";
-  const periode = match?.periode === "mi_temps";
-  const repriseDisponible = !termine && etat === "PAUSE" && match?.periode === "2" && match?.statut === "en_cours";
-  const peutEquipe = !termine && match?.statut === "en_cours" && !periode && !repriseDisponible;
+  const periodePause = ["mi_temps", "mi_temps_et"].includes(match?.periode);
+  const repriseDisponible = !termine && etat === "PAUSE" && ["2", "4"].includes(match?.periode) && match?.statut === "en_cours";
+  const peutEquipe = !termine && match?.statut === "en_cours" && !periodePause && !repriseDisponible;
 
   return (
     <section className={`sheet possession-controle ${isOrganizer ? "possession-controle-orga" : ""}`}>

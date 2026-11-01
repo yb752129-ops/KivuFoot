@@ -7,6 +7,13 @@ import IndicateurSync from "../components/IndicateurSync";
 import PossessionControle from "../components/PossessionControle";
 import { fetchMatch } from "../lib/api";
 
+const PERIODES = [
+  { value: "1", label: "1re période" },
+  { value: "2", label: "2e période" },
+  { value: "3", label: "1re prolongation" },
+  { value: "4", label: "2e prolongation" },
+];
+
 const TYPES_EVENEMENT = [
   { value: "but", label: "But", requiertSecondaire: false, requiertResultat: false },
   { value: "but_contre_son_camp", label: "But contre son camp", requiertSecondaire: false, requiertResultat: false },
@@ -25,6 +32,7 @@ export default function SaisieEvenement() {
   const { matchId } = useParams();
   const [type, setType] = useState("but");
   const [minute, setMinute] = useState("");
+  const [periode, setPeriode] = useState("1");
   const [joueurId, setJoueurId] = useState("");
   const [joueurSecondaireId, setJoueurSecondaireId] = useState("");
   const [resultat, setResultat] = useState("marque");
@@ -41,7 +49,11 @@ export default function SaisieEvenement() {
 
   async function rechargerMatch() {
     try {
-      setMatch(await fetchMatch(matchId));
+      const loaded = await fetchMatch(matchId);
+      setMatch(loaded);
+      if (["1", "2", "3", "4"].includes(String(loaded?.periode))) setPeriode(String(loaded.periode));
+      else if (loaded?.periode === "mi_temps_et") setPeriode("3");
+      else if (loaded?.periode === "mi_temps") setPeriode("1");
     } catch {
       // La saisie locale d'événements reste disponible même si le réseau tombe.
     }
@@ -62,6 +74,7 @@ export default function SaisieEvenement() {
       tempId,
       matchId: Number(matchId),
       minute: Number(minute),
+      periode,
       type,
       joueurId: joueurId ? Number(joueurId) : null,
       joueurSecondaireId: typeConfig.requiertSecondaire && joueurSecondaireId ? Number(joueurSecondaireId) : null,
@@ -106,6 +119,13 @@ export default function SaisieEvenement() {
         <label>
           Minute
           <input type="number" min="0" max="130" value={minute} onChange={(e) => setMinute(e.target.value)} required />
+        </label>
+
+        <label>
+          Période
+          <select value={periode} onChange={(e) => setPeriode(e.target.value)}>
+            {PERIODES.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
+          </select>
         </label>
 
         <label>
@@ -159,7 +179,7 @@ export default function SaisieEvenement() {
         <ul>
           {(evenementsDuMatch || []).map((ev) => (
             <li key={ev.tempId} className={`statut-${ev.statutSync}`}>
-              {ev.minute}' — {ev.type} — {ev.statutSync}
+              {ev.minute}' · {PERIODES.find((p) => p.value === ev.periode)?.label || "Période inconnue"} — {ev.type} — {ev.statutSync}
               {ev.messageServeur && <span className="message-serveur"> ({ev.messageServeur})</span>}
             </li>
           ))}

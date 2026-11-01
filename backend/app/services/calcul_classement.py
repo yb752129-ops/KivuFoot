@@ -102,6 +102,9 @@ async def calculer_classement(
         select(Match).where(
             Match.saison_id == saison_id,
             Match.statut == StatutMatch.VALIDE.value,
+            Match.phase == "poule",
+            # Les barrages et tours éliminatoires disposent de leur propre
+            # progression et ne comptent jamais pour les points des poules.
             # Un retrait sort la rencontre de la projection de l'édition.
             # Les matchs de l'équipe restent toutefois inchangés en base.
             match_sans_equipe_retiree(),

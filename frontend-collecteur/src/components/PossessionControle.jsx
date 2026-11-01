@@ -76,9 +76,9 @@ export default function PossessionControle({ matchId, match, onMatchReload }) {
 
   const etat = possession?.etat_courant || "NOT_STARTED";
   const termine = etat === FINISHED;
-  const miTemps = match?.periode === "mi_temps";
+  const miTemps = ["mi_temps", "mi_temps_et"].includes(match?.periode);
   const enCours = match?.statut === "en_cours";
-  const repriseDisponible = etat === PAUSE && match?.periode === "2" && enCours;
+  const repriseDisponible = etat === PAUSE && ["2", "4"].includes(match?.periode) && enCours;
 
   return (
     <section className="bloc-possession">

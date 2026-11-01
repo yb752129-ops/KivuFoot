@@ -7,7 +7,7 @@ dans EvenementMatch et MatchParticipation.
 """
 from datetime import date, datetime
 
-from sqlalchemy import Date, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint, func
+from sqlalchemy import CheckConstraint, Date, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint, func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -45,6 +45,37 @@ class ReglementVersion(Base):
     saison = relationship("Saison")
     createur = relationship("User", foreign_keys=[cree_par_id])
     activateur = relationship("User", foreign_keys=[active_par_id])
+
+
+class MatchQualificationSlot(Base):
+    """Emplacement du vainqueur d'un match source dans un match ultérieur.
+
+    La liaison est déclarative (aucun appariement n'est deviné). À la
+    validation du match source, son vainqueur est inscrit dans le côté ciblé.
+    Une source ne peut alimenter qu'un seul emplacement.
+    """
+
+    __tablename__ = "matchs_qualification_slots"
+    __table_args__ = (
+        CheckConstraint("cote IN ('domicile','exterieur')", name="ck_qualification_slot_cote"),
+        UniqueConstraint("match_cible_id", "cote", name="uq_qualification_slot_cible_cote"),
+        UniqueConstraint("match_source_id", name="uq_qualification_slot_source"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    match_cible_id: Mapped[int] = mapped_column(
+        ForeignKey("matchs.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    cote: Mapped[str] = mapped_column(String(10), nullable=False)
+    match_source_id: Mapped[int] = mapped_column(
+        ForeignKey("matchs.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    cree_par_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    cible = relationship("Match", foreign_keys=[match_cible_id], back_populates="qualification_slots")
+    source = relationship("Match", foreign_keys=[match_source_id])
+    createur = relationship("User")
 
 
 class EffectifVersion(Base):

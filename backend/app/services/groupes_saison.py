@@ -57,6 +57,14 @@ async def determiner_groupe_match(
     if demande is not None and demande not in GROUPES_VALIDES:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Groupe inconnu : A, B, C ou D.")
 
+    if phase_value != "poule":
+        return demande
+    if equipe_domicile_id is None or equipe_exterieur_id is None:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "Un match de poule exige deux équipes déjà nommées.",
+        )
+
     groupes = await groupes_officiels_pour_clubs(
         db,
         saison_id,
@@ -67,9 +75,6 @@ async def determiner_groupe_match(
             status.HTTP_400_BAD_REQUEST,
             "Les deux équipes doivent être inscrites à cette saison.",
         )
-
-    if phase_value != "poule":
-        return demande
 
     groupe_domicile = groupes[equipe_domicile_id]
     groupe_exterieur = groupes[equipe_exterieur_id]

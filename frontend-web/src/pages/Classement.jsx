@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { api } from "../api.js";
 import { useKivu } from "../context.jsx";
 import { stripDemo } from "../display.js";
+import "../sport-status.css";
 import {
   compareClassementRows,
   displayDifference,
@@ -29,6 +30,14 @@ function RankingRow({ ligne, index, club, followedClubId, saisonId }) {
       <PublicClubLogo club={club} name={nom} statut={statut} />
       <span className="kf-public-rank-name">{nom}</span>
       <StatutEquipeBadge statut={statut} compact />
+      {["qualifie", "elimine", "champion"].includes(ligne.statut_sportif) && (
+        <span
+          className={`kf-sport-status-badge is-${ligne.statut_sportif}`}
+          title={`Statut sportif après match validé${ligne.phase_sportive ? ` de phase ${ligne.phase_sportive}` : ""}`}
+        >
+          {ligne.statut_sportif === "elimine" ? "Éliminé · sport." : ligne.statut_sportif === "champion" ? "Champion" : "Qualifié"}
+        </span>
+      )}
     </span>
   );
   return (
@@ -77,6 +86,10 @@ export default function Classement() {
   const lignesTriees = useMemo(() => [...lignes].sort(compareClassementRows), [lignes]);
   const hasDecisionStatus = useMemo(
     () => lignesTriees.some((ligne) => ["disqualifie", "elimine"].includes(ligne?.statut)),
+    [lignesTriees],
+  );
+  const hasSportsStatus = useMemo(
+    () => lignesTriees.some((ligne) => ["qualifie", "elimine", "champion"].includes(ligne?.statut_sportif)),
     [lignesTriees],
   );
   const followedClubId = followedPublicClubId();
@@ -166,9 +179,10 @@ export default function Classement() {
         </div>
       )}
 
-      {hasDecisionStatus && (
+      {(hasDecisionStatus || hasSportsStatus) && (
         <p className="kf-team-status-legend">
-          DISQ. : disqualifié par décision de l'organisation · ÉLIM. : éliminé
+          {hasDecisionStatus && <>Statut administratif : DISQ. = disqualification décidée par l’organisation. </>}
+          {hasSportsStatus && <>Statut sportif : Qualifié / Éliminé / Champion, calculé uniquement depuis les matchs éliminatoires validés. Ces états ne modifient pas l’inscription administrative.</>}
         </p>
       )}
     </section>

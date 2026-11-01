@@ -41,6 +41,21 @@ class QualificationReglement(BaseModel):
     intervention_comite: bool = True
 
 
+class MatchReglement(BaseModel):
+    """Règles de temps de jeu des rencontres éliminatoires.
+
+    Les autres clés déjà présentes dans ``configuration.match`` restent
+    conservées pour compatibilité avec les éditions antérieures.
+    """
+
+    model_config = ConfigDict(extra="allow")
+
+    mode_egalite_eliminatoire: Literal[
+        "tirs_au_but_apres_90",
+        "prolongations_2x15",
+    ] = "tirs_au_but_apres_90"
+
+
 class ReglementConfiguration(BaseModel):
     """Configuration volontairement incomplète par défaut.
 
@@ -58,7 +73,12 @@ class ReglementConfiguration(BaseModel):
     composition: CompositionReglement | None = None
     discipline: DisciplineReglement | None = None
     qualification: QualificationReglement | None = None
-    match: dict[str, Any] = Field(default_factory=dict)
+    match: MatchReglement = Field(default_factory=MatchReglement)
+
+    @field_validator("match", mode="before")
+    @classmethod
+    def match_configuration_non_nulle(cls, value):
+        return {} if value is None else value
     forfait: dict[str, Any] = Field(default_factory=dict)
 
 

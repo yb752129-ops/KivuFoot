@@ -360,8 +360,8 @@ export const api = {
     request("/auth/register", { method: "POST", body: { nom_complet, email, mot_de_passe } }),
   me: () => request("/auth/me", { auth: true }),
   logout: (refresh_token) => request("/auth/logout", { method: "POST", body: { refresh_token } }),
-  matchsGestion: (saisonId) =>
-    request(`/matchs/gestion?limit=50${saisonId ? `&saison_id=${saisonId}` : ""}`, { auth: true }),
+  matchsGestion: (saisonId, limit = 50) =>
+    request(`/matchs/gestion?limit=${Math.max(1, Math.min(100, Number(limit) || 50))}${saisonId ? `&saison_id=${saisonId}` : ""}`, { auth: true }),
   matchGestion: (id) => request(`/matchs/gestion/${id}`, { auth: true }),
   evenementsStaff: (matchId) => request(`/matchs/${matchId}/evenements`, { auth: true }),
   fileValidation: () => request("/validation/evenements", { auth: true }),

@@ -63,8 +63,8 @@ class EvenementCreate(BaseModel):
     def periode_valide(cls, v: str | None) -> str | None:
         if v is None or v == "":
             return None
-        if v not in ("1", "2"):
-            raise ValueError("La période d'un événement est 1 ou 2.")
+        if v not in ("1", "2", "3", "4"):
+            raise ValueError("La période d'un événement est 1, 2, 3 ou 4.")
         return v
 
     @model_validator(mode="after")

@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth.rbac import CLUB_ROLES, isClubRole, require_roles, verifier_organisateur_de_competition, verifier_organisateur_du_match
 from app.config import settings
 from app.database import get_db
-from app.models.competition import Saison
+from app.models.competition import Saison, SaisonClub
 from app.models.enums import (
     ActionAudit,
     EquipeConcernee,
@@ -22,6 +22,7 @@ from app.models.enums import (
 from app.models.evenement import EvenementMatch
 from app.models.joueur import Joueur
 from app.models.match import Match, MatchParticipation
+from app.models.sport_engine import MatchQualificationSlot
 from app.models.user import User
 from app.schemas.evenement import EvenementOut
 from app.schemas.match import (
@@ -57,6 +58,20 @@ from app.models.staff import Staff
 from app.services.calcul_stats import appliquer_evenement_valide
 from app.services.recalcul_stats import reconstruire_stats_saison
 from app.services.reglements import get_reglement_actif, get_reglement_pour_match
+from app.services.progression_sportive import (
+    propager_vainqueur_vers_tour_suivant,
+    retirer_vainqueur_des_matchs_cibles,
+    verifier_equipe_directement_nommable,
+    verifier_source_qualification,
+)
+from app.services.regles_temps_match import (
+    MODE_PROLONGATIONS_2X15,
+    mode_egalite_eliminatoire,
+    verifier_fin_match,
+    verifier_resultat_eliminatoire_validable,
+    verifier_tirs_autorises,
+    verifier_transition_periode,
+)
 from app.services.validation import valider_match
 from app.services.possession import suspendre_possession, terminer_possession
 from app.services.composition_positions import positions_titulaires_valides, slots_formation
@@ -232,15 +247,61 @@ async def creer_match(
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Saison introuvable.")
     await verifier_organisateur_de_competition(saison.competition_id, current_user, db)
 
-    groupe_officiel = await determiner_groupe_match(
-        db,
-        payload.saison_id,
-        payload.equipe_domicile_id,
-        payload.equipe_exterieur_id,
-        payload.phase,
-        payload.groupe,
-    )
-    donnees = payload.model_dump()
+    if payload.phase == "poule":
+        groupe_officiel = await determiner_groupe_match(
+            db,
+            payload.saison_id,
+            payload.equipe_domicile_id,
+            payload.equipe_exterieur_id,
+            payload.phase,
+            payload.groupe,
+        )
+    else:
+        groupe_officiel = getattr(payload.groupe, "value", payload.groupe)
+        ids_clubs = {
+            club_id for club_id in (payload.equipe_domicile_id, payload.equipe_exterieur_id)
+            if club_id is not None
+        }
+        if ids_clubs:
+            inscrits = set((await db.execute(
+                select(SaisonClub.club_id).where(
+                    SaisonClub.saison_id == payload.saison_id,
+                    SaisonClub.club_id.in_(ids_clubs),
+                )
+            )).scalars().all())
+            if inscrits != ids_clubs:
+                raise HTTPException(status.HTTP_400_BAD_REQUEST, "Toute équipe nommée doit être inscrite à cette saison.")
+            for club_id in ids_clubs:
+                await verifier_equipe_directement_nommable(db, payload.saison_id, club_id, payload.phase)
+
+    sources = {}
+    equipes_resolues = {
+        "domicile": payload.equipe_domicile_id,
+        "exterieur": payload.equipe_exterieur_id,
+    }
+    for cote, source_id in (
+        ("domicile", payload.source_match_domicile_id),
+        ("exterieur", payload.source_match_exterieur_id),
+    ):
+        if source_id is None:
+            continue
+        _, vainqueur_id = await verifier_source_qualification(
+            db,
+            saison_id=payload.saison_id,
+            phase_cible=payload.phase,
+            match_source_id=source_id,
+            cote_cible=cote,
+        )
+        sources[cote] = source_id
+        if vainqueur_id is not None:
+            equipes_resolues[cote] = vainqueur_id
+
+    if equipes_resolues["domicile"] is not None and equipes_resolues["domicile"] == equipes_resolues["exterieur"]:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Une équipe ne peut pas occuper les deux côtés du match.")
+
+    donnees = payload.model_dump(exclude={"source_match_domicile_id", "source_match_exterieur_id"})
+    donnees["equipe_domicile_id"] = equipes_resolues["domicile"]
+    donnees["equipe_exterieur_id"] = equipes_resolues["exterieur"]
     donnees["groupe"] = groupe_officiel
     reglement = await get_reglement_actif(db, payload.saison_id)
     if reglement is not None:
@@ -248,7 +309,29 @@ async def creer_match(
     match_ = Match(**donnees)
     db.add(match_)
     await db.flush()
-    await log_audit(db, "matchs", match_.id, ActionAudit.INSERT, current_user.id, None, {"saison_id": payload.saison_id})
+    for cote, source_id in sources.items():
+        db.add(MatchQualificationSlot(
+            cible=match_,
+            cote=cote,
+            match_source_id=source_id,
+            cree_par_id=current_user.id,
+        ))
+    await db.flush()
+    await log_audit(
+        db,
+        "matchs",
+        match_.id,
+        ActionAudit.INSERT,
+        current_user.id,
+        None,
+        {
+            "saison_id": payload.saison_id,
+            "phase": payload.phase,
+            "equipe_domicile_id": match_.equipe_domicile_id,
+            "equipe_exterieur_id": match_.equipe_exterieur_id,
+            "sources_qualification": sources,
+        },
+    )
     await db.commit()
     await db.refresh(match_)
     return match_
@@ -294,6 +377,13 @@ async def supprimer_match_programme(
             status.HTTP_409_CONFLICT,
             "Ce match contient déjà des données sportives et ne peut pas être supprimé.",
         )
+    utilise_comme_source = await db.scalar(
+        select(MatchQualificationSlot.id)
+        .where(MatchQualificationSlot.match_source_id == match_id)
+        .limit(1)
+    )
+    if utilise_comme_source is not None:
+        raise HTTPException(status.HTTP_409_CONFLICT, "Ce match alimente déjà un emplacement de qualification et ne peut pas être supprimé.")
     avant = {
         "saison_id": match_.saison_id,
         "journee": match_.journee,
@@ -355,6 +445,13 @@ async def changer_statut_match(
     if nouveau_statut == StatutMatch.EN_COURS:
         if actuel != StatutMatch.PROGRAMME.value and actuel != StatutMatch.PROGRAMME:
             raise HTTPException(status.HTTP_400_BAD_REQUEST, "Seul un match programmé peut être démarré.")
+        if match_.equipe_domicile_id is None or match_.equipe_exterieur_id is None:
+            raise HTTPException(status.HTTP_409_CONFLICT, "Les deux qualifiés doivent être déterminés avant le coup d'envoi.")
+        if _value(match_.phase) in PHASES_ELIMINATOIRES:
+            cotes_sources = {slot.cote for slot in match_.qualification_slots}
+            for cote, club_id in (("domicile", match_.equipe_domicile_id), ("exterieur", match_.equipe_exterieur_id)):
+                if cote not in cotes_sources:
+                    await verifier_equipe_directement_nommable(db, match_.saison_id, club_id, _value(match_.phase))
         match_.started_at = now
         match_.ended_at = None
         match_.periode = PeriodeMatch.PREMIERE
@@ -363,6 +460,7 @@ async def changer_statut_match(
     elif nouveau_statut == StatutMatch.TERMINE:
         if actuel != StatutMatch.EN_COURS.value and actuel != StatutMatch.EN_COURS:
             raise HTTPException(status.HTTP_400_BAD_REQUEST, "Seul un match en cours peut être terminé.")
+        await verifier_fin_match(db, match_)
         match_.ended_at = now
     old_statut = actuel
     match_.statut = nouveau_statut
@@ -402,6 +500,10 @@ async def annuler_match(
         raise HTTPException(status.HTTP_409_CONFLICT, "Ce match est déjà annulé.")
 
     now = datetime.now(timezone.utc)
+    # Si ce résultat avait déjà alimenté un tour suivant, libère uniquement
+    # les emplacements encore programmés. Un tour suivant commencé bloque
+    # l'annulation afin d'éviter une qualification incohérente.
+    await retirer_vainqueur_des_matchs_cibles(db, match_, current_user.id)
     avant = {
         "statut": actuel,
         "locked": bool(match_.locked),
@@ -484,6 +586,8 @@ async def retablir_match(
     match_.annule_par_id = None
     match_.annule_at = None
     await db.flush()
+    if _value(statut_restaure) == StatutMatch.VALIDE.value:
+        await propager_vainqueur_vers_tour_suivant(db, match_, current_user.id)
 
     await reconstruire_stats_saison(db, match_.saison_id)
     await log_audit(
@@ -551,25 +655,32 @@ async def changer_periode_match(
     actuel_statut = match_.statut.value if hasattr(match_.statut, "value") else match_.statut
     if actuel_statut != StatutMatch.EN_COURS.value:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Seul un match en cours a une période à changer.")
-    actuelle = match_.periode.value if match_.periode and hasattr(match_.periode, "value") else match_.periode
+    actuelle = _value(match_.periode)
+    await verifier_transition_periode(db, match_, periode)
     now = datetime.now(timezone.utc)
     if periode == PeriodeMatch.MI_TEMPS:
-        if actuelle not in (PeriodeMatch.PREMIERE.value, PeriodeMatch.PREMIERE, None, "1"):
-            raise HTTPException(status.HTTP_400_BAD_REQUEST, "La mi-temps se siffle à la fin de la première période.")
         match_.paused_at = now
         match_.periode = PeriodeMatch.MI_TEMPS
     elif periode == PeriodeMatch.SECONDE:
-        if actuelle not in (PeriodeMatch.MI_TEMPS.value, PeriodeMatch.MI_TEMPS, "mi_temps"):
-            raise HTTPException(status.HTTP_400_BAD_REQUEST, "La deuxième période commence après la mi-temps.")
         match_.periode = PeriodeMatch.SECONDE
         match_.periode_started_at = now
-    elif periode == PeriodeMatch.PREMIERE:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "La première période démarre avec le coup d'envoi.")
+        match_.paused_at = None
+    elif periode == PeriodeMatch.PROLONGATION_PREMIERE:
+        match_.periode = PeriodeMatch.PROLONGATION_PREMIERE
+        match_.periode_started_at = now
+        match_.paused_at = None
+    elif periode == PeriodeMatch.MI_TEMPS_PROLONGATION:
+        match_.paused_at = now
+        match_.periode = PeriodeMatch.MI_TEMPS_PROLONGATION
+    elif periode == PeriodeMatch.PROLONGATION_SECONDE:
+        match_.periode = PeriodeMatch.PROLONGATION_SECONDE
+        match_.periode_started_at = now
+        match_.paused_at = None
     else:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Période inconnue.")
-    # La mi-temps suspend automatiquement la capture. La reprise ne
-    # redémarre jamais A/B toute seule : le collecteur doit choisir.
-    if periode == PeriodeMatch.MI_TEMPS:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "La première période démarre avec le coup d'envoi.")
+    # Toute mi-temps suspend la capture de possession; une reprise ne
+    # redémarre jamais A/B automatiquement.
+    if periode in (PeriodeMatch.MI_TEMPS, PeriodeMatch.MI_TEMPS_PROLONGATION):
         await suspendre_possession(db, match_.id, current_user.id, now=now)
     await log_audit(
         db,
@@ -610,6 +721,7 @@ async def ajouter_tir_au_but(
     if match_ is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Match introuvable.")
     _verifier_seance_tirs_au_but(match_)
+    await verifier_tirs_autorises(db, match_)
     tirs = list(match_.tirs_au_but or [])
     if vainqueur_tirs_au_but(tirs):
         raise HTTPException(status.HTTP_409_CONFLICT, "La séance est déjà mathématiquement décidée.")
@@ -646,6 +758,7 @@ async def annuler_dernier_tir_au_but(
     if match_ is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Match introuvable.")
     _verifier_seance_tirs_au_but(match_)
+    await verifier_tirs_autorises(db, match_)
     tirs = list(match_.tirs_au_but or [])
     if not tirs:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Aucun tir à annuler.")
@@ -669,8 +782,7 @@ async def valider_match_route(
     # Lock before the checklist so a concurrent composition cannot be
     # accepted between the checklist read and the final validation.
     match_ = await db.scalar(select(Match).where(Match.id == match_id).with_for_update())
-    if match_.phase in PHASES_ELIMINATOIRES and match_.score_domicile == match_.score_exterieur and not vainqueur_tirs_au_but(match_.tirs_au_but or []):
-        raise HTTPException(status.HTTP_409_CONFLICT, "Match éliminatoire à égalité : terminez la séance de tirs au but avant validation.")
+    await verifier_resultat_eliminatoire_validable(db, match_)
     checklist = await run_checklist(db, match_)
     bloquants = bloquants_effectifs(checklist)
     if bloquants:
@@ -716,6 +828,8 @@ async def enregistrer_resultat_retroactif(
             status.HTTP_400_BAD_REQUEST,
             "Le résultat rétrospectif s'applique uniquement à un match encore programmé.",
         )
+    if match_.equipe_domicile_id is None or match_.equipe_exterieur_id is None:
+        raise HTTPException(status.HTTP_409_CONFLICT, "Les deux équipes doivent être déterminées avant de saisir le résultat.")
 
     deja = await db.execute(select(EvenementMatch.id).where(EvenementMatch.match_id == match_id).limit(1))
     if deja.first() is not None:
@@ -723,6 +837,19 @@ async def enregistrer_resultat_retroactif(
             status.HTTP_409_CONFLICT,
             "Ce match possède déjà des événements : utilisez le flux normal de validation.",
         )
+
+    phase_match = _value(match_.phase)
+    est_nul_eliminatoire = (
+        phase_match in PHASES_ELIMINATOIRES
+        and payload.score_domicile == payload.score_exterieur
+    )
+    mode_egalite = await mode_egalite_eliminatoire(db, match_)
+    if payload.periode_finale == "4" and (
+        phase_match not in PHASES_ELIMINATOIRES or mode_egalite != MODE_PROLONGATIONS_2X15
+    ):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "La période 4 exige une phase éliminatoire configurée avec prolongations.")
+    if est_nul_eliminatoire and mode_egalite == MODE_PROLONGATIONS_2X15 and payload.periode_finale != "4":
+        raise HTTPException(status.HTTP_409_CONFLICT, "Indiquez la période 4 : la règle de cette compétition prévoit des prolongations avant les tirs au but.")
 
     ancien = {
         "statut": statut,
@@ -732,6 +859,7 @@ async def enregistrer_resultat_retroactif(
     }
     match_.score_domicile = payload.score_domicile
     match_.score_exterieur = payload.score_exterieur
+    match_.periode = PeriodeMatch(payload.periode_finale)
     match_.statut = StatutMatch.TERMINE
     match_.resultat_retroactif = True
     match_.motif_resultat_retroactif = payload.motif
@@ -751,10 +879,18 @@ async def enregistrer_resultat_retroactif(
             "score_domicile": match_.score_domicile,
             "score_exterieur": match_.score_exterieur,
             "resultat_retroactif": True,
+            "periode": payload.periode_finale,
             "buteurs_a_verifier": match_.buteurs_a_verifier,
             "motif": payload.motif,
         },
     )
+
+    # Une égalité en phase éliminatoire doit d'abord recevoir ses tirs au but.
+    # Le résultat reste terminé mais non verrouillé jusqu'à la validation finale.
+    if est_nul_eliminatoire:
+        await db.commit()
+        await db.refresh(match_)
+        return match_
 
     match_ = await valider_match(db, match_id, current_user.id)
     await db.commit()
@@ -776,11 +912,17 @@ async def annuler_resultat_retroactif(
     des participations existent : aucune suppression silencieuse.
     """
     match_ = await verifier_organisateur_du_match(match_id, current_user, db)
-    if not match_.locked or not match_.resultat_retroactif:
+    statut_retro = _value(match_.statut)
+    if not match_.resultat_retroactif or statut_retro not in (StatutMatch.VALIDE.value, StatutMatch.TERMINE.value):
         raise HTTPException(
             status.HTTP_409_CONFLICT,
-            "Ce match n'est pas un résultat rétroactif verrouillé à révoquer.",
+            "Ce match ne porte pas un résultat rétroactif validé ou en attente de tirs au but.",
         )
+    if (statut_retro == StatutMatch.VALIDE.value) != bool(match_.locked):
+        raise HTTPException(status.HTTP_409_CONFLICT, "État incohérent pour la révocation du résultat rétroactif.")
+    if match_.tirs_au_but:
+        raise HTTPException(status.HTTP_409_CONFLICT, "Révocation bloquée : retirez d'abord la séance de tirs au but de façon auditée.")
+    await retirer_vainqueur_des_matchs_cibles(db, match_, current_user.id)
 
     evenement = await db.execute(
         select(EvenementMatch.id).where(EvenementMatch.match_id == match_id).limit(1)
@@ -1203,6 +1345,14 @@ async def changer_phase_match(
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Match verrouillé : phase non modifiable.")
     if payload.phase not in PHASES_VALIDES:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Phase inconnue : poule, barrage, quart, demi ou finale.")
+    if payload.phase != _value(match_.phase):
+        if match_.qualification_slots:
+            raise HTTPException(status.HTTP_409_CONFLICT, "La phase d'un match cible avec des sources de qualification est verrouillée par ses liens.")
+        source_utilisee = await db.scalar(
+            select(MatchQualificationSlot.id).where(MatchQualificationSlot.match_source_id == match_id).limit(1)
+        )
+        if source_utilisee is not None:
+            raise HTTPException(status.HTTP_409_CONFLICT, "Ce match est une source explicite de qualification et sa phase ne peut plus être changée.")
     if payload.phase == "poule":
         if match_.equipe_domicile_id is None or match_.equipe_exterieur_id is None:
             raise HTTPException(status.HTTP_400_BAD_REQUEST, "Les deux équipes sont nécessaires pour une poule.")

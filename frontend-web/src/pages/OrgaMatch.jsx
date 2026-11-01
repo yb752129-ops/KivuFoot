@@ -81,6 +81,8 @@ export default function OrgaMatch({ backTo = "/orga/matchs", mode = "orga" } = {
   const [stadeProg, setStadeProg] = useState("");
   const [retroScoreDom, setRetroScoreDom] = useState("");
   const [retroScoreExt, setRetroScoreExt] = useState("");
+  const [retroPeriodeFinale, setRetroPeriodeFinale] = useState("2");
+  const [modeEgaliteMatch, setModeEgaliteMatch] = useState("tirs_au_but_apres_90");
   const [retroMotif, setRetroMotif] = useState("");
   const [retroNote, setRetroNote] = useState(NOTE_RETROACTIVE_DEFAULT);
   const [buteursRetro, setButeursRetro] = useState([]);
@@ -94,13 +96,38 @@ export default function OrgaMatch({ backTo = "/orga/matchs", mode = "orga" } = {
   const [rejetCommentaire, setRejetCommentaire] = useState("");
   const busyRef = useRef(false);
 
-  const home = stripDemo(clubName(clubsById, match?.equipe_domicile_id));
-  const away = stripDemo(clubName(clubsById, match?.equipe_exterieur_id));
+  const home = stripDemo(
+    match?.equipe_domicile_id
+      ? clubName(clubsById, match.equipe_domicile_id)
+      : match?.source_match_domicile_id
+        ? `Vainqueur du match #${match.source_match_domicile_id}`
+        : clubName(clubsById, null),
+  );
+  const away = stripDemo(
+    match?.equipe_exterieur_id
+      ? clubName(clubsById, match.equipe_exterieur_id)
+      : match?.source_match_exterieur_id
+        ? `Vainqueur du match #${match.source_match_exterieur_id}`
+        : clubName(clubsById, null),
+  );
   const joueurs = cote === "exterieur" ? joueursExt : joueursDom;
   const periode = match?.periode || (match?.statut === "en_cours" ? "1" : null);
   const enCours = match?.statut === "en_cours";
   const ht = enCours && periode === "mi_temps";
-  const running = enCours && !ht;
+  const htEt = enCours && periode === "mi_temps_et";
+  const enPause = ht || htEt;
+  const phaseEliminatoire = PHASES_ELIMINATOIRES.includes(match?.phase);
+  const scoreEgal = Number(match?.score_domicile) === Number(match?.score_exterieur);
+  const prolongationsAttendues = phaseEliminatoire
+    && modeEgaliteMatch === "prolongations_2x15"
+    && periode === "2"
+    && scoreEgal;
+  const peutTerminer = enCours && (
+    !phaseEliminatoire
+      ? true
+      : !prolongationsAttendues && !["1", "mi_temps", "3", "mi_temps_et"].includes(String(periode))
+  );
+  const running = enCours && !enPause;
 
   useEffect(() => {
     if (match) {
@@ -111,6 +138,7 @@ export default function OrgaMatch({ backTo = "/orga/matchs", mode = "orga" } = {
       setStadeProg(match.stade || "");
       setRetroScoreDom(String(match.score_domicile ?? ""));
       setRetroScoreExt(String(match.score_exterieur ?? ""));
+      setRetroPeriodeFinale(match.periode === "4" ? "4" : "2");
       setRetroMotif(match.motif_resultat_retroactif || "");
       setRetroNote(match.note_officielle || NOTE_RETROACTIVE_DEFAULT);
       if (match.resultat_retroactif && match.buteurs_a_verifier) {
@@ -161,13 +189,16 @@ export default function OrgaMatch({ backTo = "/orga/matchs", mode = "orga" } = {
       const resultat = await api.resultatRetroactif(id, {
         score_domicile: scoreDom,
         score_exterieur: scoreExt,
+        periode_finale: retroPeriodeFinale,
         motif: retroMotif,
         note_officielle: retroNote.includes("le score saisi ci-dessus")
           ? noteRetroactiveAvecScore(scoreDom, scoreExt)
           : retroNote,
       });
       setMatch(resultat);
-      setMsg("Résultat rétrospectif enregistré et validé. Le match est verrouillé.");
+      setMsg(resultat.statut === "valide"
+        ? "Résultat rétrospectif validé. Le match est verrouillé."
+        : "Score rétrospectif enregistré. Complétez la séance de tirs au but, puis validez le match.");
       await load();
     } catch (e) {
       setErr(e.message);
@@ -257,6 +288,11 @@ export default function OrgaMatch({ backTo = "/orga/matchs", mode = "orga" } = {
         api.possessionGestion(id),
       ]);
       setMatch(m);
+      const reglementMatch = m.reglement_version_id
+        ? await api.reglement(m.reglement_version_id).catch(() => null)
+        : null;
+      const configuredMode = reglementMatch?.configuration?.match?.mode_egalite_eliminatoire;
+      setModeEgaliteMatch(configuredMode === "prolongations_2x15" ? "prolongations_2x15" : "tirs_au_but_apres_90");
       setPossession(possessionGestion || null);
       if (!collecteur) {
         api.documentsMatch(id).then(setDocuments).catch(() => setDocuments([]));
@@ -329,6 +365,15 @@ export default function OrgaMatch({ backTo = "/orga/matchs", mode = "orga" } = {
   }
   function reprise() {
     return act(() => api.changerPeriode(id, "2"), "2e période. Le chrono reprend à 45′.");
+  }
+  function commencerProlongations() {
+    return act(() => api.changerPeriode(id, "3"), "Prolongations. Première période de 15 minutes.");
+  }
+  function miTempsProlongations() {
+    return act(() => api.changerPeriode(id, "mi_temps_et"), "Mi-temps des prolongations. Chrono arrêté.");
+  }
+  function repriseProlongations() {
+    return act(() => api.changerPeriode(id, "4"), "Reprise des prolongations. Deuxième période de 15 minutes.");
   }
   function terminer() {
     return act(() => api.changerStatut(id, "termine"), "Match terminé. Chrono figé.");
@@ -474,7 +519,7 @@ export default function OrgaMatch({ backTo = "/orga/matchs", mode = "orga" } = {
     setErr("");
     setMsg("");
     try {
-      const split = splitMinute(minute, periode === "2" ? "2" : "1");
+      const split = splitMinute(minute, periode);
       const payload = {
         temp_id: crypto.randomUUID(),
         minute: split.minute,
@@ -559,7 +604,7 @@ export default function OrgaMatch({ backTo = "/orga/matchs", mode = "orga" } = {
 
   if (!match) return <p className="empty">Chargement…</p>;
 
-  const formOk = enCours && !ht && !match.locked;
+  const formOk = enCours && !enPause && !match.locked;
   const feuille = grouperFaits(evts);
   const nAttente = evts.filter((e) => e.statut_validation === "en_attente").length;
 
@@ -574,10 +619,17 @@ export default function OrgaMatch({ backTo = "/orga/matchs", mode = "orga" } = {
           {periodeLabel(periode) ? ` · ${periodeLabel(periode)}` : ""}
         </p>
         <h1>{home} {match.score_domicile}–{match.score_exterieur} {away}</h1>
+        {phaseEliminatoire && (
+          <p className="muted small">
+            Règlement de ce match : {modeEgaliteMatch === "prolongations_2x15"
+              ? "2 × 15 minutes, puis tirs au but si l’égalité persiste"
+              : "tirs au but directement après 90 minutes en cas d’égalité"}.
+          </p>
+        )}
         {enCours && (
           <p className="live-now" style={{ marginTop: "0.6rem" }}>
             <span className="live-dot" aria-hidden="true"><b /></span>
-            {ht ? "Mi-temps" : "En cours"}
+            {ht ? "Mi-temps" : htEt ? "Mi-temps des prolongations" : "En cours"}
           </p>
         )}
         {(enCours || match.statut === "termine") && match.started_at && (
@@ -609,16 +661,24 @@ export default function OrgaMatch({ backTo = "/orga/matchs", mode = "orga" } = {
 
       <div className="orga-actions">
         {match.statut === "programme" && (
-          <button className="btn btn-primary" type="button" disabled={busy} onClick={demarrer}>
+          <button
+            className="btn btn-primary"
+            type="button"
+            disabled={busy || !match.equipe_domicile_id || !match.equipe_exterieur_id}
+            onClick={demarrer}
+          >
             Démarrer — coup d’envoi
           </button>
+        )}
+        {match.statut === "programme" && (!match.equipe_domicile_id || !match.equipe_exterieur_id) && (
+          <p className="empty">En attente de la validation du match source pour déterminer les deux équipes.</p>
         )}
         {!collecteur && match.statut === "programme" && !match.locked && (
           <button className="btn btn-danger" type="button" disabled={busy} onClick={supprimerMatch}>
             {busy ? "Suppression…" : "Supprimer cette programmation"}
           </button>
         )}
-        {enCours && periode !== "mi_temps" && periode !== "2" && (
+        {enCours && periode === "1" && (
           <button className="btn" type="button" disabled={busy} onClick={miTemps}>
             Mi-temps
           </button>
@@ -628,7 +688,25 @@ export default function OrgaMatch({ backTo = "/orga/matchs", mode = "orga" } = {
             Reprise — 2e période
           </button>
         )}
-        {enCours && (
+        {prolongationsAttendues && (
+          <>
+            <p className="empty">Égalité après 90 minutes : le règlement prévoit 2 × 15 minutes avant les tirs au but.</p>
+            <button className="btn btn-primary" type="button" disabled={busy} onClick={commencerProlongations}>
+              Commencer les prolongations — 1re période
+            </button>
+          </>
+        )}
+        {enCours && phaseEliminatoire && modeEgaliteMatch === "prolongations_2x15" && periode === "3" && (
+          <button className="btn" type="button" disabled={busy} onClick={miTempsProlongations}>
+            Mi-temps des prolongations
+          </button>
+        )}
+        {htEt && (
+          <button className="btn btn-primary" type="button" disabled={busy} onClick={repriseProlongations}>
+            Reprise — 2e période de prolongation
+          </button>
+        )}
+        {peutTerminer && (
           <button className="btn" type="button" disabled={busy} onClick={terminer}>
             Terminer le match
           </button>
@@ -647,7 +725,7 @@ export default function OrgaMatch({ backTo = "/orga/matchs", mode = "orga" } = {
           <p className="empty">Match sifflé. L’organisateur valide pour le classement.</p>
         )}
         {match.locked && <p className="empty">Match verrouillé — plus aucune modification.</p>}
-        {!collecteur && match.locked && match.resultat_retroactif && (
+        {!collecteur && match.resultat_retroactif && ["termine", "valide"].includes(match.statut) && (
           <button className="btn btn-danger" type="button" disabled={busy} onClick={annulerResultatRetroactif}>
             Révoquer le résultat rétroactif et reprogrammer
           </button>
@@ -724,6 +802,15 @@ export default function OrgaMatch({ backTo = "/orga/matchs", mode = "orga" } = {
               <input type="number" min="0" max="99" value={retroScoreExt} onChange={(e) => setRetroScoreExt(e.target.value)} required />
             </label>
           </div>
+          {phaseEliminatoire && modeEgaliteMatch === "prolongations_2x15" && (
+            <label className="field">
+              Période finale du match
+              <select value={retroPeriodeFinale} onChange={(e) => setRetroPeriodeFinale(e.target.value)}>
+                <option value="2">Fin du temps réglementaire (90 min)</option>
+                <option value="4">Fin des prolongations (120 min)</option>
+              </select>
+            </label>
+          )}
           <label className="field">
             Motif interne de la correction
             <textarea value={retroMotif} onChange={(e) => setRetroMotif(e.target.value)} minLength="10" maxLength="500" required placeholder="Expliquez pourquoi le match est saisi après coup." />
@@ -917,8 +1004,8 @@ export default function OrgaMatch({ backTo = "/orga/matchs", mode = "orga" } = {
             />
           </label>
           <p className="kicker">
-            Enregistré comme {formatMinute(splitMinute(minute, periode === "2" ? "2" : "1").minute, splitMinute(minute, periode === "2" ? "2" : "1").minute_additionnelle)}
-            {periode === "2" ? " · 2e période" : " · 1re période"}
+            Enregistré comme {formatMinute(splitMinute(minute, periode).minute, splitMinute(minute, periode).minute_additionnelle)}
+            {periodeLabel(periode) ? ` · ${periodeLabel(periode)}` : ""}
           </p>
           <button className="btn btn-primary" type="submit" disabled={busy}>
             Enregistrer
@@ -927,6 +1014,7 @@ export default function OrgaMatch({ backTo = "/orga/matchs", mode = "orga" } = {
       )}
 
       {ht && <p className="empty">Mi-temps. Pas de saisie avant la reprise.</p>}
+      {htEt && <p className="empty">Mi-temps des prolongations. Pas de saisie avant la reprise.</p>}
 
       <div className="section-head">
         <h2>Feuille</h2>

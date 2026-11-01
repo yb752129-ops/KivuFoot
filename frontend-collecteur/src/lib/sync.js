@@ -22,6 +22,7 @@ export async function synchroniser() {
     evenement: {
       temp_id: e.tempId,
       minute: e.minute,
+      periode: e.periode ?? null,
       type: e.type,
       joueur_id: e.joueurId,
       joueur_secondaire_id: e.joueurSecondaireId ?? null,

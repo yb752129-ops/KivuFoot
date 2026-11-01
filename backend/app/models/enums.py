@@ -127,10 +127,13 @@ class ProtocolePossession(str, enum.Enum):
 
 
 class PeriodeMatch(str, enum.Enum):
-    """Phase de jeu — distincte du statut C5. Un match EN COURS a une période."""
+    """Période de jeu, incluant les deux périodes configurables de prolongation."""
     PREMIERE = "1"
     MI_TEMPS = "mi_temps"
     SECONDE = "2"
+    PROLONGATION_PREMIERE = "3"
+    MI_TEMPS_PROLONGATION = "mi_temps_et"
+    PROLONGATION_SECONDE = "4"
 
 
 class EquipeConcernee(str, enum.Enum):

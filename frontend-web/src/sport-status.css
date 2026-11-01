@@ -1,0 +1,40 @@
+.kf-sport-status-badge {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  margin-inline-start: .35rem;
+  padding: .2rem .42rem;
+  border: 1px solid rgba(98, 185, 148, .34);
+  border-radius: 999px;
+  color: #92d8b5;
+  background: rgba(44, 126, 94, .12);
+  font-size: .62rem;
+  font-weight: 800;
+  line-height: 1.15;
+  white-space: nowrap;
+}
+
+.kf-sport-status-badge.is-elimine {
+  border-color: rgba(225, 154, 82, .38);
+  color: #e4ad71;
+  background: rgba(143, 88, 37, .12);
+}
+
+.kf-sport-status-badge.is-champion {
+  border-color: rgba(226, 193, 88, .42);
+  color: #f0d57b;
+  background: rgba(159, 127, 35, .14);
+}
+
+@media (max-width: 760px) {
+  .kf-public-frame .kf-public-ranking .kf-public-rank-club-content {
+    grid-template-rows: auto auto auto;
+  }
+  .kf-public-frame .kf-public-ranking .kf-sport-status-badge {
+    grid-column: 3;
+    grid-row: 3;
+    justify-self: start;
+    margin-inline-start: 0;
+    margin-top: .16rem;
+  }
+}

@@ -128,17 +128,26 @@ export default function FeuilleApercu({ faits, nom, match }) {
       || (a.minute_additionnelle || 0) - (b.minute_additionnelle || 0)
       || (a.id || 0) - (b.id || 0),
   );
+  const periode = String(match?.periode ?? "");
   const p1 = chrono.filter(estPeriodeUn);
-  const p2 = chrono.filter((e) => !estPeriodeUn(e));
+  const p2 = chrono.filter((e) => e.periode === "2" || (!e.periode && !estPeriodeUn(e)));
+  const p3 = chrono.filter((e) => e.periode === "3");
+  const p4 = chrono.filter((e) => e.periode === "4");
   const coupEnvoi = Boolean(match?.started_at);
-  const miTemps = Boolean(match?.paused_at || match?.periode === "mi_temps" || match?.periode === "2" || match?.periode_started_at);
-  const deuxiemePeriode = Boolean(match?.periode_started_at || match?.periode === "2" || p2.length > 0);
+  const miTemps = Boolean(
+    match?.paused_at
+    || ["mi_temps", "mi_temps_et", "2", "3", "4"].includes(periode)
+    || p2.length || p3.length || p4.length,
+  );
+  const deuxiemePeriode = Boolean(["2", "3", "4", "mi_temps_et"].includes(periode) || p2.length || p3.length || p4.length);
+  const prolongations = Boolean(["3", "4", "mi_temps_et"].includes(periode) || p3.length || p4.length);
+  const miTempsProlongations = Boolean(["4", "mi_temps_et"].includes(periode) || p4.length);
   const finMatch = Boolean(match?.ended_at || ["termine", "valide"].includes(match?.statut));
   const scorePause = miTemps && p1.some((e) => (
     !e.refuse
     && (e.type === "but" || e.type === "but_contre_son_camp" || e.type === "penalty")
   )) ? scoreMiTemps(p1) : "";
-  const aMarqueurs = coupEnvoi || miTemps || deuxiemePeriode || finMatch;
+  const aMarqueurs = coupEnvoi || miTemps || deuxiemePeriode || prolongations || finMatch;
 
   function lignes(list) {
     return list.map((e) => {
@@ -193,6 +202,12 @@ export default function FeuilleApercu({ faits, nom, match }) {
       {miTemps && <MarqueurPeriode>Mi-temps{scorePause ? ` · ${scorePause}` : ""}</MarqueurPeriode>}
       {deuxiemePeriode && <MarqueurPeriode>2e période</MarqueurPeriode>}
       {lignes(p2)}
+      {prolongations && <MarqueurPeriode>Fin du temps réglementaire · {match.score_domicile}–{match.score_exterieur}</MarqueurPeriode>}
+      {prolongations && <MarqueurPeriode>Prolongations · 1re période</MarqueurPeriode>}
+      {lignes(p3)}
+      {miTempsProlongations && <MarqueurPeriode>Mi-temps des prolongations</MarqueurPeriode>}
+      {miTempsProlongations && <MarqueurPeriode>Prolongations · 2e période</MarqueurPeriode>}
+      {lignes(p4)}
       {finMatch && <MarqueurPeriode>Fin du match · {match.score_domicile}–{match.score_exterieur}</MarqueurPeriode>}
     </ul>
   );

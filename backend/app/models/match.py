@@ -88,6 +88,21 @@ class Match(Base):
     equipe_exterieur = relationship("Club", foreign_keys=[equipe_exterieur_id])
     evenements = relationship("EvenementMatch", back_populates="match_", cascade="all, delete-orphan")
     participations = relationship("MatchParticipation", back_populates="match_", cascade="all, delete-orphan")
+    qualification_slots = relationship(
+        "MatchQualificationSlot",
+        back_populates="cible",
+        foreign_keys="MatchQualificationSlot.match_cible_id",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+    )
+
+    @property
+    def source_match_domicile_id(self) -> int | None:
+        return next((slot.match_source_id for slot in self.qualification_slots if slot.cote == "domicile"), None)
+
+    @property
+    def source_match_exterieur_id(self) -> int | None:
+        return next((slot.match_source_id for slot in self.qualification_slots if slot.cote == "exterieur"), None)
 
     def __repr__(self) -> str:
         return f"<Match {self.id} statut={self.statut}>"

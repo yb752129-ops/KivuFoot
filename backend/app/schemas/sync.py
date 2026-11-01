@@ -38,6 +38,9 @@ class ClassementLigne(BaseModel):
     club_id: int
     club_nom: str
     statut: StatutEquipeEdition = StatutEquipeEdition.ACTIF
+    statut_sportif: str = "en_course"
+    phase_sportive: str | None = None
+    match_sportif_id: int | None = None
     matchs_joues: int
     victoires: int
     nuls: int

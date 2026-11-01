@@ -30,6 +30,8 @@ class MatchOut(BaseModel):
     stade: str | None
     equipe_domicile_id: int | None
     equipe_exterieur_id: int | None
+    source_match_domicile_id: int | None = None
+    source_match_exterieur_id: int | None = None
     score_domicile: int
     score_exterieur: int
     statut: StatutMatch
@@ -61,8 +63,10 @@ class MatchCreate(BaseModel):
     journee: str | None = None
     date_heure: datetime | None = None
     stade: str | None = None
-    equipe_domicile_id: int
-    equipe_exterieur_id: int
+    equipe_domicile_id: int | None = None
+    equipe_exterieur_id: int | None = None
+    source_match_domicile_id: int | None = None
+    source_match_exterieur_id: int | None = None
     phase: str = "poule"
     groupe: GroupePoule | None = None
 
@@ -76,9 +80,9 @@ class MatchCreate(BaseModel):
 
     @field_validator("equipe_exterieur_id")
     @classmethod
-    def equipes_distinctes(cls, v: int, info):
+    def equipes_distinctes(cls, v: int | None, info):
         dom = info.data.get("equipe_domicile_id")
-        if dom is not None and v == dom:
+        if dom is not None and v is not None and v == dom:
             raise ValueError("Une équipe ne peut pas jouer contre elle-même.")
         return v
 
@@ -86,6 +90,23 @@ class MatchCreate(BaseModel):
     def date_heure_requise_hors_barrage(self):
         if self.phase != "barrage" and self.date_heure is None:
             raise ValueError("La date et l’heure sont obligatoires hors barrage.")
+        return self
+
+    @model_validator(mode="after")
+    def participants_coherents(self):
+        cote_domicile = (self.equipe_domicile_id is not None, self.source_match_domicile_id is not None)
+        cote_exterieur = (self.equipe_exterieur_id is not None, self.source_match_exterieur_id is not None)
+        if self.phase == "poule":
+            if not cote_domicile[0] or not cote_exterieur[0] or cote_domicile[1] or cote_exterieur[1]:
+                raise ValueError("Un match de poule exige deux équipes nommées, sans source de qualification.")
+        else:
+            if cote_domicile[0] == cote_domicile[1] or cote_exterieur[0] == cote_exterieur[1]:
+                raise ValueError("Chaque côté doit désigner une équipe ou le vainqueur d'un match source, pas les deux.")
+        if (
+            self.source_match_domicile_id is not None
+            and self.source_match_domicile_id == self.source_match_exterieur_id
+        ):
+            raise ValueError("Un même match source ne peut remplir les deux côtés d'une rencontre.")
         return self
 
 
@@ -132,6 +153,7 @@ class MatchResultatRetroactif(BaseModel):
 
     score_domicile: int = Field(ge=0, le=99)
     score_exterieur: int = Field(ge=0, le=99)
+    periode_finale: Literal["2", "4"] = "2"
     motif: str = Field(min_length=10, max_length=500)
     note_officielle: str = Field(min_length=10, max_length=2000)
 

@@ -11,8 +11,11 @@ from app.database import Base
 from app.models.club import Club
 from app.models.competition import Saison, SaisonClub
 from app.models.match import Match
+from app.models.sport_engine import MatchQualificationSlot
+from app.models.user import User
 from app.services.calcul_classement import calculer_classement
 from app.services.groupes_saison import determiner_groupe_match
+from tests.sqlite_compat import utiliser_types_sqlite
 
 GROUPES_SAISON_2 = {
     "A": ["G.C.V", "INFO-2026", "G.G.T-GRF", "SANTÉ PUBLIC"],
@@ -69,23 +72,25 @@ def match_kwargs(dom_id, ext_id, **extra):
 @pytest_asyncio.fixture
 async def db_session():
     engine = create_async_engine("sqlite+aiosqlite:///:memory:", future=True)
-    tables = [Club.__table__, Saison.__table__, SaisonClub.__table__, Match.__table__]
+    tables = [Club.__table__, Saison.__table__, SaisonClub.__table__, User.__table__, Match.__table__, MatchQualificationSlot.__table__]
+    restore_types = utiliser_types_sqlite(tables)
+    try:
+        async with engine.begin() as connection:
+            await connection.run_sync(
+                lambda sync: Base.metadata.create_all(sync, tables=tables)
+            )
 
-    async with engine.begin() as connection:
-        await connection.run_sync(
-            lambda sync: Base.metadata.create_all(sync, tables=tables)
+        session_factory = async_sessionmaker(
+            engine,
+            expire_on_commit=False,
+            autoflush=False,
         )
 
-    session_factory = async_sessionmaker(
-        engine,
-        expire_on_commit=False,
-        autoflush=False,
-    )
-
-    async with session_factory() as session:
-        yield session
-
-    await engine.dispose()
+        async with session_factory() as session:
+            yield session
+    finally:
+        await engine.dispose()
+        restore_types()
 
 @pytest.mark.asyncio
 async def test_toutes_les_inscriptions_apparaissent_sans_match_valide(db_session):

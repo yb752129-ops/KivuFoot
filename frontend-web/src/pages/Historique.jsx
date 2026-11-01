@@ -17,6 +17,15 @@ function statutTexte(value) {
   }[value] || value || "Indéterminé";
 }
 
+function statutSportifTexte(value) {
+  return {
+    en_course: "En cours de compétition",
+    qualifie: "Qualifié sportivement",
+    elimine: "Éliminé sportivement",
+    champion: "Champion",
+  }[value] || "En cours de compétition";
+}
+
 export default function Historique() {
   const { saison } = useKivu();
   const [progression, setProgression] = useState(null);
@@ -65,7 +74,7 @@ export default function Historique() {
           {progression?.lignes?.length > 0 && (
             <div className="table-wrap">
               <table>
-                <thead><tr><th>Club</th><th>Groupe</th><th>Pts</th><th>Joués</th><th>Restants</th><th>Statut</th></tr></thead>
+                <thead><tr><th>Club</th><th>Groupe</th><th>Pts</th><th>Joués</th><th>Restants</th><th>Qualification de poule</th><th>Statut sportif en phase éliminatoire</th></tr></thead>
                 <tbody>
                   {progression.lignes.map((row) => (
                     <tr key={row.club_id}>
@@ -75,6 +84,9 @@ export default function Historique() {
                       <td>{row.matchs_joues}</td>
                       <td>{row.matchs_restants}</td>
                       <td title={row.explication}>{statutTexte(row.statut_qualification)}</td>
+                      <td title={row.phase_sportive ? `Décision issue du match #${row.match_sportif_id}, phase ${row.phase_sportive}` : "Aucun match éliminatoire validé n’a encore décidé le statut."}>
+                        {statutSportifTexte(row.statut_sportif)}
+                      </td>
                     </tr>
                   ))}
                 </tbody>

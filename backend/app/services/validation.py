@@ -26,6 +26,8 @@ from app.services.audit import log_audit
 from app.services.calcul_stats import appliquer_evenement_valide, retirer_evenement_valide
 from app.services.feuille_de_match import appliquer_feuille_de_match
 from app.services.possession import officialiser_possession
+from app.services.progression_sportive import propager_vainqueur_vers_tour_suivant
+from app.services.regles_temps_match import verifier_resultat_eliminatoire_validable
 
 
 def _val(x):
@@ -385,6 +387,8 @@ async def valider_match(db: AsyncSession, match_id: int, valide_par_id: int) -> 
             status.HTTP_409_CONFLICT,
             "Le match doit être terminé avant d'être validé.",
         )
+    if match_.equipe_domicile_id is None or match_.equipe_exterieur_id is None:
+        raise HTTPException(status.HTTP_409_CONFLICT, "Les deux équipes doivent être déterminées avant validation.")
 
     result = await db.execute(
         select(EvenementMatch).where(
@@ -398,6 +402,7 @@ async def valider_match(db: AsyncSession, match_id: int, valide_par_id: int) -> 
             "Impossible de valider ce match : des événements sont encore en attente de traitement.",
         )
 
+    await verifier_resultat_eliminatoire_validable(db, match_)
     old_data = {"statut": _val(match_.statut), "locked": match_.locked}
 
     await appliquer_feuille_de_match(db, match_)
@@ -406,6 +411,10 @@ async def valider_match(db: AsyncSession, match_id: int, valide_par_id: int) -> 
     match_.valide_par = valide_par_id
     match_.date_validation = datetime.now(timezone.utc)
     match_.locked = True
+
+    # Le classement sportif est propagé dans la même transaction que la
+    # validation. Seuls les matchs éliminatoires validés fournissent un vainqueur.
+    await propager_vainqueur_vers_tour_suivant(db, match_, valide_par_id)
 
     # La possession reste une statistique additive : sa publication est
     # liée à la validation du match, sans toucher au score ni aux événements.

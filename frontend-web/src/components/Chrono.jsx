@@ -30,7 +30,7 @@ export default function Chrono({
     paused_at: pausedAt,
   };
   if (!source.started_at) return null;
-  if (source.periode === "mi_temps") return null;
+  if (["mi_temps", "mi_temps_et"].includes(source.periode)) return null;
   const freezeAt = source.ended_at || endedAt;
   const clock = clockFromMatch(
     source,
@@ -48,6 +48,7 @@ export default function Chrono({
 export function LiveMinute({ match, className = "live-minute" }) {
   if (!match?.started_at) return null;
   if (match.periode === "mi_temps") return <span className={className}>MT</span>;
+  if (match.periode === "mi_temps_et") return <span className={className}>MT Prol.</span>;
   return (
     <Chrono
       precision="minute"

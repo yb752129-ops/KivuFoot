@@ -103,8 +103,8 @@ async def saisir_evenement(
     if staff_orga and statut != StatutMatch.EN_COURS.value:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Le match n'est pas en cours.")
     periode = match_.periode.value if match_.periode and hasattr(match_.periode, "value") else match_.periode
-    if staff_orga and periode == "mi_temps":
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Mi-temps : la saisie reprend à la reprise.")
+    if staff_orga and periode in ("mi_temps", "mi_temps_et"):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Mi-temps : la saisie reprend après la reprise de la période.")
     try:
         async with AsyncSessionLocal() as extra:
             await reparer_expulsions_deuxieme_jaune(extra, match_id, current_user.id)
