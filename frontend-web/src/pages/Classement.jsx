@@ -23,6 +23,8 @@ function nomClub(ligne, club) {
 function RankingRow({ ligne, index, club, followedClubId, saisonId }) {
   const nom = nomClub(ligne, club);
   const statut = ligne.statut || club?.statut || "actif";
+  const statutAdminPrioritaire = ["disqualifie", "elimine"].includes(statut);
+  const statutSportifVisible = !statutAdminPrioritaire && ["qualifie", "elimine", "champion"].includes(ligne.statut_sportif);
   const followed = followedClubId !== null && Number(ligne.club_id) === followedClubId;
   const contenu = (
     <span className={`kf-public-rank-club-content${statut === "disqualifie" || statut === "elimine" ? " has-decision-badge" : ""}`}>
@@ -30,12 +32,13 @@ function RankingRow({ ligne, index, club, followedClubId, saisonId }) {
       <PublicClubLogo club={club} name={nom} statut={statut} />
       <span className="kf-public-rank-name">{nom}</span>
       <StatutEquipeBadge statut={statut} compact />
-      {["qualifie", "elimine", "champion"].includes(ligne.statut_sportif) && (
+      {statutSportifVisible && (
         <span
           className={`kf-sport-status-badge is-${ligne.statut_sportif}`}
-          title={`Statut sportif après match validé${ligne.phase_sportive ? ` de phase ${ligne.phase_sportive}` : ""}`}
+          aria-label={ligne.statut_sportif === "elimine" ? "Éliminé sportivement" : ligne.statut_sportif === "champion" ? "Champion" : "Qualifié"}
+          title={`Statut sportif après match validé${ligne.phase_sportive ? ` de phase ${ligne.phase_sportive}` : ""}. Le statut administratif reste prioritaire.`}
         >
-          {ligne.statut_sportif === "elimine" ? "Éliminé · sport." : ligne.statut_sportif === "champion" ? "Champion" : "Qualifié"}
+          {ligne.statut_sportif === "elimine" ? "ÉLIM." : ligne.statut_sportif === "champion" ? "Champion" : "Qualifié"}
         </span>
       )}
     </span>
@@ -89,7 +92,10 @@ export default function Classement() {
     [lignesTriees],
   );
   const hasSportsStatus = useMemo(
-    () => lignesTriees.some((ligne) => ["qualifie", "elimine", "champion"].includes(ligne?.statut_sportif)),
+    () => lignesTriees.some((ligne) =>
+      !["disqualifie", "elimine"].includes(ligne?.statut)
+      && ["qualifie", "elimine", "champion"].includes(ligne?.statut_sportif)
+    ),
     [lignesTriees],
   );
   const followedClubId = followedPublicClubId();
@@ -182,7 +188,7 @@ export default function Classement() {
       {(hasDecisionStatus || hasSportsStatus) && (
         <p className="kf-team-status-legend">
           {hasDecisionStatus && <>Statut administratif : DISQ. = disqualification décidée par l’organisation. </>}
-          {hasSportsStatus && <>Statut sportif : Qualifié / Éliminé / Champion, calculé uniquement depuis les matchs éliminatoires validés. Ces états ne modifient pas l’inscription administrative.</>}
+          {hasSportsStatus && <>Statut sportif : QUALIFIÉ / ÉLIM. / CHAMPION, calculé uniquement depuis les matchs éliminatoires validés. Il reste distinct et ne remplace jamais le statut administratif prioritaire.</>}
         </p>
       )}
     </section>

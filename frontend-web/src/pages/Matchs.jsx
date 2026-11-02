@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { LiveMinute } from "../components/Chrono.jsx";
 import { startVisibleRefresh } from "../liveRefresh.js";
 import { api } from "../api.js";
@@ -19,13 +19,26 @@ import {
   publicClubName,
 } from "../components/PublicDesign.jsx";
 import { dernierFaitLive, formatMinute, groupMatchsByJournee, labelEvenement, journeeTitre } from "../display.js";
+import { ETAPES_PHASE_FINALE, libelleCartePhaseFinale, numeroterMatchsPhase } from "../phaseFinale.js";
 
 const FILTRES = [
   ["tous", "Tous"],
   ["avenir", "À venir"],
   ["termines", "Terminés"],
   ["direct", "En cours"],
+  ["phase-finale", "Phase finale"],
 ];
+const STATUTS_PUBLICS = new Set(["programme", "en_cours", "termine", "valide"]);
+
+function filtreDepuisURL(searchParams) {
+  const value = searchParams.get("filtre");
+  return FILTRES.some(([id]) => id === value) ? value : "tous";
+}
+
+function tourDepuisURL(searchParams) {
+  const value = searchParams.get("tour");
+  return ETAPES_PHASE_FINALE.some((phase) => phase.id === value) ? value : "barrage";
+}
 
 function statutLabel(statut) {
   if (statut === "programme") return "À VENIR";
@@ -63,7 +76,7 @@ function classeEvenementLive(event) {
   return "";
 }
 
-function PublicMatchCard({ match, clubsById, saisonClubs, event }) {
+function PublicMatchCard({ match, clubsById, saisonClubs, event, numerotationPhase }) {
   const home = findPublicClub(clubsById, saisonClubs, match.equipe_domicile_id);
   const away = findPublicClub(clubsById, saisonClubs, match.equipe_exterieur_id);
   const homeName = publicClubName(clubsById, saisonClubs, match.equipe_domicile_id);
@@ -71,6 +84,8 @@ function PublicMatchCard({ match, clubsById, saisonClubs, event }) {
   const winners = scoreWinners(match);
   const upcoming = !scorePublicVisible(match);
   const official = match.statut === "valide";
+  const numeroPhase = numerotationPhase?.get(Number(match.id));
+  const libellePhase = libelleCartePhaseFinale(match.phase, numeroPhase);
   return (
     <Link to={`/matchs/${match.id}`} className={`kf-public-match-card ${classeHalo(match)}`}>
       <div className="kf-public-match-top">
@@ -85,7 +100,14 @@ function PublicMatchCard({ match, clubsById, saisonClubs, event }) {
         ) : (
           <span className="kf-public-match-status">{statutLabel(match.statut)}</span>
         )}
-        <span>{upcoming ? (match.phase === "barrage" ? "BARRAGE" : formatPublicRound(match.journee)) : formatPublicDate(match.date_heure)}</span>
+        {libellePhase ? (
+          <span className="kf-public-match-phase-meta">
+            <strong className="kf-public-match-phase-tag">{libellePhase}</strong>
+            {!upcoming && match.date_heure && <span className="kf-public-match-date">{formatPublicDate(match.date_heure)}</span>}
+          </span>
+        ) : (
+          <span>{upcoming ? formatPublicRound(match.journee) : formatPublicDate(match.date_heure)}</span>
+        )}
       </div>
       <div className="kf-public-match-teams">
         <span className={`kf-public-match-team${winners.home ? " winner" : ""}`}>
@@ -109,14 +131,14 @@ function PublicMatchCard({ match, clubsById, saisonClubs, event }) {
       )}
       <div className="kf-public-match-bottom">
         <span><IcoEpingle /> {match.stade || "—"}</span>
-        {!upcoming && <span><IcoCalendrier /> {formatPublicRound(match.journee)}</span>}
+        {!upcoming && !libellePhase && <span><IcoCalendrier /> {formatPublicRound(match.journee)}</span>}
       </div>
       {official && <span className="kf-public-official-note">Résultat officiel</span>}
     </Link>
   );
 }
 
-function GroupeMatchs({ groupe, clubsById, saisonClubs, evtsById }) {
+function GroupeMatchs({ groupe, clubsById, saisonClubs, evtsById, numerotationPhase }) {
   const stadium = groupe.items.find((match) => match.stade)?.stade || "—";
   return (
     <section className="kf-public-match-group">
@@ -132,6 +154,7 @@ function GroupeMatchs({ groupe, clubsById, saisonClubs, evtsById }) {
             clubsById={clubsById}
             saisonClubs={saisonClubs}
             event={evtsById[match.id] || null}
+            numerotationPhase={numerotationPhase}
           />
         ))}
       </div>
@@ -141,10 +164,12 @@ function GroupeMatchs({ groupe, clubsById, saisonClubs, evtsById }) {
 
 export default function Matchs() {
   const { saison, clubsById, saisonClubs } = useKivu();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [matchs, setMatchs] = useState([]);
-  const [filtre, setFiltre] = useState("tous");
   const [evtsById, setEvtsById] = useState({});
   const [err, setErr] = useState("");
+  const filtre = filtreDepuisURL(searchParams);
+  const phaseTour = tourDepuisURL(searchParams);
 
   useEffect(() => {
     if (!saison) {
@@ -187,12 +212,41 @@ export default function Matchs() {
     };
   }, [saison]);
 
+  const changerFiltre = (valeur) => {
+    setSearchParams((courants) => {
+      const suivants = new URLSearchParams(courants);
+      if (valeur === "tous") suivants.delete("filtre");
+      else suivants.set("filtre", valeur);
+      if (valeur !== "phase-finale") suivants.delete("tour");
+      else if (!ETAPES_PHASE_FINALE.some((phase) => phase.id === suivants.get("tour"))) suivants.set("tour", "barrage");
+      return suivants;
+    });
+  };
+
+  const changerTour = (valeur) => {
+    setSearchParams((courants) => {
+      const suivants = new URLSearchParams(courants);
+      suivants.set("filtre", "phase-finale");
+      suivants.set("tour", valeur);
+      return suivants;
+    });
+  };
+
   const affiches = useMemo(() => {
     if (filtre === "avenir") return matchs.filter((match) => match.statut === "programme");
     if (filtre === "termines") return matchs.filter((match) => ["termine", "valide"].includes(match.statut));
     if (filtre === "direct") return matchs.filter((match) => match.statut === "en_cours" && !match.ended_at);
-    return matchs.filter((match) => ["programme", "en_cours", "termine", "valide"].includes(match.statut));
+    if (filtre === "phase-finale") return [];
+    return matchs.filter((match) => STATUTS_PUBLICS.has(match.statut));
   }, [filtre, matchs]);
+
+  const numeroPhaseParMatch = useMemo(() => numeroterMatchsPhase(matchs), [matchs]);
+  const matchsDuTour = useMemo(
+    () => matchs
+      .filter((match) => match.phase === phaseTour && STATUTS_PUBLICS.has(match.statut))
+      .sort(comparerDateProgramme),
+    [matchs, phaseTour],
+  );
 
   const aVenir = [...affiches]
     .filter((match) => match.statut === "programme")
@@ -205,6 +259,7 @@ export default function Matchs() {
     .sort((a, b) => new Date(b.date_heure) - new Date(a.date_heure));
   const groupesTermines = groupMatchsByJournee(termines);
   const groupesAvenir = groupMatchsByJournee(aVenir);
+  const phaseActive = ETAPES_PHASE_FINALE.find((phase) => phase.id === phaseTour) || ETAPES_PHASE_FINALE[0];
 
   return (
     <section className="kf-public-page kf-public-matches">
@@ -219,7 +274,7 @@ export default function Matchs() {
             role="tab"
             aria-selected={filtre === value}
             className={filtre === value ? "active" : ""}
-            onClick={() => setFiltre(value)}
+            onClick={() => changerFiltre(value)}
           >
             {label}
           </button>
@@ -228,54 +283,113 @@ export default function Matchs() {
 
       {err && <p className="kf-public-error">{err}</p>}
 
-      {lives.length > 0 && (
-        <section className="kf-public-match-section">
-          <div className="kf-public-group-label"><strong>En cours</strong><span>{lives.length} match{lives.length > 1 ? "s" : ""}</span></div>
-          <div className="kf-public-result-group">
-            {lives.map((match) => (
-              <PublicMatchCard
-                key={match.id}
-                match={match}
-                clubsById={clubsById}
-                saisonClubs={saisonClubs}
-                event={evtsById[match.id] || null}
-              />
+      {filtre === "phase-finale" ? (
+        <>
+          <div className="kf-public-tabs kf-public-phase-round-tabs" role="tablist" aria-label="Choisir un tour de phase finale">
+            {ETAPES_PHASE_FINALE.map((phase) => (
+              <button
+                key={phase.id}
+                type="button"
+                role="tab"
+                aria-selected={phaseTour === phase.id}
+                className={phaseTour === phase.id ? "active" : ""}
+                onClick={() => changerTour(phase.id)}
+              >
+                {phase.filtre}
+              </button>
             ))}
           </div>
-        </section>
-      )}
 
-      {filtre !== "termines" && filtre !== "direct" && (
-        <section className="kf-public-match-section">
-          <div className="kf-public-group-label"><strong>À venir</strong><span>{aVenir.length} match{aVenir.length > 1 ? "s" : ""}</span></div>
-          {groupesAvenir.length === 0 ? (
-            <div className="kf-public-empty"><strong>Aucun match programmé</strong></div>
-          ) : (
-            groupesAvenir.map((groupe) => (
-              <GroupeMatchs key={groupe.code} groupe={groupe} clubsById={clubsById} saisonClubs={saisonClubs} evtsById={evtsById} />
-            ))
+          <section className="kf-public-match-section" aria-label={`Phase finale : ${phaseActive.titre}`}>
+            <div className="kf-public-group-label">
+              <strong>{phaseActive.titre}</strong>
+              <span>{matchsDuTour.length} match{matchsDuTour.length > 1 ? "s" : ""}</span>
+            </div>
+            {matchsDuTour.length === 0 ? (
+              <div className="kf-public-empty"><strong>Programme à communiquer</strong></div>
+            ) : (
+              <div className="kf-public-result-group" id="kf-phase-finale-matchs">
+                {matchsDuTour.map((match) => (
+                  <PublicMatchCard
+                    key={match.id}
+                    match={match}
+                    clubsById={clubsById}
+                    saisonClubs={saisonClubs}
+                    event={evtsById[match.id] || null}
+                    numerotationPhase={numeroPhaseParMatch}
+                  />
+                ))}
+              </div>
+            )}
+          </section>
+        </>
+      ) : (
+        <>
+          {lives.length > 0 && (
+            <section className="kf-public-match-section">
+              <div className="kf-public-group-label"><strong>En cours</strong><span>{lives.length} match{lives.length > 1 ? "s" : ""}</span></div>
+              <div className="kf-public-result-group">
+                {lives.map((match) => (
+                  <PublicMatchCard
+                    key={match.id}
+                    match={match}
+                    clubsById={clubsById}
+                    saisonClubs={saisonClubs}
+                    event={evtsById[match.id] || null}
+                    numerotationPhase={numeroPhaseParMatch}
+                  />
+                ))}
+              </div>
+            </section>
           )}
-        </section>
-      )}
 
-      {filtre !== "avenir" && filtre !== "direct" && (
-        <section className="kf-public-match-section">
-          <div className="kf-public-group-label"><strong>Terminés</strong><span>{termines.length} résultats</span></div>
-          {groupesTermines.length === 0 ? (
-            <div className="kf-public-empty"><strong>Pas encore de résultat public</strong></div>
-          ) : (
-            <>
-              <p className="kf-public-official-summary">Résultats officiels</p>
-              {groupesTermines.map((groupe) => (
-                <GroupeMatchs key={groupe.code} groupe={groupe} clubsById={clubsById} saisonClubs={saisonClubs} evtsById={evtsById} />
-              ))}
-            </>
+          {filtre !== "termines" && filtre !== "direct" && (
+            <section className="kf-public-match-section">
+              <div className="kf-public-group-label"><strong>À venir</strong><span>{aVenir.length} match{aVenir.length > 1 ? "s" : ""}</span></div>
+              {groupesAvenir.length === 0 ? (
+                <div className="kf-public-empty"><strong>Aucun match programmé</strong></div>
+              ) : (
+                groupesAvenir.map((groupe) => (
+                  <GroupeMatchs
+                    key={groupe.code}
+                    groupe={groupe}
+                    clubsById={clubsById}
+                    saisonClubs={saisonClubs}
+                    evtsById={evtsById}
+                    numerotationPhase={numeroPhaseParMatch}
+                  />
+                ))
+              )}
+            </section>
           )}
-        </section>
-      )}
 
-      {affiches.length === 0 && !err && filtre !== "direct" && (
-        <div className="kf-public-empty"><strong>Aucun match à afficher</strong></div>
+          {filtre !== "avenir" && filtre !== "direct" && (
+            <section className="kf-public-match-section">
+              <div className="kf-public-group-label"><strong>Terminés</strong><span>{termines.length} résultats</span></div>
+              {groupesTermines.length === 0 ? (
+                <div className="kf-public-empty"><strong>Pas encore de résultat public</strong></div>
+              ) : (
+                <>
+                  <p className="kf-public-official-summary">Résultats officiels</p>
+                  {groupesTermines.map((groupe) => (
+                    <GroupeMatchs
+                      key={groupe.code}
+                      groupe={groupe}
+                      clubsById={clubsById}
+                      saisonClubs={saisonClubs}
+                      evtsById={evtsById}
+                      numerotationPhase={numeroPhaseParMatch}
+                    />
+                  ))}
+                </>
+              )}
+            </section>
+          )}
+
+          {affiches.length === 0 && !err && filtre !== "direct" && (
+            <div className="kf-public-empty"><strong>Aucun match à afficher</strong></div>
+          )}
+        </>
       )}
     </section>
   );

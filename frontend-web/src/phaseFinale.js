@@ -1,16 +1,53 @@
 import { PHASES_ELIMINATOIRES, vainqueurTirsAuBut } from "./tirsAuBut.js";
 
 export const ETAPES_PHASE_FINALE = [
-  { id: "barrage", titre: "Barrages", singulier: "barrage" },
-  { id: "quart", titre: "Quarts de finale", singulier: "quart de finale" },
-  { id: "demi", titre: "Demi-finales", singulier: "demi-finale" },
-  { id: "finale", titre: "Finale", singulier: "finale" },
+  { id: "barrage", titre: "Barrages", filtre: "Barrages", libelleCarte: "BARRAGE", singulier: "barrage" },
+  { id: "quart", titre: "Quarts de finale", filtre: "Quarts", libelleCarte: "QUART DE FINALE", singulier: "quart de finale" },
+  { id: "demi", titre: "Demi-finales", filtre: "Demis", libelleCarte: "DEMI-FINALE", singulier: "demi-finale" },
+  { id: "finale", titre: "Finale", filtre: "Finale", libelleCarte: "FINALE", singulier: "finale" },
 ];
 
 const ORDRE_PHASE = new Map(ETAPES_PHASE_FINALE.map((phase, index) => [phase.id, index]));
 
 export function libellePhaseFinale(phaseId) {
   return ETAPES_PHASE_FINALE.find((phase) => phase.id === phaseId)?.singulier || "phase finale";
+}
+
+/** Libellé de carte indépendant de l'identifiant technique du match. */
+export function libelleCartePhaseFinale(phaseId, numero) {
+  const phase = ETAPES_PHASE_FINALE.find((item) => item.id === phaseId);
+  if (!phase) return "";
+  const index = Number(numero);
+  return `${phase.libelleCarte}${Number.isSafeInteger(index) && index > 0 ? ` ${index}` : ""}`;
+}
+
+/** Numérote chaque tour chronologiquement, sans exposer les IDs des matchs. */
+export function numeroterMatchsPhase(matchs = []) {
+  const numeros = new Map();
+  const source = Array.isArray(matchs) ? matchs : [];
+
+  for (const phase of ETAPES_PHASE_FINALE) {
+    const rencontres = source
+      .filter((match) => match?.phase === phase.id)
+      .slice()
+      .sort((a, b) => {
+        const dateA = Date.parse(a.date_heure || "");
+        const dateB = Date.parse(b.date_heure || "");
+        const dateAValide = Number.isFinite(dateA);
+        const dateBValide = Number.isFinite(dateB);
+        if (dateAValide !== dateBValide) return dateAValide ? -1 : 1;
+        if (dateAValide && dateA !== dateB) return dateA - dateB;
+        return Number(a.id || 0) - Number(b.id || 0);
+      });
+
+    rencontres.forEach((match, index) => {
+      if (match?.id !== undefined && match?.id !== null) {
+        numeros.set(Number(match.id), index + 1);
+      }
+    });
+  }
+
+  return numeros;
 }
 
 /** Renvoie le vainqueur uniquement pour un match éliminatoire validé. */
