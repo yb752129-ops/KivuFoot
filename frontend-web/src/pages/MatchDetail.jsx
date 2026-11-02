@@ -10,6 +10,8 @@ import { LiveUne } from "../components/LignesMatch.jsx";
 import { scorePublicVisible, StatutEquipeBadge } from "../components/PublicDesign.jsx";
 import { startVisibleRefresh } from "../liveRefresh.js";
 import { grouperFaits, journeeTitre, statsDesFaits, stripDemo } from "../display.js";
+import { libellePhaseFinale, numeroterMatchsPhase } from "../phaseFinale.js";
+import { PHASES_ELIMINATOIRES } from "../tirsAuBut.js";
 
 function formatDetailDate(iso) {
   if (!iso) return "";
@@ -46,8 +48,9 @@ function compositionPubliee(compo) {
 
 export default function MatchDetail() {
   const { id } = useParams();
-  const { clubsById, saisonClubs } = useKivu();
+  const { clubsById, saisonClubs, saison } = useKivu();
   const [match, setMatch] = useState(null);
+  const [numerotationPhase, setNumerotationPhase] = useState(() => new Map());
   const [evts, setEvts] = useState([]);
   const [joueurs, setJoueurs] = useState({});
   const [compo, setCompo] = useState(null);
@@ -100,6 +103,23 @@ export default function MatchDetail() {
   }
 
   useEffect(() => {
+    if (!saison?.id) {
+      setNumerotationPhase(new Map());
+      return undefined;
+    }
+    let actif = true;
+    setNumerotationPhase(new Map());
+    api.matchs(saison.id)
+      .then((rows) => {
+        if (actif) setNumerotationPhase(numeroterMatchsPhase(rows));
+      })
+      .catch(() => {
+        if (actif) setNumerotationPhase(new Map());
+      });
+    return () => { actif = false; };
+  }, [saison?.id]);
+
+  useEffect(() => {
     let stop = false;
     setErr("");
     setMatch(null);
@@ -130,6 +150,11 @@ export default function MatchDetail() {
   const home = clubsById[match.equipe_domicile_id];
   const away = clubsById[match.equipe_exterieur_id];
   const live = match.statut === "en_cours" && !match.ended_at;
+  const numeroPhase = numerotationPhase.get(Number(match.id));
+  const nomPhase = libellePhaseFinale(match.phase);
+  const titrePhase = PHASES_ELIMINATOIRES.includes(match.phase)
+    ? `${nomPhase.charAt(0).toUpperCase()}${nomPhase.slice(1)}${numeroPhase ? ` ${numeroPhase}` : ""}`
+    : journeeTitre(match.journee);
   const nom = (jid) => joueurs[jid]?.nom_complet || "à compléter";
   const faits = grouperFaits(evts);
   const stats = statsDesFaits(evts);
@@ -150,7 +175,7 @@ export default function MatchDetail() {
     <section className="hero">
       <p className="match-detail-back"><Link to="/matchs">← Matchs</Link></p>
       <p className="match-detail-meta">
-        {journeeTitre(match.journee)}
+        {titrePhase}
         {match.date_heure ? ` · ${formatDetailDate(match.date_heure)}` : ""}
       </p>
 
@@ -161,7 +186,7 @@ export default function MatchDetail() {
           <Scoreboard match={match} clubsById={clubsById} saisonClubs={saisonClubs} />
         </div>
       )}
-      {(statutHome && statutHome !== "actif") || (statutAway && statutAway !== "actif") ? (
+      {live && ((statutHome && statutHome !== "actif") || (statutAway && statutAway !== "actif")) ? (
         <div className="kf-match-team-statuses" aria-label="Statut des équipes">
           <StatutEquipeBadge statut={statutHome} />
           <StatutEquipeBadge statut={statutAway} />

@@ -20,6 +20,7 @@ import {
 } from "../components/PublicDesign.jsx";
 import { dernierFaitLive, formatMinute, groupMatchsByJournee, labelEvenement, journeeTitre } from "../display.js";
 import { ETAPES_PHASE_FINALE, libelleCartePhaseFinale, numeroterMatchsPhase } from "../phaseFinale.js";
+import { PHASES_ELIMINATOIRES, scoreTirsAuBut, vainqueurTirsAuBut } from "../tirsAuBut.js";
 
 const FILTRES = [
   ["tous", "Tous"],
@@ -61,11 +62,29 @@ function comparerDateProgramme(a, b) {
 }
 
 function scoreWinners(match) {
-  if (!scorePublicVisible(match)) return { home: false, away: false };
+  if (!scorePublicVisible(match)) {
+    return { home: false, away: false, shootoutWinner: null, shootoutScore: null };
+  }
   const home = numericValue(match.score_domicile);
   const away = numericValue(match.score_exterieur);
-  if (home === null || away === null || home === away) return { home: false, away: false };
-  return { home: home > away, away: away > home };
+  if (home === null || away === null) {
+    return { home: false, away: false, shootoutWinner: null, shootoutScore: null };
+  }
+  if (home !== away) {
+    return { home: home > away, away: away > home, shootoutWinner: null, shootoutScore: null };
+  }
+
+  const tirsAuBut = Array.isArray(match.tirs_au_but) ? match.tirs_au_but : [];
+  const shootoutWinner = PHASES_ELIMINATOIRES.includes(match.phase)
+    ? vainqueurTirsAuBut(tirsAuBut)
+    : null;
+  const officialWinner = match.statut === "valide" ? shootoutWinner : null;
+  return {
+    home: officialWinner === "domicile",
+    away: officialWinner === "exterieur",
+    shootoutWinner,
+    shootoutScore: shootoutWinner ? scoreTirsAuBut(tirsAuBut) : null,
+  };
 }
 
 function classeEvenementLive(event) {
@@ -116,6 +135,11 @@ function PublicMatchCard({ match, clubsById, saisonClubs, event, numerotationPha
         </span>
         <span className="kf-public-match-score-wrap">
           <strong className="kf-public-match-score">{formatPublicScore(match)}</strong>
+          {winners.shootoutScore && (
+            <span className="kf-public-match-shootout" aria-label={`Tirs au but ${winners.shootoutScore.domicile}–${winners.shootoutScore.exterieur}`}>
+              t.a.b. {winners.shootoutScore.domicile}–{winners.shootoutScore.exterieur}
+            </span>
+          )}
           {match.statut === "en_cours" && !match.ended_at && <LiveMinute match={match} className="kf-public-live-minute" />}
         </span>
         <span className={`kf-public-match-team away${winners.away ? " winner" : ""}`}>

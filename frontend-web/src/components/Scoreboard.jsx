@@ -26,17 +26,31 @@ export default function Scoreboard({ match, clubsById, saisonClubs, to }) {
   const scoreTirs = scoreTirsAuBut(tirsAuBut);
   const shootoutVisible = played && Number(sd) === Number(se) && tirsAuBut.length > 0;
   const shootoutWinner = shootoutVisible ? vainqueurTirsAuBut(tirsAuBut) : null;
-  const homeWin = played && (sd > se || shootoutWinner === "domicile");
-  const awayWin = played && (se > sd || shootoutWinner === "exterieur");
+  const shootoutConfirmedWinner = match.statut === "valide" ? shootoutWinner : null;
+  const homeWin = played && (sd > se || shootoutConfirmedWinner === "domicile");
+  const awayWin = played && (se > sd || shootoutConfirmedWinner === "exterieur");
+  const homeQualified = shootoutConfirmedWinner === "domicile"
+    && !["disqualifie", "elimine"].includes(String(homeStatus || "actif"));
+  const awayQualified = shootoutConfirmedWinner === "exterieur"
+    && !["disqualifie", "elimine"].includes(String(awayStatus || "actif"));
   const meta = upcoming ? formatPublicKickoff(match.date_heure) : "";
   const inner = (
     <>
       <div className="sb-line">
         <span className={`sb-name${homeWin ? " is-winner" : ""}${awayWin ? " is-loser" : ""}`}>
           <PublicClubLogo club={homeClub} name={home} statut={homeStatus} className="sb-logo" />
-          <span>{home}</span>
+          <span className="sb-team-label">{home}</span>
           <StatutEquipeBadge statut={homeStatus} compact />
           {eliminationSportiveHome && <StatutEquipeBadge statut="elimine" compact sportif />}
+          {homeQualified && (
+            <span
+              className="kf-sport-status-badge is-qualifie"
+              aria-label="Qualifié sportivement après les tirs au but"
+              title="Qualifié sportivement après un match validé décidé aux tirs au but. Le statut administratif reste prioritaire."
+            >
+              Qualifié
+            </span>
+          )}
         </span>
         <span
           className={`sb-score${shootoutVisible ? " has-shootout" : ""}`}
@@ -50,7 +64,7 @@ export default function Scoreboard({ match, clubsById, saisonClubs, to }) {
                 {se}
               </span>
               {shootoutVisible && (
-                <span className="sb-score-shootout">· t.a.b. {scoreTirs.domicile}–{scoreTirs.exterieur}</span>
+                <span className="sb-score-shootout">t.a.b. {scoreTirs.domicile}–{scoreTirs.exterieur}</span>
               )}
             </>
           ) : (
@@ -59,7 +73,7 @@ export default function Scoreboard({ match, clubsById, saisonClubs, to }) {
         </span>
         <span className={`sb-name away${awayWin ? " is-winner" : ""}${homeWin ? " is-loser" : ""}`}>
           <PublicClubLogo club={awayClub} name={away} statut={awayStatus} className="sb-logo" />
-          <span>{away}</span>
+          <span className="sb-team-label">{away}</span>
           <StatutEquipeBadge statut={awayStatus} compact />
           {eliminationSportiveAway && (
             <span
@@ -68,6 +82,15 @@ export default function Scoreboard({ match, clubsById, saisonClubs, to }) {
               title={`Éliminé sportivement après un match validé de phase ${eliminationSportiveAway.libelle}. Le statut administratif reste inchangé.`}
             >
               ÉLIM.
+            </span>
+          )}
+          {awayQualified && (
+            <span
+              className="kf-sport-status-badge is-qualifie"
+              aria-label="Qualifié sportivement après les tirs au but"
+              title="Qualifié sportivement après un match validé décidé aux tirs au but. Le statut administratif reste prioritaire."
+            >
+              Qualifié
             </span>
           )}
         </span>
@@ -80,6 +103,11 @@ export default function Scoreboard({ match, clubsById, saisonClubs, to }) {
       )}
       {finished && (
         <div className="sb-meta sb-meta-status">
+          {shootoutConfirmedWinner && (
+            <span className="sb-shootout-winner">
+              Vainqueur aux tirs au but · <strong>{shootoutConfirmedWinner === "domicile" ? home : away}</strong>
+            </span>
+          )}
           <span className="sb-finished-pill" aria-label="Match terminé">Terminé</span>
         </div>
       )}

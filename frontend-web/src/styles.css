@@ -376,7 +376,7 @@ h1 {
 .scoreboard:last-child { border-bottom: 0; }
 .sb-line {
   display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   gap: 0.45rem;
   align-items: center;
 }
@@ -389,6 +389,14 @@ h1 {
 .sb-name.away { text-align: right; }
 .sb-name.is-winner { font-weight: 700; }
 .sb-name.is-loser { font-weight: 400; color: var(--ink-soft); }
+.sb-team-label {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: normal;
+  text-overflow: clip;
+  white-space: normal;
+}
 .sb-score {
   font-family: var(--score);
   font-size: clamp(1.85rem, 7.2vw, 2.55rem);
@@ -399,6 +407,24 @@ h1 {
   text-align: center;
   min-width: 4.2rem;
   color: var(--ink);
+}
+.sb-score.has-shootout {
+  display: grid;
+  justify-items: center;
+  gap: 0.2rem;
+}
+.sb-score-main {
+  display: block;
+  white-space: nowrap;
+}
+.sb-score-shootout {
+  display: block;
+  font-family: var(--sans);
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  line-height: 1.1;
+  white-space: nowrap;
 }
 .sb-dash {
   display: inline-block;
@@ -6120,6 +6146,13 @@ body,
 .kf-public-match-team strong { font-size: clamp(11px, 3.4vw, 13px); }
 .kf-home-live-compact-teams > span { white-space: normal; line-height: 1.12; }
 .kf-public-match-score-wrap { display: grid; justify-items: center; gap: 1px; min-width: 50px; }
+.kf-public-match-shootout {
+  color: var(--kf-ink-soft);
+  font-size: 10px;
+  font-weight: 850;
+  line-height: 1.05;
+  white-space: nowrap;
+}
 .kf-public-live-minute,
 .cloche-live-minute {
   display: block;
@@ -6161,6 +6194,14 @@ body,
   font-weight: 850;
   letter-spacing: .04em;
 }
+.sb-shootout-winner {
+  color: var(--kf-ink-soft);
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 1.2;
+  text-align: center;
+}
+.sb-shootout-winner strong { color: var(--kf-paper); font-weight: 900; }
 .feuille-break {
   list-style: none;
   margin: 8px 0;
@@ -6411,18 +6452,21 @@ body,
   line-height: 1.22;
   text-align: center;
 }
-.kf-public-frame .mc-score .sb-name > span:last-child {
-  display: -webkit-box;
-  min-height: 2.44em;
-  overflow: hidden;
+.kf-public-frame .mc-score .sb-name .sb-team-label {
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+  overflow: visible;
   color: inherit;
   font-size: 14px;
   font-weight: 600;
   line-height: 1.22;
-  text-overflow: ellipsis;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
+  overflow-wrap: anywhere;
+  text-overflow: clip;
+  white-space: normal;
 }
+.kf-public-frame .mc-score .sb-name.is-winner .sb-team-label { font-weight: 850; }
+.kf-public-frame .mc-score .sb-name.is-loser .sb-team-label { font-weight: 500; }
 .kf-public-frame .mc-score .sb-score {
   font-size: clamp(2.8rem, 13vw, 3.6rem);
   line-height: .95;
