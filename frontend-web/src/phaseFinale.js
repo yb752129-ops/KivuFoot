@@ -105,3 +105,9 @@ export function eliminationClub(matchs = [], clubId) {
 
   return eliminations[0] || null;
 }
+
+/** Statut sportif dérivé de ce match, sans supplanter une décision administrative. */
+export function eliminationSportiveDansMatch(match, clubId, statutAdministratif = "actif") {
+  if (["disqualifie", "elimine"].includes(String(statutAdministratif || "actif"))) return null;
+  return eliminationClub([match], clubId);
+}

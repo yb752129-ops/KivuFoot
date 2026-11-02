@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import {
   eliminationClub,
+  eliminationSportiveDansMatch,
   libelleCartePhaseFinale,
   libellePhaseFinale,
   numeroterMatchsPhase,
@@ -79,5 +80,9 @@ const barrageTireAuBut = {
 };
 assert.deepEqual(vainqueurMatchEliminatoire(barrageTireAuBut), { cote: "exterieur", equipeId: 15 });
 assert.equal(eliminationClub([barrageTireAuBut], 9)?.libelle, "barrage");
+assert.equal(eliminationSportiveDansMatch(barrageTireAuBut, 9)?.libelle, "barrage");
+assert.equal(eliminationSportiveDansMatch(barrageTireAuBut, 15), null);
+assert.equal(eliminationSportiveDansMatch(barrageTireAuBut, 9, "elimine"), null);
+assert.equal(eliminationSportiveDansMatch(barrageTireAuBut, 9, "disqualifie"), null);
 
 console.log("Phase finale : tests réussis.");

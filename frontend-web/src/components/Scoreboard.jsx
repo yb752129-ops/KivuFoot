@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { clubName } from "../context.jsx";
 import { findPublicClub, formatPublicKickoff, PublicClubLogo, scorePublicVisible, StatutEquipeBadge } from "./PublicDesign.jsx";
 import { scoreTirsAuBut, vainqueurTirsAuBut } from "../tirsAuBut.js";
+import { eliminationSportiveDansMatch } from "../phaseFinale.js";
 
 function displayName(name) {
   return (name || "").replace(/^DEMO\s*[-–]?\s*/i, "").trim() || name;
@@ -14,6 +15,8 @@ export default function Scoreboard({ match, clubsById, saisonClubs, to }) {
   const away = displayName(awayClub?.nom || clubName(clubsById, match.equipe_exterieur_id));
   const homeStatus = homeClub?.statut;
   const awayStatus = awayClub?.statut;
+  const eliminationSportiveHome = eliminationSportiveDansMatch(match, match.equipe_domicile_id, homeStatus);
+  const eliminationSportiveAway = eliminationSportiveDansMatch(match, match.equipe_exterieur_id, awayStatus);
   const sd = match.score_domicile;
   const se = match.score_exterieur;
   const played = scorePublicVisible(match) && sd != null && se != null;
@@ -33,6 +36,7 @@ export default function Scoreboard({ match, clubsById, saisonClubs, to }) {
           <PublicClubLogo club={homeClub} name={home} statut={homeStatus} className="sb-logo" />
           <span>{home}</span>
           <StatutEquipeBadge statut={homeStatus} compact />
+          {eliminationSportiveHome && <StatutEquipeBadge statut="elimine" compact sportif />}
         </span>
         <span
           className={`sb-score${shootoutVisible ? " has-shootout" : ""}`}
@@ -57,6 +61,15 @@ export default function Scoreboard({ match, clubsById, saisonClubs, to }) {
           <PublicClubLogo club={awayClub} name={away} statut={awayStatus} className="sb-logo" />
           <span>{away}</span>
           <StatutEquipeBadge statut={awayStatus} compact />
+          {eliminationSportiveAway && (
+            <span
+              className="kf-sport-status-badge is-elimine"
+              aria-label="Éliminé sportivement"
+              title={`Éliminé sportivement après un match validé de phase ${eliminationSportiveAway.libelle}. Le statut administratif reste inchangé.`}
+            >
+              ÉLIM.
+            </span>
+          )}
         </span>
       </div>
       {upcoming && (

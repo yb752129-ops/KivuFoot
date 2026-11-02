@@ -12,6 +12,10 @@
   vertical-align: middle;
 }
 
+.kf-team-status-badge.is-sportif {
+  color: #e4ad71;
+}
+
 .kf-team-status-icon {
   width: .82rem;
   height: .82rem;

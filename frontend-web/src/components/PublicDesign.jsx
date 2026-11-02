@@ -71,11 +71,13 @@ function IcoInterdit() {
   );
 }
 
-export function StatutEquipeBadge({ statut, compact = false }) {
-  const info = statutEquipePublic(statut);
+export function StatutEquipeBadge({ statut, compact = false, sportif = false }) {
+  const info = sportif
+    ? { label: "Éliminé sportivement", court: "ÉLIM." }
+    : statutEquipePublic(statut);
   if (!info) return null;
   return (
-    <span className={`kf-team-status-badge${compact ? " is-compact" : ""}`} title={info.label} aria-label={info.label}>
+    <span className={`kf-team-status-badge${compact ? " is-compact" : ""}${sportif ? " is-sportif" : ""}`} title={info.label} aria-label={info.label}>
       <IcoInterdit />
       <span className="kf-team-status-label">{info.label}</span>
       <strong>{info.court}</strong>
