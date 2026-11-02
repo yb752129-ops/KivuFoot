@@ -1,9 +1,10 @@
 """Qualification sportive des phases à élimination directe.
 
 Les décisions sont dérivées exclusivement des matchs officiellement validés.
-Le statut administratif de ``saison_clubs`` n'est jamais écrit ici. Les
-appariements ne sont jamais devinés : un match cible doit explicitement
-référencer le match dont son emplacement reçoit le vainqueur.
+Le statut administratif de ``saison_clubs`` n'est jamais écrit ici. Par
+défaut, les appariements référencent explicitement le match source dont le
+vainqueur remplit un emplacement. Seul un quart de finale marqué comme tirage
+officiel peut nommer directement deux équipes.
 """
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -80,12 +81,14 @@ async def verifier_equipe_directement_nommable(
     saison_id: int,
     club_id: int,
     phase_cible: str,
+    *,
+    appariement_manuel_officiel: bool = False,
 ) -> None:
-    """Empêche de re-sélectionner un perdant comme qualifié au tour suivant.
+    """Valide une équipe directement nommée dans un match éliminatoire.
 
-    Si l'équipe a déjà disputé le tour immédiatement précédent, la suite doit
-    référencer le match source. Cela permet au moteur de remplir le bon slot
-    dès validation, sans déduire un appariement à partir des noms d'équipes.
+    Par défaut, une équipe ayant joué le tour précédent doit passer par sa
+    source explicite. L'exception officielle est limitée aux quarts de finale
+    et aux équipes dont la qualification au barrage est officiellement validée.
     """
     phase_precedente = PHASE_PRECEDENTE.get(phase_cible)
     if phase_precedente is None:
@@ -109,6 +112,13 @@ async def verifier_equipe_directement_nommable(
         raise HTTPException(
             status.HTTP_409_CONFLICT,
             f"Cette équipe a été éliminée en phase {etat.get('phase_sportive')} et ne peut pas être sélectionnée en {phase_cible}.",
+        )
+    if appariement_manuel_officiel and phase_cible == "quart":
+        if etat.get("statut_sportif") == "qualifie" and etat.get("phase_sportive") == phase_precedente:
+            return
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "L'exception officielle exige une qualification validée en phase barrage pour toute équipe ayant joué ce tour.",
         )
     raise HTTPException(
         status.HTTP_409_CONFLICT,

@@ -133,6 +133,38 @@ def test_match_create_requires_explicit_sources_for_each_knockout_slot():
         )
 
 
+def test_official_draw_exception_is_explicit_and_limited_to_named_quarterfinal_teams():
+    fixture = MatchCreate(
+        saison_id=7,
+        date_heure=datetime(2042, 6, 1, tzinfo=timezone.utc),
+        phase="quart",
+        equipe_domicile_id=81,
+        equipe_exterieur_id=83,
+        appariement_manuel_officiel=True,
+    )
+    assert fixture.appariement_manuel_officiel is True
+
+    with pytest.raises(ValidationError):
+        MatchCreate(
+            saison_id=7,
+            date_heure=datetime(2042, 6, 1, tzinfo=timezone.utc),
+            phase="quart",
+            source_match_domicile_id=51,
+            equipe_exterieur_id=83,
+            appariement_manuel_officiel=True,
+        )
+
+    with pytest.raises(ValidationError):
+        MatchCreate(
+            saison_id=7,
+            date_heure=datetime(2042, 6, 1, tzinfo=timezone.utc),
+            phase="demi",
+            equipe_domicile_id=81,
+            equipe_exterieur_id=83,
+            appariement_manuel_officiel=True,
+        )
+
+
 def test_rule_schema_accepts_both_competition_modes_and_preserves_extra_keys():
     direct = ReglementConfiguration.model_validate({
         "match": {"mode_egalite_eliminatoire": "tirs_au_but_apres_90", "note_comite": "fiction"}
@@ -272,8 +304,116 @@ async def test_validation_propagates_only_the_explicit_winner_and_blocks_the_los
     await db_fictif.flush()
     assert cible.equipe_domicile_id == aster.id
 
+    with pytest.raises(HTTPException) as automatic_source_required:
+        await verifier_equipe_directement_nommable(db_fictif, saison.id, aster.id, "quart")
+    assert automatic_source_required.value.status_code == 409
+    assert "sélectionnez le vainqueur de son match source" in automatic_source_required.value.detail
+
     with pytest.raises(HTTPException) as loser_rejected:
         await verifier_equipe_directement_nommable(db_fictif, saison.id, lynx.id, "quart")
     assert loser_rejected.value.status_code == 409
     assert "éliminée" in loser_rejected.value.detail
     assert await db_fictif.scalar(select(AuditLog.id).where(AuditLog.record_id == cible.id)) is not None
+
+
+@pytest.mark.asyncio
+async def test_official_quarterfinal_draw_allows_direct_qualified_teams_only(db_fictif):
+    saison, clubs, _ = await creer_edition_fictive(db_fictif)
+    aster, lynx, comete, nebula = clubs
+    direct = Club(nom="ORBIT-5", ville="Ville fictive")
+    non_confirme = Club(nom="PULSAR-6", ville="Ville fictive")
+    adversaire_non_confirme = Club(nom="NOVA-7", ville="Ville fictive")
+    db_fictif.add_all([direct, non_confirme, adversaire_non_confirme])
+    await db_fictif.flush()
+    db_fictif.add_all(
+        SaisonClub(saison_id=saison.id, club_id=club.id, groupe="A")
+        for club in (direct, non_confirme, adversaire_non_confirme)
+    )
+    barrage_valide = match_fictif(
+        saison.id,
+        aster.id,
+        lynx.id,
+        phase="barrage",
+        score=(2, 1),
+        statut=StatutMatch.VALIDE,
+    )
+    barrage_qualifie_2 = match_fictif(
+        saison.id,
+        comete.id,
+        nebula.id,
+        phase="barrage",
+        score=(1, 2),
+        statut=StatutMatch.VALIDE,
+    )
+    barrage_non_valide = match_fictif(
+        saison.id,
+        non_confirme.id,
+        adversaire_non_confirme.id,
+        phase="barrage",
+        score=(0, 0),
+        statut=StatutMatch.PROGRAMME,
+    )
+    db_fictif.add_all([barrage_valide, barrage_qualifie_2, barrage_non_valide])
+    await db_fictif.flush()
+
+    appariement_deux_vainqueurs = MatchCreate(
+        saison_id=saison.id,
+        date_heure=datetime(2042, 6, 2, tzinfo=timezone.utc),
+        phase="quart",
+        equipe_domicile_id=aster.id,
+        equipe_exterieur_id=nebula.id,
+        appariement_manuel_officiel=True,
+    )
+    assert appariement_deux_vainqueurs.appariement_manuel_officiel is True
+
+    # Deux vainqueurs de barrages distincts peuvent être associés directement
+    # par tirage officiel, sans modifier ni relier leurs matchs sources.
+    for club_id in (aster.id, nebula.id):
+        await verifier_equipe_directement_nommable(
+            db_fictif,
+            saison.id,
+            club_id,
+            "quart",
+            appariement_manuel_officiel=appariement_deux_vainqueurs.appariement_manuel_officiel,
+        )
+
+    # Un qualifié direct d'une autre voie peut aussi être apparié à un vainqueur.
+    appariement_mixte = MatchCreate(
+        saison_id=saison.id,
+        date_heure=datetime(2042, 6, 3, tzinfo=timezone.utc),
+        phase="quart",
+        equipe_domicile_id=aster.id,
+        equipe_exterieur_id=direct.id,
+        appariement_manuel_officiel=True,
+    )
+    assert appariement_mixte.appariement_manuel_officiel is True
+    await verifier_equipe_directement_nommable(
+        db_fictif,
+        saison.id,
+        direct.id,
+        "quart",
+        appariement_manuel_officiel=appariement_mixte.appariement_manuel_officiel,
+    )
+
+    for perdant_id in (lynx.id, comete.id):
+        with pytest.raises(HTTPException) as loser_stays_blocked:
+            await verifier_equipe_directement_nommable(
+                db_fictif,
+                saison.id,
+                perdant_id,
+                "quart",
+                appariement_manuel_officiel=True,
+            )
+        assert loser_stays_blocked.value.status_code == 409
+        assert "éliminée" in loser_stays_blocked.value.detail
+
+    with pytest.raises(HTTPException) as pending_team_blocked:
+        await verifier_equipe_directement_nommable(
+            db_fictif,
+            saison.id,
+            non_confirme.id,
+            "quart",
+            appariement_manuel_officiel=True,
+        )
+    assert pending_team_blocked.value.status_code == 409
+    assert "qualification validée" in pending_team_blocked.value.detail

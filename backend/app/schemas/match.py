@@ -67,6 +67,7 @@ class MatchCreate(BaseModel):
     equipe_exterieur_id: int | None = None
     source_match_domicile_id: int | None = None
     source_match_exterieur_id: int | None = None
+    appariement_manuel_officiel: bool = False
     phase: str = "poule"
     groupe: GroupePoule | None = None
 
@@ -107,6 +108,16 @@ class MatchCreate(BaseModel):
             and self.source_match_domicile_id == self.source_match_exterieur_id
         ):
             raise ValueError("Un même match source ne peut remplir les deux côtés d'une rencontre.")
+        if self.appariement_manuel_officiel and (
+            self.phase != "quart"
+            or self.equipe_domicile_id is None
+            or self.equipe_exterieur_id is None
+            or self.source_match_domicile_id is not None
+            or self.source_match_exterieur_id is not None
+        ):
+            raise ValueError(
+                "L'exception d'appariement officiel est réservée à deux équipes nommées directement en quart de finale."
+            )
         return self
 
 

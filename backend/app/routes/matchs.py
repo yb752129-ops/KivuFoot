@@ -272,7 +272,13 @@ async def creer_match(
             if inscrits != ids_clubs:
                 raise HTTPException(status.HTTP_400_BAD_REQUEST, "Toute équipe nommée doit être inscrite à cette saison.")
             for club_id in ids_clubs:
-                await verifier_equipe_directement_nommable(db, payload.saison_id, club_id, payload.phase)
+                await verifier_equipe_directement_nommable(
+                    db,
+                    payload.saison_id,
+                    club_id,
+                    payload.phase,
+                    appariement_manuel_officiel=payload.appariement_manuel_officiel,
+                )
 
     sources = {}
     equipes_resolues = {
@@ -299,7 +305,11 @@ async def creer_match(
     if equipes_resolues["domicile"] is not None and equipes_resolues["domicile"] == equipes_resolues["exterieur"]:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Une équipe ne peut pas occuper les deux côtés du match.")
 
-    donnees = payload.model_dump(exclude={"source_match_domicile_id", "source_match_exterieur_id"})
+    donnees = payload.model_dump(exclude={
+        "source_match_domicile_id",
+        "source_match_exterieur_id",
+        "appariement_manuel_officiel",
+    })
     donnees["equipe_domicile_id"] = equipes_resolues["domicile"]
     donnees["equipe_exterieur_id"] = equipes_resolues["exterieur"]
     donnees["groupe"] = groupe_officiel
@@ -317,6 +327,15 @@ async def creer_match(
             cree_par_id=current_user.id,
         ))
     await db.flush()
+    details_audit = {
+        "saison_id": payload.saison_id,
+        "phase": payload.phase,
+        "equipe_domicile_id": match_.equipe_domicile_id,
+        "equipe_exterieur_id": match_.equipe_exterieur_id,
+        "sources_qualification": sources,
+    }
+    if payload.appariement_manuel_officiel:
+        details_audit["appariement_manuel_officiel"] = True
     await log_audit(
         db,
         "matchs",
@@ -324,13 +343,7 @@ async def creer_match(
         ActionAudit.INSERT,
         current_user.id,
         None,
-        {
-            "saison_id": payload.saison_id,
-            "phase": payload.phase,
-            "equipe_domicile_id": match_.equipe_domicile_id,
-            "equipe_exterieur_id": match_.equipe_exterieur_id,
-            "sources_qualification": sources,
-        },
+        details_audit,
     )
     await db.commit()
     await db.refresh(match_)

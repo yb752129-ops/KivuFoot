@@ -28,6 +28,7 @@ export default function OrgaCalendrier() {
   const [groupe, setGroupe] = useState("");
   const [sourceDomId, setSourceDomId] = useState("");
   const [sourceExtId, setSourceExtId] = useState("");
+  const [appariementManuelOfficiel, setAppariementManuelOfficiel] = useState(false);
   const [reglements, setReglements] = useState([]);
   const [modeEgalite, setModeEgalite] = useState("tirs_au_but_apres_90");
   const [sourceDecision, setSourceDecision] = useState("");
@@ -54,6 +55,7 @@ export default function OrgaCalendrier() {
   }
 
   useEffect(() => {
+    setAppariementManuelOfficiel(false);
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [saison]);
@@ -98,6 +100,9 @@ export default function OrgaCalendrier() {
       const sourceDom = sourceDomId ? Number(sourceDomId) : null;
       const sourceExt = sourceExtId ? Number(sourceExtId) : null;
       if ((!d && !sourceDom) || (!x && !sourceExt)) throw new Error("Choisissez une équipe ou un match source pour chaque côté.");
+      if (appariementManuelOfficiel && (phase !== "quart" || !d || !x || sourceDom || sourceExt)) {
+        throw new Error("L'exception officielle exige deux équipes sélectionnées directement en quart de finale.");
+      }
       if (d && x && d === x) throw new Error("Une équipe ne peut pas jouer contre elle-même.");
       if (phase === "poule" && groupesDifferents) {
         throw new Error("Un match de poule doit opposer deux équipes du même groupe officiel.");
@@ -119,12 +124,14 @@ export default function OrgaCalendrier() {
         equipe_exterieur_id: x,
         source_match_domicile_id: sourceDom,
         source_match_exterieur_id: sourceExt,
+        appariement_manuel_officiel: appariementManuelOfficiel,
       });
       setMsg("Match programmé. Il apparaît dans À venir côté public.");
       setDomId("");
       setExtId("");
       setSourceDomId("");
       setSourceExtId("");
+      setAppariementManuelOfficiel(false);
       setStadeMatch("");
       setJournee("");
       setGroupe("");
@@ -199,7 +206,7 @@ export default function OrgaCalendrier() {
         <form className="compte-form" onSubmit={programmer}>
           <label className="field">
             Domicile
-            <select value={domId} disabled={Boolean(sourceDomId)} onChange={(e) => { setDomId(e.target.value); if (e.target.value) setSourceDomId(""); }} required>
+            <select value={domId} disabled={Boolean(sourceDomId)} onChange={(e) => { setDomId(e.target.value); setAppariementManuelOfficiel(false); if (e.target.value) setSourceDomId(""); }} required>
               <option value="">—</option>
               {equipes.map((c) => (
                 <option key={c.id} value={c.id}>{stripDemo(c.nom)}</option>
@@ -208,7 +215,7 @@ export default function OrgaCalendrier() {
           </label>
           <label className="field">
             Extérieur
-            <select value={extId} disabled={Boolean(sourceExtId)} onChange={(e) => { setExtId(e.target.value); if (e.target.value) setSourceExtId(""); }} required>
+            <select value={extId} disabled={Boolean(sourceExtId)} onChange={(e) => { setExtId(e.target.value); setAppariementManuelOfficiel(false); if (e.target.value) setSourceExtId(""); }} required>
               <option value="">—</option>
               {equipes.map((c) => (
                 <option key={c.id} value={c.id}>{stripDemo(c.nom)}</option>
@@ -224,19 +231,35 @@ export default function OrgaCalendrier() {
               <div className="comp-grid">
                 <label className="field">
                   Domicile · source du tour précédent
-                  <select value={sourceDomId} onChange={(e) => { setSourceDomId(e.target.value); if (e.target.value) setDomId(""); }}>
+                  <select value={sourceDomId} onChange={(e) => { setSourceDomId(e.target.value); if (e.target.value) { setDomId(""); setAppariementManuelOfficiel(false); } }}>
                     <option value="">Équipe nommée directement</option>
                     {sourcesDisponibles.map((match) => <option key={match.id} value={match.id}>{libelleSource(match)}</option>)}
                   </select>
                 </label>
                 <label className="field">
                   Extérieur · source du tour précédent
-                  <select value={sourceExtId} onChange={(e) => { setSourceExtId(e.target.value); if (e.target.value) setExtId(""); }}>
+                  <select value={sourceExtId} onChange={(e) => { setSourceExtId(e.target.value); if (e.target.value) { setExtId(""); setAppariementManuelOfficiel(false); } }}>
                     <option value="">Équipe nommée directement</option>
                     {sourcesDisponibles.map((match) => <option key={match.id} value={match.id}>{libelleSource(match)}</option>)}
                   </select>
                 </label>
               </div>
+              {phase === "quart" && (
+                <>
+                  <label className="checkbox-line">
+                    <input
+                      type="checkbox"
+                      checked={appariementManuelOfficiel}
+                      disabled={!domId || !extId || Boolean(sourceDomId || sourceExtId)}
+                      onChange={(e) => setAppariementManuelOfficiel(e.target.checked)}
+                    />
+                    <span>Exception officielle : respecter le tirage au sort ou une décision de la compétition</span>
+                  </label>
+                  <p className="muted small">
+                    À utiliser uniquement pour une affiche de quart confirmée officiellement. Une équipe éliminée reste refusée; le vainqueur d’un barrage doit avoir un résultat validé.
+                  </p>
+                </>
+              )}
               {sourcesDisponibles.length === 0 && <p className="muted small">Aucun match de phase {phaseSource} disponible comme source pour l’instant.</p>}
             </div>
           )}
@@ -263,7 +286,7 @@ export default function OrgaCalendrier() {
           </label>
           <label className="field">
             Phase
-            <select value={phase} onChange={(e) => { setPhase(e.target.value); setSourceDomId(""); setSourceExtId(""); }}>
+            <select value={phase} onChange={(e) => { setPhase(e.target.value); setSourceDomId(""); setSourceExtId(""); setAppariementManuelOfficiel(false); }}>
             <option value="poule">Poule</option>
             <option value="barrage">Barrage</option>
             <option value="quart">Quart de finale</option>
