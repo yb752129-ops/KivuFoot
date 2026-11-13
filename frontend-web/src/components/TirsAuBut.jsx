@@ -103,16 +103,14 @@ export function TirsAuButPublic({ match, home, away, joueurs = {} }) {
         <div className="tirs-public-body">
           {provisoire && (
             <p className="tirs-public-provisoire" role="status">
-              Saisie provisoire. Le résultat et la qualification seront officiels après validation du match par l’organisation.
+              Saisie provisoire · officielle après validation du match.
             </p>
           )}
-          <p className="muted small">Résultat distinct du score du match. Les tirs ne modifient ni les buts ni le classement des poules.</p>
+          <p className="muted small">Départage après égalité. Ces tirs ne comptent pas dans les buts.</p>
           <SequenceTirs tirs={tirs} home={home} away={away} joueurs={joueurs} />
+          {/* Une fois le match validé, le vainqueur est affiché dans la carte du score (« Ce match »). */}
           {vainqueur && provisoire && (
             <p className="tirs-public-winner is-provisoire">Vainqueur provisoire · <strong>{vainqueur === "domicile" ? home : away}</strong></p>
-          )}
-          {vainqueur && !provisoire && (
-            <p className="tirs-public-winner">Vainqueur de la séance · <strong>{vainqueur === "domicile" ? home : away}</strong></p>
           )}
           <details className="tirs-historique-details">
             <summary>Voir le détail des tireurs</summary>

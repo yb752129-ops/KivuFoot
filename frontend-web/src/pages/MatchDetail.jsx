@@ -7,7 +7,7 @@ import FeuilleApercu from "../components/FeuilleApercu.jsx";
 import FeuilleMatch from "../components/FeuilleMatch.jsx";
 import { TirsAuButPublic } from "../components/TirsAuBut.jsx";
 import { LiveUne } from "../components/LignesMatch.jsx";
-import { scorePublicVisible, StatutEquipeBadge } from "../components/PublicDesign.jsx";
+import { scorePublicVisible, StatutEquipeBadge, statutEquipePublic } from "../components/PublicDesign.jsx";
 import { startVisibleRefresh } from "../liveRefresh.js";
 import { grouperFaits, journeeTitre, statsDesFaits, stripDemo } from "../display.js";
 import { libellePhaseFinale, numeroterMatchsPhase } from "../phaseFinale.js";
@@ -170,6 +170,11 @@ export default function MatchDetail() {
   const statutHome = (saisonClubs || []).find((row) => Number(row.id ?? row.club_id) === Number(match.equipe_domicile_id))?.statut;
   const statutAway = (saisonClubs || []).find((row) => Number(row.id ?? row.club_id) === Number(match.equipe_exterieur_id))?.statut;
   const possessionAdminView = Boolean(moi && ["admin", "organisateur"].includes(moi.role));
+  // Statut administratif affiché avec le nom de l'équipe concernée (une seule, ou les deux).
+  const equipesAvecStatut = [
+    { cote: "domicile", nom: stripDemo(home?.nom) || "Domicile", statut: statutHome },
+    { cote: "exterieur", nom: stripDemo(away?.nom) || "Extérieur", statut: statutAway },
+  ].filter((equipe) => statutEquipePublic(equipe.statut));
 
   return (
     <section className="hero">
@@ -186,11 +191,15 @@ export default function MatchDetail() {
           <Scoreboard match={match} clubsById={clubsById} saisonClubs={saisonClubs} />
         </div>
       )}
-      {live && ((statutHome && statutHome !== "actif") || (statutAway && statutAway !== "actif")) ? (
-        <div className="kf-match-team-statuses" aria-label="Statut des équipes">
-          <StatutEquipeBadge statut={statutHome} />
-          <StatutEquipeBadge statut={statutAway} />
-        </div>
+      {live && equipesAvecStatut.length > 0 ? (
+        <ul className="kf-match-team-statuses" aria-label="Statut des équipes">
+          {equipesAvecStatut.map((equipe) => (
+            <li key={equipe.cote} className="kf-match-team-status">
+              <span className="kf-match-team-status-nom">{equipe.nom}</span>
+              <StatutEquipeBadge statut={equipe.statut} />
+            </li>
+          ))}
+        </ul>
       ) : null}
       {possessionAdminView && match.statut === "valide" && <p className="stamp">Validé</p>}
       {moi && ["admin", "organisateur"].includes(moi.role) && match.statut === "valide" && (

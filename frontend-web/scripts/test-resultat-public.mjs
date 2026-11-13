@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import {
+  bilanPublicMatch,
   ETAT_TIRS_OFFICIEL,
   ETAT_TIRS_PROVISOIRE,
   ETAT_TIRS_VAINQUEUR_PROVISOIRE,
@@ -137,5 +138,74 @@ assert.deepEqual(matchsSeanceProvisoire(undefined), []);
 assert.deepEqual(matchsSeanceProvisoire(null), []);
 assert.deepEqual(matchsSeanceProvisoire([]), []);
 assert.equal(liste.length, 6, "la liste d'origine n'est pas modifiée");
+
+// --- Bilan public : résultat de CE match séparé de la situation ACTUELLE des équipes.
+const barrageValide = match({
+  phase: "barrage", statut: "valide", locked: true, score_domicile: 0, score_exterieur: 0,
+  tirs_au_but: seance([M, M, R, M, M, M, R, M]),
+});
+
+// Deux équipes actives : qualifié (vainqueur aux tirs) puis éliminé à ce tour.
+const actives = bilanPublicMatch(barrageValide, { statutDomicile: "actif", statutExterieur: "actif" });
+assert.equal(actives.officiel, true);
+assert.equal(actives.libelle, "Résultat officiel");
+assert.equal(actives.vainqueurTirs, "exterieur");
+assert.deepEqual(actives.consequences, [
+  { cote: "exterieur", type: "qualifie" },
+  { cote: "domicile", type: "elimine", libelle: "barrage" },
+]);
+assert.deepEqual(actives.situations, []);
+
+// Deux équipes aujourd'hui éliminées : le résultat du match reste, la situation actuelle s'ajoute.
+const deuxEliminees = bilanPublicMatch(barrageValide, { statutDomicile: "elimine", statutExterieur: "elimine" });
+assert.equal(deuxEliminees.vainqueurTirs, "exterieur", "le vainqueur de ce match ne change pas");
+assert.deepEqual(deuxEliminees.consequences, [], "le statut administratif est prioritaire");
+assert.deepEqual(deuxEliminees.situations.map((s) => [s.cote, s.libelle]), [
+  ["domicile", "Éliminé du tournoi"],
+  ["exterieur", "Éliminé du tournoi"],
+]);
+
+// Vainqueur d'un ancien match éliminé plus tard : jamais « qualifié », mais bien vainqueur du match.
+const vainqueurElimine = bilanPublicMatch(barrageValide, { statutDomicile: "actif", statutExterieur: "elimine" });
+assert.equal(vainqueurElimine.vainqueurTirs, "exterieur");
+assert.equal(vainqueurElimine.consequences.some((c) => c.type === "qualifie"), false);
+assert.deepEqual(vainqueurElimine.consequences, [{ cote: "domicile", type: "elimine", libelle: "barrage" }]);
+assert.deepEqual(vainqueurElimine.situations.map((s) => s.cote), ["exterieur"]);
+
+// Disqualifié : mots entiers, sans abréviation.
+const disqualifie = bilanPublicMatch(barrageValide, { statutDomicile: "disqualifie", statutExterieur: "actif" });
+assert.equal(disqualifie.situations[0].libelle, "Disqualifié du tournoi");
+assert.deepEqual(disqualifie.consequences, [{ cote: "exterieur", type: "qualifie" }]);
+
+// Tirs provisoires : aucun vainqueur ni conséquence officiels, même si une équipe est éliminée.
+const provisoire = bilanPublicMatch(
+  match({ phase: "demi", tirs_au_but: seance([M, M, M, M, M, M, M, M, M, R]) }),
+  { statutDomicile: "elimine" },
+);
+assert.equal(provisoire.officiel, false);
+assert.equal(provisoire.libelle, "Terminé · en attente de validation");
+assert.equal(provisoire.vainqueurTirs, null);
+assert.deepEqual(provisoire.consequences, []);
+assert.equal(provisoire.situations.length, 1);
+
+// Match sans tirs : terminé, ou validé sans égalité, ou de poule.
+const sansTirs = bilanPublicMatch(match({ phase: "demi" }), {});
+assert.equal(sansTirs.vainqueurTirs, null);
+assert.deepEqual(sansTirs.consequences, []);
+const valideSansEgalite = bilanPublicMatch(
+  match({ phase: "quart", statut: "valide", locked: true, score_domicile: 2, score_exterieur: 1 }),
+  {},
+);
+assert.deepEqual(valideSansEgalite.consequences, [{ cote: "exterieur", type: "elimine", libelle: "quart de finale" }]);
+assert.equal(valideSansEgalite.vainqueurTirs, null);
+assert.deepEqual(bilanPublicMatch(match({ phase: "poule", statut: "valide", locked: true }), {}).consequences, []);
+
+// Entrées invalides ou statuts inconnus : aucune erreur, aucune annonce.
+const vide = bilanPublicMatch(null);
+assert.equal(vide.officiel, false);
+assert.deepEqual(vide.consequences, []);
+assert.deepEqual(vide.situations, []);
+assert.deepEqual(bilanPublicMatch(barrageValide, { statutDomicile: "retire", statutExterieur: undefined }).situations, []);
+assert.deepEqual(bilanPublicMatch(undefined, undefined).situations, []);
 
 console.log("Résultats publics : tests réussis.");

@@ -1,3 +1,4 @@
+import { eliminationSportiveDansMatch } from "./phaseFinale.js";
 import { PHASES_ELIMINATOIRES, scoreTirsAuBut, vainqueurTirsAuBut } from "./tirsAuBut.js";
 
 /** Seul le statut « valide » rend un résultat officiel. */
@@ -70,4 +71,54 @@ export function matchsSeanceProvisoire(matchs = []) {
 
 export function texteScoreTirs(etat) {
   return etat ? `t.a.b. ${etat.score.domicile}–${etat.score.exterieur}` : "";
+}
+
+/** Statuts administratifs affichés publiquement, avec des mots entiers (pas d'abréviation). */
+export const LIBELLE_STATUT_EQUIPE = {
+  elimine: "Éliminé du tournoi",
+  disqualifie: "Disqualifié du tournoi",
+};
+const STATUTS_ADMINISTRATIFS_BLOQUANTS = ["disqualifie", "elimine"];
+const COTES = ["domicile", "exterieur"];
+
+/**
+ * Sépare ce que dit CE match de la situation ACTUELLE des équipes.
+ *
+ * - `vainqueurTirs`, `consequences` : issus du match, seulement s'il est validé.
+ *   Le statut administratif reste prioritaire : une équipe aujourd'hui éliminée
+ *   ou disqualifiée n'est jamais présentée comme « qualifiée », ni comme
+ *   « éliminée sportivement ».
+ * - `situations` : statut administratif actuel de chaque équipe dans l'édition.
+ *   Il peut différer du résultat du match (vainqueur d'un ancien match éliminé
+ *   plus tard) sans aucune contradiction.
+ */
+export function bilanPublicMatch(match, { statutDomicile, statutExterieur } = {}) {
+  const etat = etatTirsAuBut(match);
+  const vainqueurTirs = etat?.officiel ? etat.vainqueur : null;
+  const statuts = {
+    domicile: String(statutDomicile || "actif"),
+    exterieur: String(statutExterieur || "actif"),
+  };
+
+  const consequences = [];
+  for (const cote of COTES) {
+    const clubId = cote === "domicile" ? match?.equipe_domicile_id : match?.equipe_exterieur_id;
+    const bloque = STATUTS_ADMINISTRATIFS_BLOQUANTS.includes(statuts[cote]);
+    if (vainqueurTirs === cote && !bloque) consequences.push({ cote, type: "qualifie" });
+    const elimination = match ? eliminationSportiveDansMatch(match, clubId, statuts[cote]) : null;
+    if (elimination) consequences.push({ cote, type: "elimine", libelle: elimination.libelle });
+  }
+  consequences.sort((a, b) => (a.type === b.type ? 0 : a.type === "qualifie" ? -1 : 1));
+
+  const situations = COTES
+    .filter((cote) => LIBELLE_STATUT_EQUIPE[statuts[cote]])
+    .map((cote) => ({ cote, statut: statuts[cote], libelle: LIBELLE_STATUT_EQUIPE[statuts[cote]] }));
+
+  return {
+    officiel: resultatOfficiel(match),
+    libelle: libelleResultat(match),
+    vainqueurTirs,
+    consequences,
+    situations,
+  };
 }

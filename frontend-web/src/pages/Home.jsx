@@ -145,8 +145,11 @@ function HomeTeam({ club, name, align = "left", label = name }) {
   return (
     <span className={`kf-home-team kf-home-team-${align}${club?.statut && club.statut !== "actif" ? " team-status-muted" : ""}`}>
       <PublicClubLogo club={club} name={name} statut={club?.statut} />
-      <span>{label}</span>
-      <StatutEquipeBadge statut={club?.statut} compact />
+      {/* Nom et badge dans un seul bloc : le badge passe sous le nom au lieu de se coller au score. */}
+      <span className="kf-home-team-texte">
+        <span className="kf-home-team-nom">{label}</span>
+        <StatutEquipeBadge statut={club?.statut} compact />
+      </span>
     </span>
   );
 }
@@ -194,11 +197,8 @@ function HomeResultCard({ match, clubsById, saisonClubs }) {
             <i>–</i>
             <span className={awayWinner || (etatTirs?.officiel && etatTirs.vainqueur === "exterieur") ? "winner" : ""}>{awayScore}</span>
           </strong>
-          {etatTirs && (
-            <small className={`kf-home-tirs${etatTirs.provisoire ? " is-provisoire" : ""}`}>
-              {texteScoreTirs(etatTirs)}{etatTirs.provisoire ? " · provisoire" : ""}
-            </small>
-          )}
+          {etatTirs && <small className="kf-home-tirs">{texteScoreTirs(etatTirs)}</small>}
+          {etatTirs?.provisoire && <small className="kf-home-tirs is-provisoire">provisoire</small>}
         </span>
         <HomeTeam club={away} name={awayName} label={compactHomeTeamName(awayName)} align="right" />
       </div>
@@ -234,7 +234,8 @@ function HomeSeanceCard({ match, clubsById, saisonClubs }) {
             <i>–</i>
             <span>{awayScore}</span>
           </strong>
-          <small className="kf-home-tirs is-provisoire">{texteScoreTirs(etatTirs)}</small>
+          <small className="kf-home-tirs">{texteScoreTirs(etatTirs)}</small>
+          <small className="kf-home-tirs is-provisoire">provisoire</small>
         </span>
         <HomeTeam club={away} name={awayName} label={compactHomeTeamName(awayName)} align="right" />
       </div>
@@ -354,11 +355,8 @@ function HomeDayRow({ match, clubsById, saisonClubs }) {
       <span className={`kf-home-day-score${live ? " live" : ""}`}>
         {status && <small>{status}</small>}
         {score}
-        {etatTirs && (
-          <small className={etatTirs.provisoire ? "is-provisoire" : ""}>
-            {texteScoreTirs(etatTirs)}{etatTirs.provisoire ? " · prov." : ""}
-          </small>
-        )}
+        {etatTirs && <small>{texteScoreTirs(etatTirs)}</small>}
+        {etatTirs?.provisoire && <small className="is-provisoire">prov.</small>}
       </span>
     </Link>
   );

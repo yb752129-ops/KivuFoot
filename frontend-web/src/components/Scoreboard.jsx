@@ -1,9 +1,8 @@
 import { Link } from "react-router-dom";
 import { clubName } from "../context.jsx";
-import { findPublicClub, formatPublicKickoff, PublicClubLogo, scorePublicVisible, StatutEquipeBadge } from "./PublicDesign.jsx";
-import { scoreTirsAuBut, vainqueurTirsAuBut } from "../tirsAuBut.js";
-import { eliminationSportiveDansMatch } from "../phaseFinale.js";
-import { etatTirsAuBut, libelleResultat, resultatOfficiel } from "../resultatPublic.js";
+import { findPublicClub, formatPublicKickoff, PublicClubLogo, scorePublicVisible } from "./PublicDesign.jsx";
+import { scoreTirsAuBut } from "../tirsAuBut.js";
+import { bilanPublicMatch, etatTirsAuBut } from "../resultatPublic.js";
 
 function displayName(name) {
   return (name || "").replace(/^DEMO\s*[-–]?\s*/i, "").trim() || name;
@@ -16,8 +15,6 @@ export default function Scoreboard({ match, clubsById, saisonClubs, to }) {
   const away = displayName(awayClub?.nom || clubName(clubsById, match.equipe_exterieur_id));
   const homeStatus = homeClub?.statut;
   const awayStatus = awayClub?.statut;
-  const eliminationSportiveHome = eliminationSportiveDansMatch(match, match.equipe_domicile_id, homeStatus);
-  const eliminationSportiveAway = eliminationSportiveDansMatch(match, match.equipe_exterieur_id, awayStatus);
   const sd = match.score_domicile;
   const se = match.score_exterieur;
   const played = scorePublicVisible(match) && sd != null && se != null;
@@ -26,16 +23,14 @@ export default function Scoreboard({ match, clubsById, saisonClubs, to }) {
   const tirsAuBut = Array.isArray(match.tirs_au_but) ? match.tirs_au_but : [];
   const scoreTirs = scoreTirsAuBut(tirsAuBut);
   const shootoutVisible = played && Number(sd) === Number(se) && tirsAuBut.length > 0;
-  const shootoutWinner = shootoutVisible ? vainqueurTirsAuBut(tirsAuBut) : null;
-  const shootoutConfirmedWinner = match.statut === "valide" ? shootoutWinner : null;
   const etatTirs = etatTirsAuBut(match);
   const tirsProvisoires = Boolean(etatTirs?.provisoire);
-  const homeWin = played && (sd > se || shootoutConfirmedWinner === "domicile");
-  const awayWin = played && (se > sd || shootoutConfirmedWinner === "exterieur");
-  const homeQualified = shootoutConfirmedWinner === "domicile"
-    && !["disqualifie", "elimine"].includes(String(homeStatus || "actif"));
-  const awayQualified = shootoutConfirmedWinner === "exterieur"
-    && !["disqualifie", "elimine"].includes(String(awayStatus || "actif"));
+  // Résultat de CE match (officiel après validation) et situation ACTUELLE des
+  // équipes sont deux informations distinctes : voir bilanPublicMatch.
+  const bilan = bilanPublicMatch(match, { statutDomicile: homeStatus, statutExterieur: awayStatus });
+  const homeWin = played && (sd > se || bilan.vainqueurTirs === "domicile");
+  const awayWin = played && (se > sd || bilan.vainqueurTirs === "exterieur");
+  const nomCote = (cote) => (cote === "domicile" ? home : away);
   const meta = upcoming ? formatPublicKickoff(match.date_heure) : "";
   const inner = (
     <>
@@ -43,17 +38,6 @@ export default function Scoreboard({ match, clubsById, saisonClubs, to }) {
         <span className={`sb-name${homeWin ? " is-winner" : ""}${awayWin ? " is-loser" : ""}`}>
           <PublicClubLogo club={homeClub} name={home} statut={homeStatus} className="sb-logo" />
           <span className="sb-team-label">{home}</span>
-          <StatutEquipeBadge statut={homeStatus} compact />
-          {eliminationSportiveHome && <StatutEquipeBadge statut="elimine" compact sportif />}
-          {homeQualified && (
-            <span
-              className="kf-sport-status-badge is-qualifie"
-              aria-label="Qualifié sportivement après les tirs au but"
-              title="Qualifié sportivement après un match validé décidé aux tirs au but. Le statut administratif reste prioritaire."
-            >
-              Qualifié
-            </span>
-          )}
         </span>
         <span
           className={`sb-score${shootoutVisible ? " has-shootout" : ""}`}
@@ -67,10 +51,10 @@ export default function Scoreboard({ match, clubsById, saisonClubs, to }) {
                 {se}
               </span>
               {shootoutVisible && (
-                <span className="sb-score-shootout">
-                  t.a.b. {scoreTirs.domicile}–{scoreTirs.exterieur}
-                  {tirsProvisoires && <span className="sb-shootout-provisoire"> · provisoire</span>}
-                </span>
+                <>
+                  <span className="sb-score-shootout">t.a.b. {scoreTirs.domicile}–{scoreTirs.exterieur}</span>
+                  {tirsProvisoires && <span className="sb-shootout-provisoire">provisoire</span>}
+                </>
               )}
             </>
           ) : (
@@ -80,25 +64,6 @@ export default function Scoreboard({ match, clubsById, saisonClubs, to }) {
         <span className={`sb-name away${awayWin ? " is-winner" : ""}${homeWin ? " is-loser" : ""}`}>
           <PublicClubLogo club={awayClub} name={away} statut={awayStatus} className="sb-logo" />
           <span className="sb-team-label">{away}</span>
-          <StatutEquipeBadge statut={awayStatus} compact />
-          {eliminationSportiveAway && (
-            <span
-              className="kf-sport-status-badge is-elimine"
-              aria-label="Éliminé sportivement"
-              title={`Éliminé sportivement après un match validé de phase ${eliminationSportiveAway.libelle}. Le statut administratif reste inchangé.`}
-            >
-              ÉLIM.
-            </span>
-          )}
-          {awayQualified && (
-            <span
-              className="kf-sport-status-badge is-qualifie"
-              aria-label="Qualifié sportivement après les tirs au but"
-              title="Qualifié sportivement après un match validé décidé aux tirs au but. Le statut administratif reste prioritaire."
-            >
-              Qualifié
-            </span>
-          )}
         </span>
       </div>
       {upcoming && (
@@ -108,16 +73,36 @@ export default function Scoreboard({ match, clubsById, saisonClubs, to }) {
         </div>
       )}
       {finished && (
-        <div className="sb-meta sb-meta-status">
-          {shootoutConfirmedWinner && (
-            <span className="sb-shootout-winner">
-              Vainqueur aux tirs au but · <strong>{shootoutConfirmedWinner === "domicile" ? home : away}</strong>
-            </span>
+        <div className="sb-bilan">
+          <section className="sb-bilan-bloc" aria-label="Ce match">
+            <p className="sb-bilan-titre">Ce match</p>
+            <p className={`sb-validation-pill ${bilan.officiel ? "is-officiel" : "is-provisoire"}`}>{bilan.libelle}</p>
+            {bilan.vainqueurTirs && (
+              <p className="sb-bilan-ligne sb-shootout-winner">
+                Vainqueur aux tirs au but · <strong>{nomCote(bilan.vainqueurTirs)}</strong>
+              </p>
+            )}
+            {bilan.consequences.map((consequence) => (
+              <p key={`${consequence.cote}-${consequence.type}`} className={`sb-bilan-ligne is-${consequence.type}`}>
+                {consequence.type === "qualifie" ? "Qualifié pour la suite" : `Éliminé à ce tour (${consequence.libelle})`}
+                {" · "}
+                <strong>{nomCote(consequence.cote)}</strong>
+              </p>
+            ))}
+          </section>
+          {bilan.situations.length > 0 && (
+            <section className="sb-bilan-bloc is-situation" aria-label="Situation actuelle des équipes">
+              <p className="sb-bilan-titre">Situation actuelle</p>
+              {bilan.situations.map((situation) => (
+                <p key={situation.cote} className="sb-bilan-ligne is-statut">
+                  {situation.libelle}
+                  {" · "}
+                  <strong>{nomCote(situation.cote)}</strong>
+                </p>
+              ))}
+              <p className="sb-bilan-note">Statut de l’équipe dans l’édition, indépendant du résultat de ce match.</p>
+            </section>
           )}
-          <span className="sb-finished-pill" aria-label="Match terminé">Terminé</span>
-          <span className={`sb-validation-pill ${resultatOfficiel(match) ? "is-officiel" : "is-provisoire"}`}>
-            {libelleResultat(match)}
-          </span>
         </div>
       )}
     </>

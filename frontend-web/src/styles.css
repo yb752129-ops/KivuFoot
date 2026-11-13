@@ -7226,14 +7226,32 @@ body,
 .kf-home-tirs.is-provisoire,
 .kf-home-day-score small.is-provisoire,
 .kf-public-match-shootout.is-provisoire { color: var(--kf-accent, var(--stamp)); }
-.sb-shootout-provisoire { text-transform: uppercase; letter-spacing: .04em; font-size: .66rem; }
-.sb-validation-pill {
-  display: inline-block;
-  font-size: .68rem;
+/* Score de la fiche : « provisoire » sur sa propre ligne, sans élargir la colonne du score. */
+.sb-shootout-provisoire {
+  display: block;
+  color: var(--kf-accent, var(--stamp));
+  font-family: var(--sans, inherit);
+  font-size: .64rem;
   font-weight: 800;
-  letter-spacing: .05em;
+  letter-spacing: .08em;
+  line-height: 1.1;
   text-transform: uppercase;
 }
+/* Statut du match (officiel ou provisoire) : une seule pastille, texte complet. */
+.sb-validation-pill {
+  display: inline-block;
+  max-width: 100%;
+  margin: 0;
+  padding: .28rem .7rem;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  font-size: .68rem;
+  font-weight: 800;
+  letter-spacing: .04em;
+  line-height: 1.25;
+  text-align: center;
+}
+.sb-validation-pill.is-officiel { color: var(--kf-paper, var(--ink)); }
 .sb-validation-pill.is-provisoire { color: var(--kf-accent, var(--stamp)); }
 /*
  * En-tête de la séance (fiche match) : deux colonnes fixes.
@@ -7288,3 +7306,77 @@ body,
   line-height: 1.35;
 }
 .tirs-public-winner.is-provisoire { font-style: italic; }
+
+/* Fiche : bilan de CE match, séparé de la situation ACTUELLE des équipes. */
+.sb-bilan { display: grid; gap: 10px; margin-top: 10px; }
+.sb-bilan-bloc { display: grid; justify-items: center; gap: 5px; min-width: 0; text-align: center; }
+.sb-bilan-bloc.is-situation { padding-top: 9px; border-top: 1px dashed var(--kf-line, var(--rule)); }
+.sb-bilan-titre {
+  margin: 0;
+  color: var(--kf-ink-soft, var(--ink-soft));
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+.sb-bilan-ligne {
+  margin: 0;
+  max-width: 100%;
+  color: var(--kf-ink-soft, var(--ink-soft));
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+.sb-bilan-ligne strong { color: var(--kf-paper, var(--ink)); font-weight: 900; }
+.sb-bilan-ligne.is-qualifie { color: var(--kf-lime, var(--stamp)); }
+.sb-bilan-ligne.is-elimine { color: #e4ad71; }
+.sb-bilan-ligne.is-statut { color: #ef6b6b; }
+.sb-bilan-note {
+  margin: 0;
+  max-width: 28em;
+  color: var(--kf-ink-dim, var(--ink-soft));
+  font-size: 11px;
+  line-height: 1.35;
+}
+@media (max-width: 360px) {
+  .sb-validation-pill { padding-inline: .55rem; font-size: .64rem; }
+}
+
+/* Accueil : le badge de statut passe sous le nom de l'équipe, jamais contre le score. */
+.kf-home-team-texte { display: block; min-width: 0; }
+.kf-home-team-nom { display: block; min-width: 0; }
+.kf-home-team-texte .kf-team-status-badge { margin-inline-start: 0; margin-top: 3px; }
+
+/* Fiche d'un match en cours : le statut est affiché avec le nom de l'équipe concernée (une ou deux). */
+ul.kf-match-team-statuses { margin-inline: 0; padding: 0; list-style: none; }
+.kf-match-team-status {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: .1rem .35rem;
+  max-width: 100%;
+  min-width: 0;
+  text-align: center;
+}
+.kf-match-team-status-nom {
+  min-width: 0;
+  color: var(--kf-paper, var(--ink));
+  font-size: 12px;
+  font-weight: 750;
+  overflow-wrap: anywhere;
+}
+.kf-match-team-status .kf-team-status-badge { margin-inline-start: 0; }
+
+/* Cloche : le score reste sur une seule ligne ; c'est le nom d'équipe qui passe à la ligne. */
+.cloche-ligne .cloche-live-minute { flex: 0 0 auto; white-space: nowrap; }
+.cloche-ligne .cloche-equipes { flex: 1 1 auto; min-width: 0; }
+.cloche-ligne .cloche-equipes > span { overflow-wrap: anywhere; line-height: 1.2; }
+.cloche-ligne b {
+  flex: 0 0 auto;
+  margin-left: auto;
+  padding-left: .25rem;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}

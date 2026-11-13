@@ -134,11 +134,14 @@ function PublicMatchCard({ match, clubsById, saisonClubs, event, numerotationPha
           <strong className="kf-public-match-score">{formatPublicScore(match)}</strong>
           {winners.shootoutScore && (
             <span
-              className={`kf-public-match-shootout${winners.shootoutProvisoire ? " is-provisoire" : ""}`}
+              className="kf-public-match-shootout"
               aria-label={`Tirs au but ${winners.shootoutScore.domicile}–${winners.shootoutScore.exterieur}${winners.shootoutProvisoire ? ", saisie provisoire" : ""}`}
             >
-              t.a.b. {winners.shootoutScore.domicile}–{winners.shootoutScore.exterieur}{winners.shootoutProvisoire ? " · prov." : ""}
+              t.a.b. {winners.shootoutScore.domicile}–{winners.shootoutScore.exterieur}
             </span>
+          )}
+          {winners.shootoutProvisoire && (
+            <span className="kf-public-match-shootout is-provisoire" aria-hidden="true">provisoire</span>
           )}
           {match.statut === "en_cours" && !match.ended_at && <LiveMinute match={match} className="kf-public-live-minute" />}
         </span>
