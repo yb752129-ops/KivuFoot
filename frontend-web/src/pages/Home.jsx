@@ -25,6 +25,13 @@ import {
 import Chrono, { LiveMinute } from "../components/Chrono.jsx";
 import { startVisibleRefresh } from "../liveRefresh.js";
 import { IcoCalendrier, IcoEpingle } from "../icons.jsx";
+import {
+  etatTirsAuBut,
+  libelleResultat,
+  matchsSeanceProvisoire,
+  resultatOfficiel,
+  texteScoreTirs,
+} from "../resultatPublic.js";
 
 const CATEGORIES = {
   annonce: "Annonce officielle",
@@ -166,6 +173,8 @@ function HomeResultCard({ match, clubsById, saisonClubs }) {
   const awayName = textClub(clubsById, saisonClubs, match.equipe_exterieur_id);
   const homeScore = displayValue(match.score_domicile);
   const awayScore = displayValue(match.score_exterieur);
+  const etatTirs = etatTirsAuBut(match);
+  const officiel = resultatOfficiel(match);
   const homeWinner = Number.isFinite(Number(match.score_domicile)) && Number.isFinite(Number(match.score_exterieur))
     && Number(match.score_domicile) > Number(match.score_exterieur);
   const awayWinner = Number.isFinite(Number(match.score_domicile)) && Number.isFinite(Number(match.score_exterieur))
@@ -174,19 +183,62 @@ function HomeResultCard({ match, clubsById, saisonClubs }) {
   return (
     <Link to={`/matchs/${match.id}`} className="kf-home-match-card kf-home-result-card">
       <div className="kf-home-card-top">
-        <span className="kf-home-status">Résultat officiel</span>
+        <span className={`kf-home-status${officiel ? "" : " is-provisoire"}`}>{libelleResultat(match)}</span>
         <span>{formatPublicRound(match.journee)}</span>
       </div>
       <div className="kf-home-card-teams">
         <HomeTeam club={home} name={homeName} label={compactHomeTeamName(homeName)} />
-        <strong className="kf-home-card-score" aria-label={`Score ${homeScore} à ${awayScore}`}>
-          <span className={homeWinner ? "winner" : ""}>{homeScore}</span>
-          <i>–</i>
-          <span className={awayWinner ? "winner" : ""}>{awayScore}</span>
-        </strong>
+        <span className="kf-home-score-wrap">
+          <strong className="kf-home-card-score" aria-label={`Score ${homeScore} à ${awayScore}`}>
+            <span className={homeWinner || (etatTirs?.officiel && etatTirs.vainqueur === "domicile") ? "winner" : ""}>{homeScore}</span>
+            <i>–</i>
+            <span className={awayWinner || (etatTirs?.officiel && etatTirs.vainqueur === "exterieur") ? "winner" : ""}>{awayScore}</span>
+          </strong>
+          {etatTirs && (
+            <small className={`kf-home-tirs${etatTirs.provisoire ? " is-provisoire" : ""}`}>
+              {texteScoreTirs(etatTirs)}{etatTirs.provisoire ? " · provisoire" : ""}
+            </small>
+          )}
+        </span>
         <HomeTeam club={away} name={awayName} label={compactHomeTeamName(awayName)} align="right" />
       </div>
       <HomeMatchMeta match={match} />
+    </Link>
+  );
+}
+
+/**
+ * Séance de tirs au but déjà saisie mais match non validé. Cette carte n'existe
+ * que si au moins un tir est enregistré : aucune annonce sans preuve.
+ */
+function HomeSeanceCard({ match, clubsById, saisonClubs }) {
+  const home = findPublicClub(clubsById, saisonClubs, match.equipe_domicile_id);
+  const away = findPublicClub(clubsById, saisonClubs, match.equipe_exterieur_id);
+  const homeName = textClub(clubsById, saisonClubs, match.equipe_domicile_id);
+  const awayName = textClub(clubsById, saisonClubs, match.equipe_exterieur_id);
+  const homeScore = displayValue(match.score_domicile);
+  const awayScore = displayValue(match.score_exterieur);
+  const etatTirs = etatTirsAuBut(match);
+
+  return (
+    <Link to={`/matchs/${match.id}`} className="kf-home-match-card kf-home-result-card kf-home-seance-card">
+      <div className="kf-home-card-top">
+        <span className="kf-home-status is-provisoire">Tirs au but · saisie provisoire</span>
+        <span>{formatPublicRound(match.journee)}</span>
+      </div>
+      <div className="kf-home-card-teams">
+        <HomeTeam club={home} name={homeName} label={compactHomeTeamName(homeName)} />
+        <span className="kf-home-score-wrap">
+          <strong className="kf-home-card-score" aria-label={`Score ${homeScore} à ${awayScore}`}>
+            <span>{homeScore}</span>
+            <i>–</i>
+            <span>{awayScore}</span>
+          </strong>
+          <small className="kf-home-tirs is-provisoire">{texteScoreTirs(etatTirs)}</small>
+        </span>
+        <HomeTeam club={away} name={awayName} label={compactHomeTeamName(awayName)} align="right" />
+      </div>
+      <p className="kf-provisoire-note">Résultat et qualification officiels après validation du match</p>
     </Link>
   );
 }
@@ -281,6 +333,7 @@ function HomeDayRow({ match, clubsById, saisonClubs }) {
   const live = isLive(match);
   const pause = live && match.periode === "mi_temps";
   const status = live ? homeLiveStatus(match) : "";
+  const etatTirs = etatTirsAuBut(match);
   const heure = live
     ? (pause
       ? <span className="kf-home-live-minute">MT</span>
@@ -301,6 +354,11 @@ function HomeDayRow({ match, clubsById, saisonClubs }) {
       <span className={`kf-home-day-score${live ? " live" : ""}`}>
         {status && <small>{status}</small>}
         {score}
+        {etatTirs && (
+          <small className={etatTirs.provisoire ? "is-provisoire" : ""}>
+            {texteScoreTirs(etatTirs)}{etatTirs.provisoire ? " · prov." : ""}
+          </small>
+        )}
       </span>
     </Link>
   );
@@ -474,7 +532,13 @@ export default function Home() {
   const lives = matchs.filter(isLive).sort((a, b) => new Date(a.date_heure) - new Date(b.date_heure));
   const livePrincipal = lives[0] || null;
   const autresLives = lives.slice(1);
-  const resultats = matchs.filter(isFinished).sort((a, b) => new Date(b.date_heure) - new Date(a.date_heure));
+  // Séances de tirs au but déjà saisies mais non validées : section dédiée,
+  // et ces matchs ne comptent pas comme « dernier résultat ».
+  const seances = matchsSeanceProvisoire(matchs);
+  const idsSeances = new Set(seances.map((match) => match.id));
+  const resultats = matchs
+    .filter((match) => isFinished(match) && !idsSeances.has(match.id))
+    .sort((a, b) => new Date(b.date_heure) - new Date(a.date_heure));
   const programmes = matchs.filter(isScheduled).sort((a, b) => {
     if (!a.date_heure && !b.date_heure) return Number(a.id || 0) - Number(b.id || 0);
     if (!a.date_heure) return 1;
@@ -510,6 +574,22 @@ export default function Home() {
                 ))}
               </div>
             )}
+          </div>
+        </section>
+      )}
+
+      {seances.length > 0 && (
+        <section className="kf-home-section" aria-labelledby="home-seance-title">
+          <div className="kf-home-section-head">
+            <div>
+              <h2 id="home-seance-title">Tirs au but</h2>
+              <p>Saisie provisoire · en attente de validation du match</p>
+            </div>
+          </div>
+          <div className="kf-home-upcoming-list">
+            {seances.map((match) => (
+              <HomeSeanceCard key={match.id} match={match} clubsById={clubsById} saisonClubs={saisonClubs} />
+            ))}
           </div>
         </section>
       )}

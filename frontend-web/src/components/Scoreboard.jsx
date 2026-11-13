@@ -3,6 +3,7 @@ import { clubName } from "../context.jsx";
 import { findPublicClub, formatPublicKickoff, PublicClubLogo, scorePublicVisible, StatutEquipeBadge } from "./PublicDesign.jsx";
 import { scoreTirsAuBut, vainqueurTirsAuBut } from "../tirsAuBut.js";
 import { eliminationSportiveDansMatch } from "../phaseFinale.js";
+import { etatTirsAuBut, libelleResultat, resultatOfficiel } from "../resultatPublic.js";
 
 function displayName(name) {
   return (name || "").replace(/^DEMO\s*[-–]?\s*/i, "").trim() || name;
@@ -27,6 +28,8 @@ export default function Scoreboard({ match, clubsById, saisonClubs, to }) {
   const shootoutVisible = played && Number(sd) === Number(se) && tirsAuBut.length > 0;
   const shootoutWinner = shootoutVisible ? vainqueurTirsAuBut(tirsAuBut) : null;
   const shootoutConfirmedWinner = match.statut === "valide" ? shootoutWinner : null;
+  const etatTirs = etatTirsAuBut(match);
+  const tirsProvisoires = Boolean(etatTirs?.provisoire);
   const homeWin = played && (sd > se || shootoutConfirmedWinner === "domicile");
   const awayWin = played && (se > sd || shootoutConfirmedWinner === "exterieur");
   const homeQualified = shootoutConfirmedWinner === "domicile"
@@ -54,7 +57,7 @@ export default function Scoreboard({ match, clubsById, saisonClubs, to }) {
         </span>
         <span
           className={`sb-score${shootoutVisible ? " has-shootout" : ""}`}
-          aria-label={shootoutVisible ? `${sd}–${se} · t.a.b. ${scoreTirs.domicile}–${scoreTirs.exterieur}` : undefined}
+          aria-label={shootoutVisible ? `${sd}–${se} · t.a.b. ${scoreTirs.domicile}–${scoreTirs.exterieur}${tirsProvisoires ? " (provisoire)" : ""}` : undefined}
         >
           {played ? (
             <>
@@ -64,7 +67,10 @@ export default function Scoreboard({ match, clubsById, saisonClubs, to }) {
                 {se}
               </span>
               {shootoutVisible && (
-                <span className="sb-score-shootout">t.a.b. {scoreTirs.domicile}–{scoreTirs.exterieur}</span>
+                <span className="sb-score-shootout">
+                  t.a.b. {scoreTirs.domicile}–{scoreTirs.exterieur}
+                  {tirsProvisoires && <span className="sb-shootout-provisoire"> · provisoire</span>}
+                </span>
               )}
             </>
           ) : (
@@ -109,6 +115,9 @@ export default function Scoreboard({ match, clubsById, saisonClubs, to }) {
             </span>
           )}
           <span className="sb-finished-pill" aria-label="Match terminé">Terminé</span>
+          <span className={`sb-validation-pill ${resultatOfficiel(match) ? "is-officiel" : "is-provisoire"}`}>
+            {libelleResultat(match)}
+          </span>
         </div>
       )}
     </>

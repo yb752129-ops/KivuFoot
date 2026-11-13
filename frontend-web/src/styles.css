@@ -7204,3 +7204,87 @@ body,
   .saison-club-row .saison-statut-actions { column-gap: .45rem; }
   .saison-club-row .saison-statut-actions .linkish { font-size: .74rem; }
 }
+
+/* Résultats provisoires : tirs au but saisis, match pas encore validé. */
+.kf-provisoire-note {
+  display: block;
+  color: var(--kf-accent, var(--stamp));
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.kf-home-status.is-provisoire { color: var(--kf-accent, var(--stamp)); }
+.kf-home-score-wrap { display: grid; justify-items: center; gap: 2px; min-width: 0; }
+.kf-home-tirs {
+  color: var(--kf-ink-soft, inherit);
+  font-size: 10px;
+  font-weight: 850;
+  line-height: 1.05;
+  white-space: nowrap;
+}
+.kf-home-tirs.is-provisoire,
+.kf-home-day-score small.is-provisoire,
+.kf-public-match-shootout.is-provisoire { color: var(--kf-accent, var(--stamp)); }
+.sb-shootout-provisoire { text-transform: uppercase; letter-spacing: .04em; font-size: .66rem; }
+.sb-validation-pill {
+  display: inline-block;
+  font-size: .68rem;
+  font-weight: 800;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+.sb-validation-pill.is-provisoire { color: var(--kf-accent, var(--stamp)); }
+/*
+ * En-tête de la séance (fiche match) : deux colonnes fixes.
+ * Colonne 1 = titre + pastille, qui peut passer à la ligne ; colonne 2 =
+ * score + flèche, qui ne se coupe jamais. Les sélecteurs à deux classes
+ * l'emportent sur les règles de phaseFinale.css quel que soit l'ordre de chargement.
+ */
+.tirs-au-but .tirs-public-summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 1rem;
+}
+.tirs-au-but .tirs-public-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .3rem .5rem;
+  min-width: 0;
+}
+.tirs-au-but .tirs-public-score {
+  display: inline-flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-self: end;
+  gap: .5rem;
+  white-space: nowrap;
+}
+.tirs-au-but .tirs-public-chevron {
+  flex: 0 0 auto;
+  width: 1em;
+  text-align: center;
+  line-height: 1;
+}
+.tirs-public-tag {
+  display: inline-block;
+  flex: 0 0 auto;
+  padding: .05rem .4rem;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  font-size: .62rem;
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  vertical-align: middle;
+}
+.tirs-public-provisoire {
+  margin: .4rem 0 .6rem;
+  padding: .45rem .65rem;
+  border-left: 3px solid var(--kf-accent, var(--stamp));
+  font-size: .8rem;
+  line-height: 1.35;
+}
+.tirs-public-winner.is-provisoire { font-style: italic; }

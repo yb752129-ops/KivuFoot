@@ -20,7 +20,7 @@ import {
 } from "../components/PublicDesign.jsx";
 import { dernierFaitLive, formatMinute, groupMatchsByJournee, labelEvenement, journeeTitre } from "../display.js";
 import { ETAPES_PHASE_FINALE, libelleCartePhaseFinale, numeroterMatchsPhase } from "../phaseFinale.js";
-import { PHASES_ELIMINATOIRES, scoreTirsAuBut, vainqueurTirsAuBut } from "../tirsAuBut.js";
+import { etatTirsAuBut, libelleResultat } from "../resultatPublic.js";
 
 const FILTRES = [
   ["tous", "Tous"],
@@ -44,7 +44,8 @@ function tourDepuisURL(searchParams) {
 function statutLabel(statut) {
   if (statut === "programme") return "À VENIR";
   if (statut === "en_cours") return "En cours";
-  if (statut === "termine" || statut === "valide") return "Résultat";
+  if (statut === "termine") return "Terminé";
+  if (statut === "valide") return "Validé";
   return "À VENIR";
 }
 
@@ -62,28 +63,24 @@ function comparerDateProgramme(a, b) {
 }
 
 function scoreWinners(match) {
-  if (!scorePublicVisible(match)) {
-    return { home: false, away: false, shootoutWinner: null, shootoutScore: null };
-  }
+  const aucun = { home: false, away: false, shootoutWinner: null, shootoutScore: null, shootoutProvisoire: false };
+  if (!scorePublicVisible(match)) return aucun;
   const home = numericValue(match.score_domicile);
   const away = numericValue(match.score_exterieur);
-  if (home === null || away === null) {
-    return { home: false, away: false, shootoutWinner: null, shootoutScore: null };
-  }
-  if (home !== away) {
-    return { home: home > away, away: away > home, shootoutWinner: null, shootoutScore: null };
-  }
+  if (home === null || away === null) return aucun;
+  if (home !== away) return { ...aucun, home: home > away, away: away > home };
 
-  const tirsAuBut = Array.isArray(match.tirs_au_but) ? match.tirs_au_but : [];
-  const shootoutWinner = PHASES_ELIMINATOIRES.includes(match.phase)
-    ? vainqueurTirsAuBut(tirsAuBut)
-    : null;
-  const officialWinner = match.statut === "valide" ? shootoutWinner : null;
+  // Les tirs saisis sont montrés dès le premier tir, marqués provisoires tant
+  // que le match n'est pas validé. Le vainqueur n'est mis en avant qu'après
+  // validation.
+  const etat = etatTirsAuBut(match);
+  const officialWinner = etat?.officiel ? etat.vainqueur : null;
   return {
     home: officialWinner === "domicile",
     away: officialWinner === "exterieur",
-    shootoutWinner,
-    shootoutScore: shootoutWinner ? scoreTirsAuBut(tirsAuBut) : null,
+    shootoutWinner: officialWinner,
+    shootoutScore: etat ? etat.score : null,
+    shootoutProvisoire: Boolean(etat?.provisoire),
   };
 }
 
@@ -136,8 +133,11 @@ function PublicMatchCard({ match, clubsById, saisonClubs, event, numerotationPha
         <span className="kf-public-match-score-wrap">
           <strong className="kf-public-match-score">{formatPublicScore(match)}</strong>
           {winners.shootoutScore && (
-            <span className="kf-public-match-shootout" aria-label={`Tirs au but ${winners.shootoutScore.domicile}–${winners.shootoutScore.exterieur}`}>
-              t.a.b. {winners.shootoutScore.domicile}–{winners.shootoutScore.exterieur}
+            <span
+              className={`kf-public-match-shootout${winners.shootoutProvisoire ? " is-provisoire" : ""}`}
+              aria-label={`Tirs au but ${winners.shootoutScore.domicile}–${winners.shootoutScore.exterieur}${winners.shootoutProvisoire ? ", saisie provisoire" : ""}`}
+            >
+              t.a.b. {winners.shootoutScore.domicile}–{winners.shootoutScore.exterieur}{winners.shootoutProvisoire ? " · prov." : ""}
             </span>
           )}
           {match.statut === "en_cours" && !match.ended_at && <LiveMinute match={match} className="kf-public-live-minute" />}
@@ -158,6 +158,9 @@ function PublicMatchCard({ match, clubsById, saisonClubs, event, numerotationPha
         {!upcoming && !libellePhase && <span><IcoCalendrier /> {formatPublicRound(match.journee)}</span>}
       </div>
       {official && <span className="kf-public-official-note">Résultat officiel</span>}
+      {match.statut === "termine" && (
+        <span className="kf-public-official-note kf-provisoire-note">{libelleResultat(match)}</span>
+      )}
     </Link>
   );
 }
@@ -394,7 +397,7 @@ export default function Matchs() {
                 <div className="kf-public-empty"><strong>Pas encore de résultat public</strong></div>
               ) : (
                 <>
-                  <p className="kf-public-official-summary">Résultats officiels</p>
+                  <p className="kf-public-official-summary">« Validé » : résultat officiel · « Terminé » : en attente de validation</p>
                   {groupesTermines.map((groupe) => (
                     <GroupeMatchs
                       key={groupe.code}

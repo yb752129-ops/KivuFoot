@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { api } from "../api.js";
 import { PHASES_ELIMINATOIRES, scoreTirsAuBut, vainqueurTirsAuBut } from "../tirsAuBut.js";
+import { etatTirsAuBut } from "../resultatPublic.js";
 
 function nomEquipe(tir, home, away) {
   return tir.equipe_concernee === "exterieur" ? away : home;
@@ -83,19 +84,36 @@ export function TirsAuButPublic({ match, home, away, joueurs = {} }) {
   const tirs = Array.isArray(match?.tirs_au_but) ? match.tirs_au_but : [];
   if (!tirs.length) return null;
   const score = scoreTirsAuBut(tirs);
-  const vainqueur = vainqueurTirsAuBut(tirs);
+  // Le vainqueur n'est annoncé que si l'état public le prouve : provisoire
+  // tant que le match n'est pas validé, puis officiel.
+  const etat = etatTirsAuBut(match);
+  const provisoire = Boolean(etat?.provisoire);
+  const vainqueur = etat?.vainqueur || null;
 
   return (
     <section className="sheet tirs-au-but">
-      <details className="tirs-public-details">
+      <details className="tirs-public-details" open={provisoire}>
         <summary className="tirs-public-summary">
-          <span className="tirs-public-title">Séance de tirs au but</span>
+          <span className="tirs-public-title">
+            Séance de tirs au but
+            {provisoire && <span className="tirs-public-tag">Provisoire</span>}
+          </span>
           <span className="tirs-public-score">{score.domicile}–{score.exterieur}<span className="tirs-public-chevron" aria-hidden="true">⌄</span></span>
         </summary>
         <div className="tirs-public-body">
+          {provisoire && (
+            <p className="tirs-public-provisoire" role="status">
+              Saisie provisoire. Le résultat et la qualification seront officiels après validation du match par l’organisation.
+            </p>
+          )}
           <p className="muted small">Résultat distinct du score du match. Les tirs ne modifient ni les buts ni le classement des poules.</p>
           <SequenceTirs tirs={tirs} home={home} away={away} joueurs={joueurs} />
-          {vainqueur && <p className="tirs-public-winner">Vainqueur de la séance · <strong>{vainqueur === "domicile" ? home : away}</strong></p>}
+          {vainqueur && provisoire && (
+            <p className="tirs-public-winner is-provisoire">Vainqueur provisoire · <strong>{vainqueur === "domicile" ? home : away}</strong></p>
+          )}
+          {vainqueur && !provisoire && (
+            <p className="tirs-public-winner">Vainqueur de la séance · <strong>{vainqueur === "domicile" ? home : away}</strong></p>
+          )}
           <details className="tirs-historique-details">
             <summary>Voir le détail des tireurs</summary>
             <HistoriqueTirs tirs={tirs} home={home} away={away} joueurs={joueurs} />

@@ -8,6 +8,7 @@
     "build": "vite build",
     "test:composition": "node scripts/test-composition-positions.mjs",
     "test:phase-finale": "node scripts/test-phase-finale.mjs",
+    "test:resultat-public": "node scripts/test-resultat-public.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
