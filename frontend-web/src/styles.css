@@ -3019,6 +3019,11 @@ html[data-theme="dark"] .reseau-perdu {
 }
 .match-note p { margin: 0.35rem 0 0; }
 .match-note-followup { color: #75be8f; font-weight: 600; }
+.match-note-texte { white-space: pre-line; }
+.match-note-cartons { list-style: none; padding: 0; margin: 0.7rem 0; display: grid; gap: 0.45rem; }
+.match-note-cartons li { display: flex; align-items: center; gap: 0.65rem; line-height: 1.4; }
+.match-note-carton { display: inline-block; flex: 0 0 auto; width: 1rem; height: 1.25rem; border-radius: 0.15rem; background: #f7d524; border: 1px solid #d4ae00; }
+
 
 /* --- Workflow obligatoire des effectifs (pilote clubs) --- */
 .effectif-obligation,

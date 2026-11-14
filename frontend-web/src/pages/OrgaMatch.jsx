@@ -35,8 +35,8 @@ const TYPES = [
 ];
 
 const NOTE_RETROACTIVE_DEFAULT =
-  "Match joué après confirmation de l’administration alors qu’il avait initialement été annoncé comme annulé. "
-  + "Résultat officiel : le score saisi ci-dessus. Les buteurs sont bien enregistrés auprès des organisateurs.";
+  "Résultat saisi après la rencontre. Résultat officiel : le score saisi ci-dessus. "
+  + "Les buteurs sont bien enregistrés auprès des organisateurs.";
 
 function noteRetroactiveAvecScore(scoreDom, scoreExt) {
   return NOTE_RETROACTIVE_DEFAULT.replace("le score saisi ci-dessus", `${scoreDom}–${scoreExt}`);

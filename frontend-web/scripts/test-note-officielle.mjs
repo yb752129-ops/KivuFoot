@@ -1,0 +1,15 @@
+import assert from "node:assert/strict";
+import { detailCartonsProvisoires } from "../src/noteOfficielle.js";
+const titre = "🟨 Cartons jaunes signalés (information provisoire) :\n\n";
+const sae = titre + "• +243(SAE) : 4 cartons jaunes — 1 au coach et 3 à des joueurs non identifiés\n\nMinutes non communiquées.";
+const champions = titre + "• LES CHAMPIONS : Gustave\n\n• INFO-2024+2025 : Mathieu\n\nMinutes non communiquées.";
+const a = detailCartonsProvisoires(75, sae);
+assert.equal(a.cartons.length, 4);
+assert.equal(a.cartons[0], "Coach — +243(SAE)");
+assert.equal(a.cartons.slice(1).filter(x => x === "Joueur non identifié — +243(SAE)").length, 3);
+assert.equal(a.apres, "Minutes non communiquées.");
+assert.deepEqual(detailCartonsProvisoires(74, champions).cartons, ["Gustave — LES CHAMPIONS", "Mathieu — INFO-2024+2025"]);
+assert.equal(detailCartonsProvisoires(74, sae), null);
+assert.equal(detailCartonsProvisoires(75, sae.replace("information provisoire", "information officielle")), null);
+assert.equal(detailCartonsProvisoires(75, "autre note"), null);
+console.log("Notes officielles : tests OK");

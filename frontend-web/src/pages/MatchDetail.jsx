@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { detailCartonsProvisoires } from "../noteOfficielle.js";
 import { Link, useParams } from "react-router-dom";
 import { api } from "../api.js";
 import { useKivu } from "../context.jsx";
@@ -170,6 +171,10 @@ export default function MatchDetail() {
   const statutHome = (saisonClubs || []).find((row) => Number(row.id ?? row.club_id) === Number(match.equipe_domicile_id))?.statut;
   const statutAway = (saisonClubs || []).find((row) => Number(row.id ?? row.club_id) === Number(match.equipe_exterieur_id))?.statut;
   const possessionAdminView = Boolean(moi && ["admin", "organisateur"].includes(moi.role));
+  const noteDetaillee = detailCartonsProvisoires(match.id, match.note_officielle);
+  const suiviButeurs = match.buteurs_a_verifier
+    ? "Les buteurs sont enregistrés auprès des organisateurs et seront ajoutés après vérification."
+    : "Les buteurs vérifiés ont été ajoutés à la fiche du match sans modifier le score officiel.";
   // Statut administratif affiché avec le nom de l'équipe concernée (une seule, ou les deux).
   const equipesAvecStatut = [
     { cote: "domicile", nom: stripDemo(home?.nom) || "Domicile", statut: statutHome },
@@ -219,13 +224,19 @@ export default function MatchDetail() {
       {match.note_officielle && (
         <aside className="match-note" aria-label="Note officielle">
           <p className="kicker">Note officielle</p>
-          <p>{match.note_officielle}</p>
-          {match.resultat_retroactif && (
-            <p className="match-note-followup">
-              {match.buteurs_a_verifier
-                ? "Les buteurs sont enregistrés auprès des organisateurs et seront ajoutés après vérification."
-                : "Les buteurs vérifiés ont été ajoutés à la fiche du match sans modifier le score officiel."}
-            </p>
+          {noteDetaillee ? (
+            <>
+              <p className="match-note-texte">{noteDetaillee.avant}</p>
+              <ul className="match-note-cartons" aria-label="Cartons jaunes signalés, information provisoire">
+                {noteDetaillee.cartons.map((label, index) => (
+                  <li key={`${index}-${label}`}><span className="match-note-carton" aria-hidden="true" /><span>{label}</span></li>
+                ))}
+              </ul>
+              {noteDetaillee.apres && <p className="match-note-texte">{noteDetaillee.apres}</p>}
+            </>
+          ) : <p className="match-note-texte">{match.note_officielle}</p>}
+          {match.resultat_retroactif && !match.note_officielle.includes(suiviButeurs) && (
+            <p className="match-note-followup">{suiviButeurs}</p>
           )}
         </aside>
       )}
