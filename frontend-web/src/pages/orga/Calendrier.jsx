@@ -291,6 +291,7 @@ export default function OrgaCalendrier() {
             <option value="barrage">Barrage</option>
             <option value="quart">Quart de finale</option>
               <option value="demi">Demi-finale</option>
+              <option value="3e_place">Match pour la 3ᵉ place</option>
               <option value="finale">Finale</option>
             </select>
           </label>

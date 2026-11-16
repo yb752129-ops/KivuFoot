@@ -1,6 +1,6 @@
 from collections.abc import Iterable
 
-PHASES_ELIMINATOIRES = frozenset({"barrage", "quart", "demi", "finale"})
+PHASES_ELIMINATOIRES = frozenset({"barrage", "quart", "demi", "3e_place", "finale"})
 
 
 def score_tirs_au_but(tirs: Iterable[dict] | None) -> dict[str, dict[str, int]]:

@@ -154,7 +154,7 @@ export default function MatchDetail() {
   const numeroPhase = numerotationPhase.get(Number(match.id));
   const nomPhase = libellePhaseFinale(match.phase);
   const titrePhase = PHASES_ELIMINATOIRES.includes(match.phase)
-    ? `${nomPhase.charAt(0).toUpperCase()}${nomPhase.slice(1)}${numeroPhase ? ` ${numeroPhase}` : ""}`
+    ? `${nomPhase.charAt(0).toUpperCase()}${nomPhase.slice(1)}${numeroPhase && match.phase !== "3e_place" ? ` ${numeroPhase}` : ""}`
     : journeeTitre(match.journee);
   const nom = (jid) => joueurs[jid]?.nom_complet || "à compléter";
   const faits = grouperFaits(evts);

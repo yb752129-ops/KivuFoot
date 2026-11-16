@@ -104,7 +104,7 @@ export function bilanPublicMatch(match, { statutDomicile, statutExterieur } = {}
   for (const cote of COTES) {
     const clubId = cote === "domicile" ? match?.equipe_domicile_id : match?.equipe_exterieur_id;
     const bloque = STATUTS_ADMINISTRATIFS_BLOQUANTS.includes(statuts[cote]);
-    if (vainqueurTirs === cote && !bloque) consequences.push({ cote, type: "qualifie" });
+    if (vainqueurTirs === cote && !bloque && match?.phase !== "3e_place") consequences.push({ cote, type: "qualifie" });
     const elimination = match ? eliminationSportiveDansMatch(match, clubId, statuts[cote]) : null;
     if (elimination) consequences.push({ cote, type: "elimine", libelle: elimination.libelle });
   }

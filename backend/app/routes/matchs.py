@@ -241,7 +241,7 @@ async def creer_match(
     current_user: User = Depends(require_roles(RoleUtilisateur.ADMIN, RoleUtilisateur.ORGANISATEUR)),
 ):
     if payload.phase not in PHASES_VALIDES:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Phase inconnue : poule, barrage, quart, demi ou finale.")
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Phase inconnue : poule, barrage, quart, demi, 3e place ou finale.")
     saison = await db.get(Saison, payload.saison_id)
     if saison is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Saison introuvable.")
@@ -1343,7 +1343,7 @@ async def lister_participations(
     return result.scalars().all()
 
 
-PHASES_VALIDES = ("poule", "barrage", "quart", "demi", "finale")
+PHASES_VALIDES = ("poule", "barrage", "quart", "demi", "3e_place", "finale")
 
 
 @router.put("/{match_id}/phase", response_model=MatchOut)
@@ -1357,7 +1357,7 @@ async def changer_phase_match(
     if match_.locked:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Match verrouillé : phase non modifiable.")
     if payload.phase not in PHASES_VALIDES:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Phase inconnue : poule, barrage, quart, demi ou finale.")
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Phase inconnue : poule, barrage, quart, demi, 3e place ou finale.")
     if payload.phase != _value(match_.phase):
         if match_.qualification_slots:
             raise HTTPException(status.HTTP_409_CONFLICT, "La phase d'un match cible avec des sources de qualification est verrouillée par ses liens.")

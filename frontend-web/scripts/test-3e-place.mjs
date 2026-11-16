@@ -1,0 +1,13 @@
+import assert from "node:assert/strict";
+import { ETAPES_PHASE_FINALE, libelleCartePhaseFinale, eliminationClub } from "../src/phaseFinale.js";
+import { bilanPublicMatch, etatTirsAuBut } from "../src/resultatPublic.js";
+import { PHASES_ELIMINATOIRES } from "../src/tirsAuBut.js";
+assert(PHASES_ELIMINATOIRES.includes("3e_place"));
+assert(ETAPES_PHASE_FINALE.some(p => p.id === "3e_place"));
+assert.equal(libelleCartePhaseFinale("3e_place",1), "3ᵉ PLACE");
+const tirs = Array.from({length: 10}, (_,i) => ({ordre:i+1, equipe_concernee:i%2 ? "exterieur" : "domicile", resultat:i%2 ? "rate" : "marque"}));
+const match={phase:"3e_place",statut:"valide",equipe_domicile_id:2,equipe_exterieur_id:3,score_domicile:0,score_exterieur:0,tirs_au_but:tirs};
+assert.equal(etatTirsAuBut(match).vainqueur,"domicile");
+assert.equal(eliminationClub([match],3),null);
+assert.deepEqual(bilanPublicMatch(match).consequences,[]);
+console.log("3e place : tirs, libellé et statuts publics OK");

@@ -50,7 +50,7 @@ async def etats_sportifs_saison(db: AsyncSession, saison_id: int) -> dict[int, d
             select(Match).where(
                 Match.saison_id == saison_id,
                 Match.statut == StatutMatch.VALIDE.value,
-                Match.phase.in_(PHASES_ELIMINATOIRES),
+                Match.phase.in_(PHASES_ELIMINATOIRES - {"3e_place"}),
             )
         )
     ).scalars().all()

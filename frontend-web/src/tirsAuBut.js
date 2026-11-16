@@ -1,4 +1,4 @@
-export const PHASES_ELIMINATOIRES = ["barrage", "quart", "demi", "finale"];
+export const PHASES_ELIMINATOIRES = ["barrage", "quart", "demi", "3e_place", "finale"];
 
 export function scoreTirsAuBut(tirs = []) {
   return (tirs || []).reduce((score, tir) => {

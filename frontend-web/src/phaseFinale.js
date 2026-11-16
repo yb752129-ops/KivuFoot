@@ -4,6 +4,7 @@ export const ETAPES_PHASE_FINALE = [
   { id: "barrage", titre: "Barrages", filtre: "Barrages", libelleCarte: "BARRAGE", singulier: "barrage" },
   { id: "quart", titre: "Quarts de finale", filtre: "Quarts", libelleCarte: "QUART DE FINALE", singulier: "quart de finale" },
   { id: "demi", titre: "Demi-finales", filtre: "Demis", libelleCarte: "DEMI-FINALE", singulier: "demi-finale" },
+  { id: "3e_place", titre: "Match pour la 3ᵉ place", filtre: "3ᵉ place", libelleCarte: "3ᵉ PLACE", singulier: "match pour la 3ᵉ place" },
   { id: "finale", titre: "Finale", filtre: "Finale", libelleCarte: "FINALE", singulier: "finale" },
 ];
 
@@ -18,7 +19,7 @@ export function libelleCartePhaseFinale(phaseId, numero) {
   const phase = ETAPES_PHASE_FINALE.find((item) => item.id === phaseId);
   if (!phase) return "";
   const index = Number(numero);
-  return `${phase.libelleCarte}${Number.isSafeInteger(index) && index > 0 ? ` ${index}` : ""}`;
+  return `${phase.libelleCarte}${phaseId !== "3e_place" && Number.isSafeInteger(index) && index > 0 ? ` ${index}` : ""}`;
 }
 
 /** Numérote chaque tour chronologiquement, sans exposer les IDs des matchs. */
@@ -81,6 +82,7 @@ export function eliminationClub(matchs = [], clubId) {
   if (!Number.isFinite(idClub)) return null;
 
   const eliminations = (matchs || []).flatMap((match) => {
+    if (match?.phase === "3e_place") return [];
     const decision = vainqueurMatchEliminatoire(match);
     if (!decision) return [];
     const domicileId = Number(match.equipe_domicile_id);

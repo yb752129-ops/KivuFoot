@@ -417,3 +417,76 @@ async def test_official_quarterfinal_draw_allows_direct_qualified_teams_only(db_
         )
     assert pending_team_blocked.value.status_code == 409
     assert "qualification validée" in pending_team_blocked.value.detail
+
+@pytest.mark.asyncio
+async def test_troisieme_place_n_altere_pas_qualifies_ni_champion(db_fictif):
+    saison, (a, b, c, d), auteur = await creer_edition_fictive(db_fictif)
+    db_fictif.add_all([
+        match_fictif(saison.id, a.id, b.id, phase="demi", score=(2, 1)),
+        match_fictif(saison.id, c.id, d.id, phase="demi", score=(3, 1)),
+    ])
+    await db_fictif.flush()
+    avant = await etats_sportifs_saison(db_fictif, saison.id)
+    place = match_fictif(saison.id, b.id, d.id, phase="3e_place", score=(2, 0))
+    db_fictif.add(place)
+    await db_fictif.flush()
+    assert await etats_sportifs_saison(db_fictif, saison.id) == avant
+    await verifier_equipe_directement_nommable(db_fictif, saison.id, b.id, "3e_place")
+    await verifier_equipe_directement_nommable(db_fictif, saison.id, d.id, "3e_place")
+    await propager_vainqueur_vers_tour_suivant(db_fictif, place, auteur.id)
+    finale = match_fictif(saison.id, a.id, c.id, phase="finale", score=(1, 0))
+    db_fictif.add(finale)
+    await db_fictif.flush()
+    apres = await etats_sportifs_saison(db_fictif, saison.id)
+    assert apres[a.id]["statut_sportif"] == "champion"
+    assert apres[b.id]["statut_sportif"] == "elimine"
+    assert apres[d.id]["statut_sportif"] == "elimine"
+
+
+def test_3e_place_est_bien_eliminatoire_et_exige_horaire():
+    from app.services.tirs_au_but import PHASES_ELIMINATOIRES
+    from app.routes.matchs import PHASES_VALIDES
+    assert "3e_place" in PHASES_VALIDES
+    assert "3e_place" in PHASES_ELIMINATOIRES
+    match = MatchCreate(saison_id=1, phase="3e_place", equipe_domicile_id=2,
+                        equipe_exterieur_id=3, date_heure=datetime(2042, 6, 1, tzinfo=timezone.utc))
+    assert match.phase == "3e_place"
+    with pytest.raises(ValidationError):
+        MatchCreate(saison_id=1, phase="3e_place", equipe_domicile_id=2, equipe_exterieur_id=3)
+
+@pytest.mark.asyncio
+async def test_creation_3e_place_par_route_sur_base_fictive(db_fictif, monkeypatch):
+    import app.routes.matchs as routes
+    saison, (a, b, c, d), auteur = await creer_edition_fictive(db_fictif)
+    db_fictif.add_all([
+        match_fictif(saison.id, a.id, b.id, phase="demi", score=(2, 1)),
+        match_fictif(saison.id, c.id, d.id, phase="demi", score=(1, 2)),
+    ])
+    await db_fictif.flush()
+    monkeypatch.setattr(routes, "verifier_organisateur_de_competition", AsyncMock())
+    monkeypatch.setattr(routes, "get_reglement_actif", AsyncMock(return_value=None))
+    request = MatchCreate(saison_id=saison.id, phase="3e_place", equipe_domicile_id=b.id,
+                          equipe_exterieur_id=c.id, date_heure=datetime(2042, 6, 8, 12, tzinfo=timezone.utc),
+                          stade="Stade fictif")
+    match = await routes.creer_match(request, db_fictif, auteur)
+    assert match.phase == "3e_place"
+    assert (match.equipe_domicile_id, match.equipe_exterieur_id) == (b.id, c.id)
+    assert match.stade == "Stade fictif"
+    states = await etats_sportifs_saison(db_fictif, saison.id)
+    assert states[b.id]["statut_sportif"] == "elimine"
+    assert states[c.id]["statut_sportif"] == "elimine"
+
+@pytest.mark.asyncio
+async def test_troisieme_place_egalite_tirs_directs_et_validation():
+    db = reglement_db("tirs_au_but_apres_90")
+    match = Match(saison_id=1, equipe_domicile_id=1, equipe_exterieur_id=2,
+                  phase="3e_place", score_domicile=1, score_exterieur=1,
+                  periode="2", reglement_version_id=92)
+    await verifier_fin_match(db, match)
+    await verifier_tirs_autorises(db, match)
+    with pytest.raises(HTTPException):
+        await verifier_resultat_eliminatoire_validable(db, match)
+    match.tirs_au_but = [{"ordre": i + 1, "equipe_concernee": "domicile" if i % 2 == 0 else "exterieur", "resultat": "marque" if i % 2 == 0 else "rate"} for i in range(7)]
+    await verifier_resultat_eliminatoire_validable(db, match)
+    with pytest.raises(HTTPException):
+        await verifier_transition_periode(db, match, PeriodeMatch.PROLONGATION_PREMIERE)
