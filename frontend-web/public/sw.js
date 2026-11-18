@@ -35,6 +35,9 @@ self.addEventListener("fetch", (e) => {
   if (req.method !== "GET") return;
   const url = new URL(req.url);
 
+  // Le statut des certificats (notamment une annulation) doit toujours venir du réseau.
+  if (/^\/api\/v1\/(?:admin\/)?certificats(?:\/|$)/.test(url.pathname)) return;
+
   if (url.origin !== self.location.origin) {
     if (/fonts\.(googleapis|gstatic)\.com$/.test(url.hostname)) {
       e.respondWith(

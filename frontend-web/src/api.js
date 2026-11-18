@@ -464,3 +464,11 @@ export async function uploadFichier(path, fichier) {
   }
   return data;
 }
+
+// Registre des distinctions : accès public en lecture, gestion réservée à l'admin.
+export const certificatsAPI = {
+  verifier: (code) => request(`/certificats/${encodeURIComponent(code)}`),
+  lister: () => request('/admin/certificats', {auth:true}),
+  creer: (body) => request('/admin/certificats', {method:'POST', body, auth:true}),
+  annuler: (code, motif) => request(`/admin/certificats/${encodeURIComponent(code)}/annuler`, {method:'POST', body:{motif}, auth:true}),
+};

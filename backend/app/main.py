@@ -15,6 +15,7 @@ from app.routes import (
     documents,
     auth,
     classement,
+    certificats,
     clubs,
     competitions,
     effectifs,
@@ -56,6 +57,7 @@ register_error_handlers(app)
 
 PREFIX = settings.api_v1_prefix
 app.include_router(auth.router, prefix=PREFIX)
+app.include_router(certificats.router, prefix=PREFIX)
 app.include_router(actualites.router, prefix=PREFIX)
 app.include_router(documents.router, prefix=PREFIX)
 app.include_router(competitions.router, prefix=PREFIX)

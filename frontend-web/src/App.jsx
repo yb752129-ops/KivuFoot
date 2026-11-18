@@ -5,6 +5,8 @@ import ChargementEcran from "./components/ChargementEcran.jsx";
 import OrgaLayout from "./components/OrgaLayout.jsx";
 import CollecteurLayout from "./components/CollecteurLayout.jsx";
 import Home from "./pages/Home.jsx";
+import CertificatVerification from "./pages/CertificatVerification.jsx";
+import AdminCertificats from "./pages/admin/Certificats.jsx";
 import Classement from "./pages/Classement.jsx";
 import Matchs from "./pages/Matchs.jsx";
 import PhaseFinale from "./pages/PhaseFinale.jsx";
@@ -55,7 +57,7 @@ import { isClubRole } from "./roles.js";
 function PorteChargement({ children }) {
   const { loading, error, competitions, reessayer } = useKivu();
   const pageInstallation = typeof window !== "undefined" && window.location.pathname === "/install";
-  if (pageInstallation) return children;
+  if (pageInstallation || /^\/certificats\//.test(window.location.pathname)) return children;
   if (loading) return <ChargementEcran />;
   if (error && competitions.length === 0) {
     return <ChargementEcran erreur={error} onRetry={reessayer} />;
@@ -90,6 +92,7 @@ export default function App() {
         <PorteChargement>
         <Routes>
           <Route path="/install" element={<Installation />} />
+          <Route path="/certificats/:code" element={<CertificatVerification />} />
           <Route element={<Layout />}>
             <Route path="/" element={<Home />} />
             <Route path="/classement" element={<Classement />} />
@@ -179,6 +182,7 @@ export default function App() {
             <Route path="audit" element={<AdminAudit />} />
             <Route path="propositions" element={<AdminPropositions />} />
             <Route path="comptes" element={<AdminComptes />} />
+            <Route path="certificats" element={<AdminCertificats />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

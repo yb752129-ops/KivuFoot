@@ -5,6 +5,7 @@ tables. Importer `app.models` suffit à charger l'intégralité du schéma.
 """
 from app.models.actualite import Actualite, ActualiteImage, ActualiteLecture, ActualiteLike, HommeMatch
 from app.models.audit import AuditLog
+from app.models.certificat import Certificat
 from app.models.club import Club
 from app.models.competition import Competition, OrganisateurCompetition, Saison, SaisonClub
 from app.models.document import DocumentOfficiel
